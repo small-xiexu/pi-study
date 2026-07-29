@@ -18,7 +18,7 @@
 
 | 项目 | 当前状态 | 证据 |
 |---|---|---|
-| 学习仓库 | 已准备，空仓库 | `/Users/sxie/xbk/pi-study` |
+| 学习仓库 | 已准备，当前以学习文档为主 | `/Users/sxie/xbk/pi-study` |
 | Git 远程 | 已配置 | `https://github.com/small-xiexu/pi-study.git` |
 | Node.js | 可用 | `v25.2.1` |
 | npm | 可用 | `11.6.2` |
@@ -45,8 +45,9 @@
 学习文档分工：
 
 - `docs/plans/pi-complete-learning-plan.md`：唯一进度与验收台账。
+- `docs/learning/README.md`：学习资料总索引和主题边界。
 - `docs/learning/00-environment-report.md`：本机环境和验证证据。
-- `docs/learning/pi-learning-notes.md`：持续更新的概念、命令、区别和安全边界。
+- `docs/learning/*.md`：按主题记录已经讲解的概念、命令、区别和安全边界；不重复维护进度。
 
 每个学习单元固定采用以下闭环：
 
@@ -99,11 +100,12 @@
   - 用户已准确说明：Node.js/npm、Git/回滚、独立仓库/沙箱，以及当前已验证与尚未验证的 Pi 能力。
   - 内容：Node.js、npm、Git、终端、Pi 安装状态和学习仓库隔离。
 - [ ] 0.2 建立 Pi 架构心智模型
-  - 进行中：0.2.1 整体分层和 0.2.6 Extension 理解验收已通过。
-  - 下一步：学习 0.2.2，拆解一次 Model 调用前由 Pi 组装的上下文。
+  - 进行中：0.2.1 整体分层和 0.2.6 Extension 理解验收已通过；正在学习 0.2.2 上下文组装。
+  - 下一步：完成 0.2.2 五类上下文来源及边界的理解验收。
   - [x] 0.2.1 理解 Pi 的整体分层、Coding Harness 定位及职责边界。
     - 验收：用户能准确区分 Pi 协调、Model 推理和 Tool 执行三类职责，并说明 Tool Call 还需经过注册表查找、Extension 事件和实际调度；已纠正 Session、Agent Loop/ReAct 和 Extension 必经性的术语边界。
   - [ ] 0.2.2 理解系统提示、项目指令、用户输入、Session 历史和工具定义如何组成模型上下文。
+    - 进行中：用户已通过三类请求盒子、`systemPrompt` 非强制边界、“Tool Result 加入 `messages` 后由 Model 推理”，以及“完整 Session 与活动路径 `messages`”的验收；正在学习 `messages` 的结构筛选、摘要有损边界和错误恢复，理解验收后进入 `tools` 盒子。
   - [ ] 0.2.3 区分 Provider、Model、认证与 API 协议在请求链路中的位置。
   - [ ] 0.2.4 理解 Agent Run、Turn、Tool Call、Tool Result 和循环终止条件。
   - [ ] 0.2.5 理解 Tool 的定义、参数校验、执行权限、结果返回和内置工具边界。
@@ -279,8 +281,9 @@
 
 - 状态：阶段 0 进行中；0.2 进行中，0.1、0.4、0.5 已完成。
 - 已完成：0.1、0.2.1、0.2.6、0.4、0.5；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存及退出状态均已验证。
+- 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 阻塞：无。
-- 下一步：学习 0.2.2，拆解一次 Model 调用前由 Pi 组装的上下文。
+- 下一步：完成 0.2.2 五类上下文来源及边界的理解验收。
 
 ### 阶段验收记录
 
