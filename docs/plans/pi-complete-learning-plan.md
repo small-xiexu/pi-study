@@ -9,8 +9,8 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 版本基线：`@earendil-works/pi-coding-agent@0.82.1`
 - 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
-- 当前阶段：阶段 0；0.2 进行中，0.1、0.4、0.5 已完成
-- 下一步：学习 0.2.2，理解模型上下文的组成、来源和边界
+- 当前阶段：阶段 0；0.1、0.2、0.4、0.5 已完成，0.3 进行中
+- 下一步：学习 0.3，区分 Project Trust、当前用户权限与真正的沙箱隔离
 - 预计总投入：60-85 小时；按验收结果推进，不按自然日宣称完成
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；预计 8-12 周
 
@@ -99,23 +99,29 @@
   - 验收证据：`docs/learning/00-environment-report.md`；四项理解题全部通过。
   - 用户已准确说明：Node.js/npm、Git/回滚、独立仓库/沙箱，以及当前已验证与尚未验证的 Pi 能力。
   - 内容：Node.js、npm、Git、终端、Pi 安装状态和学习仓库隔离。
-- [ ] 0.2 建立 Pi 架构心智模型
-  - 进行中：0.2.1 整体分层和 0.2.6 Extension 理解验收已通过；正在学习 0.2.2 上下文组装。
-  - 下一步：完成 0.2.2 五类上下文来源及边界的理解验收。
+- [x] 0.2 建立 Pi 架构心智模型
+  - 验收：0.2.1 至 0.2.8 全部通过；已完成一次真实 `read` 请求，并能口头串联从上下文组装、Model Tool Call、Tool 执行、二次 Model 请求到 Agent Run 收尾和 Session 保存的完整链路。
   - [x] 0.2.1 理解 Pi 的整体分层、Coding Harness 定位及职责边界。
     - 验收：用户能准确区分 Pi 协调、Model 推理和 Tool 执行三类职责，并说明 Tool Call 还需经过注册表查找、Extension 事件和实际调度；已纠正 Session、Agent Loop/ReAct 和 Extension 必经性的术语边界。
-  - [ ] 0.2.2 理解系统提示、项目指令、用户输入、Session 历史和工具定义如何组成模型上下文。
-    - 进行中：用户已通过三类请求盒子、`systemPrompt` 非强制边界、“Tool Result 加入 `messages` 后由 Model 推理”，以及“完整 Session 与活动路径 `messages`”的验收；正在学习 `messages` 的结构筛选、摘要有损边界和错误恢复，理解验收后进入 `tools` 盒子。
-  - [ ] 0.2.3 区分 Provider、Model、认证与 API 协议在请求链路中的位置。
-  - [ ] 0.2.4 理解 Agent Run、Turn、Tool Call、Tool Result 和循环终止条件。
-  - [ ] 0.2.5 理解 Tool 的定义、参数校验、执行权限、结果返回和内置工具边界。
+  - [x] 0.2.2 理解系统提示、项目指令、用户输入、Session 历史和工具定义如何组成模型上下文。
+    - 验收：用户能准确区分 `systemPrompt`、`messages`、`tools` 三盒，说明 Tool Result 进入后续 `messages`，并说明 `--tools read` 下 Model 看不到 `bash`、只负责产生可见 Tool 的 Tool Call，实际调度由 Pi 完成。
+  - [x] 0.2.3 区分 Provider、Model、认证与 API 协议在请求链路中的位置。
+    - 验收：用户能准确说明只更换服务入口和 API Key 时 Provider 配置需要改变；通信格式未变时 `openai-responses` 无需改变。
+  - [x] 0.2.4 理解 Agent Run、Turn、Tool Call、Tool Result 和循环终止条件。
+    - 验收：用户能区分一个 Run 内的多轮 Turn 和同轮多 Tool Call，说明错误 Tool Result 不会自动终止，并准确判断 `agent_settled` 只表示不再自动继续、与最终成功或失败无关。
+  - [x] 0.2.5 理解 Tool 的定义、参数校验、执行权限、结果返回和内置工具边界。
+    - 验收：用户能串联 Tool Call、名称查找、Schema 校验、可选门禁、Executor 和 Tool Result；能说明 Tool 继承当前系统用户权限，并准确区分 Model 只读 Tool 允许列表、用户 Shell、Extension 与进程沙箱。
   - [x] 0.2.6 理解 Extension 在事件、工具、命令、UI 和拦截链路中的位置。
     - 验收：用户正确理解 Extension 是可选插件层而非内置 Tool 的执行前提，能说明自定义 Tool 的注册和调度，并准确区分 Model `bash` Tool 的 `tool_call` 与用户 `!命令` 的 `user_bash` 两条门禁入口。
-  - [ ] 0.2.7 区分 Session、当前模型上下文、模型永久记忆和 Git 历史。
-  - [ ] 0.2.8 跟踪一次真实只读请求，画出端到端链路并完成口头验收。
+  - [x] 0.2.7 区分 Session、当前模型上下文、模型永久记忆和 Git 历史。
+    - 验收：用户能说明 Model 只依据 Pi 本次传入的有效上下文，`pi -c` 是重建 Session 上下文而非唤醒永久记忆；并准确判断 Session 只能辅助重建文件，可靠版本恢复依赖 Git Commit。
+  - [x] 0.2.8 跟踪一次真实只读请求，画出端到端链路并完成口头验收。
+    - 验收：命名 Session `0.2.8-read-trace` 仅向 Model 暴露 `read`；界面显示用户消息、Tool Call、完整 Tool Result 和最终文本。用户能准确复述上下文组装、Provider/API 协议适配、Model、名称查找、Schema、可选 Extension、Executor、Tool Result、第二个 Turn、最终文本、`agent_end`、`agent_settled` 与 Session 保存的顺序和产生方。
+    - 文档补充：已按 Pi 0.82.1 Agent Loop 实现记录 `stopReason` 与 Tool Call 的终止判断；无 Tool Call 不证明回答正确或完整。
   - 内容：Coding Harness、Provider、Model、Agent Loop、Tool、Extension、Session 的关系。
   - 验收：不看资料画出一次请求从用户输入到 Tool Result 再回到模型的链路。
 - [ ] 0.3 理解安全边界
+  - 进行中：先学习 Project Trust 只控制项目本地资源的加载，不等同于操作系统权限控制或沙箱。
   - 内容：Project Trust、当前用户权限、无内置沙箱、Prompt Injection、容器隔离。
   - 验收：能准确回答“信任项目后获得了什么”和“为什么它仍不是沙箱”。
 - [x] 0.4 选择认证与费用方案
@@ -279,11 +285,11 @@
 
 ### 当前断点
 
-- 状态：阶段 0 进行中；0.2 进行中，0.1、0.4、0.5 已完成。
-- 已完成：0.1、0.2.1、0.2.6、0.4、0.5；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存及退出状态均已验证。
+- 状态：阶段 0 进行中；0.1、0.2、0.4、0.5 已完成，0.3 进行中。
+- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.4、0.5；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存及退出状态均已验证。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 阻塞：无。
-- 下一步：完成 0.2.2 五类上下文来源及边界的理解验收。
+- 下一步：学习 Project Trust 允许加载什么，以及为什么它不等于沙箱。
 
 ### 阶段验收记录
 
@@ -291,7 +297,13 @@
 |---|---|---|---|---|
 | 2026-07-29 | 计划制定 | 已完成 | 官方文档范围核对、本机只读环境快照 | 等待用户开始阶段 0 |
 | 2026-07-29 | 0.1 本机环境体检 | 已完成 | `docs/learning/00-environment-report.md`；四项理解题全部通过 | 进入 0.4 数据/计费边界确认 |
-| 2026-07-29 | 0.2 Pi 架构心智模型 | 进行中 | 0.2.1 整体分层和 0.2.6 Extension 理解验收已通过；学习笔记已记录能力地图、流程图和边界 | 学习 0.2.2 上下文组装 |
+| 2026-07-31 | 0.2 Pi 架构心智模型 | 已完成 | 0.2.1 至 0.2.8 全部通过；用户已完成真实只读请求并复述完整 Agent Loop | 学习 0.3 安全边界 |
+| 2026-07-30 | 0.2.2 模型上下文三盒 | 已完成 | 用户独立完成三盒归属、Tool Result 去向、Tool 暴露范围及 Model/Pi 职责验收 | 学习 0.2.3 Provider、Model、认证与 API 协议 |
+| 2026-07-30 | 0.2.3 Provider 与 API 协议 | 已完成 | 用户准确判断：服务入口与 API Key 改变时 Provider 配置改变，Responses 格式未变时协议不变 | 学习 0.2.4 Agent Loop |
+| 2026-07-30 | 0.2.4 Agent Loop | 已完成 | 用户准确区分 Run、Turn、同轮多 Tool Call、错误 Tool Result 与终止条件，并纠正 `agent_settled` 等同成功的误解 | 学习 0.2.5 Tool 系统 |
+| 2026-07-31 | 0.2.5 Tool 系统 | 已完成 | 用户准确串联 Tool 生命周期，说明 Executor 与当前用户权限，并区分 Model Tool 只读、用户 Shell、Extension 和沙箱边界 | 学习 0.2.7 Session 与记忆边界 |
+| 2026-07-31 | 0.2.7 Session 与记忆边界 | 已完成 | 用户准确区分 Session 存档、当前上下文、模型永久记忆、工作区状态和 Git 历史，并说明各自的恢复边界 | 执行 0.2.8 端到端只读请求追踪 |
+| 2026-07-31 | 0.2.8 端到端只读请求追踪 | 已完成 | Session `0.2.8-read-trace` 的用户消息、Tool Call、完整 Tool Result 和最终文本均已展示；用户准确复述完整链路及 `agent_end`、`agent_settled` 的产生方 | 学习 0.3 安全边界 |
 | 2026-07-29 | 0.4 认证与费用方案 | 已完成 | 用户确认模型接入作为既定前提，学习调用费用不设上限；模型响应及凭据权限已验证 | 进入 0.2 架构心智模型 |
 | 2026-07-29 | 0.5 Pi CLI 安装 | 已完成 | `pi 0.82.1`、`fd 10.4.2`；模型响应、Session、退出状态、凭据权限及 Git 范围均已验证 | 进入 0.1 理解验收与 0.4 边界确认 |
 
