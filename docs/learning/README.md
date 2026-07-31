@@ -4,13 +4,15 @@
 
 学习进度、验收结论和下一步只以 [完整学习计划](../plans/pi-complete-learning-plan.md) 为准；主题文档不重复维护完成状态。
 
+本目录也是未来学习网站的唯一内容源。当前先完成 Pi 学习和本地实验，阶段 8 验收后再建设网站，不维护另一套网页专用笔记。
+
 ## 当前文档
 
 | 文档 | 内容 |
 |---|---|
 | [00-environment-report.md](00-environment-report.md) | 本机环境、版本、路径和已执行的验证证据 |
 | [01-architecture-and-context.md](01-architecture-and-context.md) | Pi、Provider、Model、Agent Loop、Tool、Session 的职责边界，以及 Model 上下文组装 |
-| [02-terminal-and-tools.md](02-terminal-and-tools.md) | 当前学习环境、基础工具、Pi 输入类型、退出方式和内置 Tool |
+| [02-terminal-and-tools.md](02-terminal-and-tools.md) | 当前学习环境、基础工具、Pi 输入类型、退出方式、内置 Tool 与安全边界 |
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 保存、恢复命令及其与 Git 的边界；后续继续记录 Tree 和 Compaction |
 | [06-extensions.md](06-extensions.md) | Extension 能力、注册与触发机制、Tool/Shell 门禁，以及 MCP 与 Subagent 的引入顺序 |
 
@@ -37,8 +39,9 @@
 - 环境报告只记录实际验证证据，不把计划项存在当成完成证据。
 - 一个知识点只在最合适的主题文档中完整说明，其他文档使用链接引用。
 - 主题变大时优先增加清晰的小节；只有职责明显不同且检索受影响时才继续拆分。
+- 每个成熟模块尽量保留原理、实验步骤、验证证据、结论与边界；网站只负责呈现这些内容。
 - 旧入口 `pi-learning-notes.md` 只保留迁移说明，不再追加正文。
-- 不记录 API Key、OAuth Token 或其他凭据。
+- 不记录 API Key、OAuth Token、原始 Session、个人敏感路径或未经脱敏的终端输出。
 
 ## 官方资料
 
