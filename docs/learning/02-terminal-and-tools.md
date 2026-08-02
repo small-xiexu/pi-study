@@ -59,6 +59,17 @@ Pi 没有内置沙箱。`bash`、`edit` 和 `write` 可以产生真实修改，�
 
 “只读”只表示不修改文件，不等于没有安全风险；`edit` 只比整文件 `write` 更精确，不等于自动正确；`bash` 可以通过 Shell 命令覆盖其他 Tool 的大量能力，因此仅隐藏 `write` 或 `edit` 不能在 `bash` 仍可用时构成只读边界。
 
+### 已验证的最小 Tool 实验
+
+| Session | 暴露给 Model 的 Tool | 实际结果 |
+|---|---|---|
+| `1.2-write` | `write` | 创建三行文件 `labs/1.2-tools/tool-lab.txt` |
+| `1.2-read` | `read` | 使用 `offset=2`、`limit=2`，只返回第 2-3 行 |
+| `1.2-edit` | `edit` | 将唯一文本 `mode=dev` 精确替换为 `mode=study`，Git diff 只有第 3 行变化 |
+| `1.2-bash` | `bash` | 执行 `pwd && git diff -- labs/1.2-tools/tool-lab.txt`，返回当前仓库和预期 diff，没有产生新修改 |
+
+这些证据只证明对应 Session 中的单次行为符合预期。`1.2-bash` 证明指定命令没有写入副作用，不代表 `bash` 是只读 Tool；这些实验也不代表 Tool 自动安全、修改内容一定正确或文件可以脱离 Git 精确恢复。
+
 ## TUI 四个区域
 
 | 区域 | 所在位置 | 主要内容 |
@@ -110,8 +121,8 @@ Project Trust 是“允许加载”的授权，不是“已经安全”的认证
 | `⌃D` | 输入框为空时退出 Pi | 否 | 已完成退出实验 |
 | `⌃V` | 粘贴剪贴板中的图片或文字 | 仅粘贴时不发送 | 已验证完整图片读取链路 |
 | `⇧Tab` | 循环切换当前 Model 支持的 Thinking Level | 否 | 已验证 |
-| `⌃L` | 打开 Model 选择器；等价于 `/model` | 否 | 阶段 1.3 验证 |
-| `⌃P` / `⇧⌃P` | 在 Scoped Models 中向前/向后切换 Model | 否 | 阶段 1.3 验证 |
+| `⌃L` | 打开 Model 选择器；等价于 `/model` | 否 | 已验证选择与恢复 Model |
+| `⌃P` / `⇧⌃P` | 在 Scoped Models 中向前/向后切换 Model | 否 | `⌃P` 已验证；反向切换待验证 |
 | `⌃T` | 展开或隐藏 Thinking 内容，不改变 Thinking Level | 否 | 阶段 1.3 验证 |
 | `⌥↩` | Agent 运行时排队 Follow-up 消息 | 是 | 阶段 1.5 验证 |
 
@@ -128,7 +139,60 @@ Footer 中的 `gpt-5.6-sol • medium` 分别表示当前 Model 和 Thinking Lev
 - 与 Model 一起指定：`pi --model openai/gpt-5.6-sol:high`。
 - 切换 Model：输入 `/model` 或按 `⌃L`；`⌃P` 和 `⇧⌃P` 只在已配置的 Scoped Models 中循环。
 
+#### 当前 Model、模型目录与 Scoped Models
+
+| 入口 | 作用 | 是否立即切换当前 Model |
+|---|---|---|
+| `/model` 或 `⌃L` | 浏览已配置 Provider 下的模型目录，并选择当前 Model | 确认选择后切换 |
+| `/scoped-models` | 配置哪些 Model 进入快速循环范围及其顺序 | 否；高亮、启用或排序不等于切换 |
+| 普通 TUI 中的 `⌃P` / `⇧⌃P` | 在 Scoped Models 中向前或向后切换当前 Model | 是 |
+
+`/scoped-models` 的 Model Configuration 使用以下按键：
+
+| 按键 | 作用 |
+|---|---|
+| `↩ Return` | 启用或禁用当前高亮 Model |
+| `⌃A` | 全部启用 |
+| `⌃X` | 全部禁用 |
+| `⌃P` | 在该配置界面内按 Provider 筛选；不是切换当前 Model |
+| `⌥↑` / `⌥↓` | 调整快速循环顺序 |
+| `⌃S` | 将范围保存到 settings |
+
+界面显示 `Session-only` 时，未按 `⌃S` 的调整只作用于当前 Session；`all enabled` 表示当前列出的 Model 全部在快速循环范围内。快捷键含义取决于所在界面：必须先退出 Model Configuration，普通 TUI 中的 `⌃P` 才表示快速切换 Model。
+
+本机 Pi `0.83.0` 已完成一次无消息切换实验：
+
+1. `/scoped-models` 显示 38 个 Model，状态为 `all enabled`。
+2. 配置界面高亮 `gpt-4` 时，Footer 仍是 `gpt-5.6-sol • max`，证明浏览或配置范围不会切换当前 Model。
+3. 退出配置界面后按一次 `⌃P`，Pi 显示 `Switched to GPT-5.6 Terra (thinking: xhigh)`，Footer 更新为 `gpt-5.6-terra • xhigh`。
+4. 切换过程没有发送用户消息，也没有发起 Model 请求；Session 名称保持不变。
+5. 使用 `⌃L` 重新选择 `gpt-5.6-sol` 后，Footer 恢复为 `gpt-5.6-sol • max`。
+
+这次实验还说明 Thinking Level 不一定在不同 Model 之间保持相同：切到 Terra 时为 `xhigh`，恢复 Sol 时为 `max`。每次切换后都应检查 Footer，再决定是否发送下一条消息。
+
 Thinking Level 只影响后续 Model 请求的推理强度，通常也会影响响应时间和 Token 使用；它不改变 Tool 列表、Executor 权限或安全边界。本机 Pi `0.83.0` 已实测 `⇧Tab` 能切换 Footer 显示的 Thinking Level。
+
+### Footer：Session 累计与当前上下文
+
+Footer 中的 Token 信息分为两套统计，不能混为一谈：
+
+| 示例 | 统计范围 | 含义 |
+|---|---|---|
+| `↑10k` | 整个 Session 累计 | 累计输入 Token；同一段历史在多次 Model 请求中重复发送时会重复计入 |
+| `↓146` | 整个 Session 累计 | 累计输出 Token；Provider 报告的 Reasoning Token 已包含在输出统计中 |
+| `R...` / `W...` | 整个 Session 累计 | Prompt Cache 的累计读取和写入 Token；没有缓存用量时不显示 |
+| `CH...%` | 最近一次 Model 响应 | 最近一次请求的 Prompt Cache 命中率，不是整个 Session 的累计比例 |
+| `$0.055` | 整个 Session 累计 | Pi 根据使用量和模型价格元数据统计的成本，不等同于服务商最终账单 |
+| `1.9%/272K` | 当前有效上下文 | 当前上下文估算值约占当前 Model Context Window 的 `1.9%`；`272K` 是窗口容量 |
+| `(auto)` | 当前 Session 设置 | 自动 Compaction 已启用，不表示正在压缩，也不表示自动选择 Model 或 Thinking Level |
+
+累计统计会遍历整个 Session，包括已经被压缩的历史，以及带用量数据的 Assistant Response、Tool Result、Compaction 和 Branch Summary。它属于 Session，不属于某个终端窗口：关闭 Pi 后恢复同一个 Session，累计统计仍可继续。
+
+当前上下文用量是 Pi 用于 Footer 和 Compaction 判断的估算值。它优先采用最近一次有效 Model 响应的用量，并估算其后的新增消息。`1.9%/272K` 约等于当前有效上下文 `5.2K Token`；显示值经过缩写和四舍五入，因此不是精确整数。切换到 Context Window 不同的 Model 后，即使消息没有变化，分母和占用比例也可能变化。
+
+多轮请求会反复携带有效历史，所以 Session 累计输入达到 `10K`、当前上下文只有约 `5.2K` 并不矛盾。发生 Compaction 后，Pi 用摘要替代较早消息，并在后续请求中发送“摘要 + 保留的近期消息”：当前上下文比例通常下降，刚压缩完还可能暂时显示 `?/272K`；`↑`、`↓`、缓存和费用等累计值不会回退，生成摘要本身还可能继续增加这些累计值。
+
+本机 Pi `0.83.0` 的综合验收已通过：用户能够区分 Session 累计用量和当前上下文用量，说明 Compaction 前后的显示变化，并准确解释 `(auto)` 的边界。
 
 ## 输入类型与退出
 
@@ -139,6 +203,101 @@ Thinking Level 只影响后续 Model 请求的推理强度，通常也会影响�
 | `/命令` | 由 Pi 自身执行 | `/quit`、`/model`、`/session` |
 | `!命令` | 执行 Shell，并把输出发送给模型 | `!pwd` |
 | `!!命令` | 执行 Shell，但不把输出发送给模型 | `!!git status` |
+
+### 三条 Shell 执行路径
+
+| 路径 | 谁发起执行 | 是否要求向 Model 暴露 `bash` Tool | 后续 Model 能否看到 | Extension 介入点 |
+|---|---|---|---|---|
+| 用户输入 `!命令` | Pi 的交互式用户 Shell 入口 | 不要求 | 能看到命令和结果，但不会仅因命令执行完就自动请求 Model | `user_bash` |
+| 用户输入 `!!命令` | Pi 的交互式用户 Shell 入口 | 不要求 | 看不到这条 Shell 消息；结果仍会显示在本地 TUI，并保存在 Session 中 | `user_bash` |
+| Model 请求 `bash` Tool | Model 先返回 Tool Call，再由 Pi 调度本地 Executor | 要求；`bash` 必须出现在本次请求的 Tool 列表中 | 能在下一轮收到 Tool Result | `tool_call` 等 Tool 生命周期事件 |
+
+因此，`--no-tools` 只会让 Model 看不到并且无法主动请求 Tool，不会禁用用户输入的 `!` 或 `!!`。`!!` 的“隐藏”只表示该 Shell 消息在组装 Model 上下文时被过滤，不表示结果没有显示、没有保存或对 Extension 保密。
+
+三条路径最终都在 Pi 进程拥有的当前系统用户权限下运行。它们不是沙箱；要真正限制文件、进程和网络能力，仍需操作系统权限、受限用户、容器或虚拟机等系统级隔离。
+
+本机 Pi `0.83.0` 已完成一次 `--no-tools` 对照实验：普通 `!` 和隐藏上下文的 `!!` 都成功执行并在 TUI 显示输出；随后发起的普通 Model 请求只准确复述了 `!` 的 marker，没有复述 `!!` 的 marker，且整个过程没有 Model Tool Call。这证明的是 Model 上下文过滤差异，不代表 `!!` 的命令或结果没有在本地执行和保存。
+
+### 取消正在运行的用户 Shell
+
+在本机 Pi `0.83.0` 的默认本地 Shell 后端中，用户 Shell 运行时按 `Esc`（Escape）会触发 Pi 的 `abortBash()`。Pi 通过取消信号终止默认本地进程组，TUI 随后把该 Bash 消息标记为 `cancelled`；这条记录仍会保存在 Session 中，取消不等于删除执行历史。
+
+不要把 `⌃C` 当成本实验的 Shell 取消键：Pi 的默认交互键位中，`⌃C` 用于清空 Editor，连续两次可退出。取消只保证阻止尚未发生的后续执行，不能回滚命令在取消前已经产生的副作用；如果 Extension 通过 `user_bash` 替换了默认执行后端，是否能真正终止远端或自定义任务，还取决于该后端是否正确处理取消信号。
+
+本机实测已验证默认后端的取消行为：在 Session `1.4-user-shell` 中执行 `!sleep 30 && printf 'SHOULD_NOT_PRINT\\n'`，等待期间按 `Esc` 后，TUI 显示 `(cancelled)`，`SHOULD_NOT_PRINT` 没有出现，Editor 随即恢复可输入状态。因为 `&&` 右侧命令尚未开始，这证明取消信号阻止了后续命令；它仍不能证明取消能够撤销左侧命令在中止前已经产生的副作用。
+
+### Model 请求的自动重试
+
+Pi 的 Agent 级自动重试针对 Model/Provider 的瞬时错误，不负责重跑失败的 Tool 或用户 Shell。当前设置没有覆盖 `retry`，因此本机 Pi `0.83.0` 使用默认值：启用自动重试，最多重试 3 次，基础等待 2 秒，按指数退避依次等待 2、4、8 秒。这里的“3 次”不包含最初请求，所以最多会产生 4 次 Model 请求。
+
+| 失败场景 | Pi 的主要处理 |
+|---|---|
+| Provider 过载、限流、`429`、`5xx`、网络中断或超时 | 等待后重新发起失败的 Model 请求 |
+| 配额、余额或计费耗尽，认证失败，Model ID 不存在 | 视为确定性错误，不做 Agent 级自动重试 |
+| Schema 校验、Tool Executor 或 Bash 失败 | 形成错误 Tool Result；由下一轮 Model 决定是否换参数再次调用，不是 Pi 自动重跑 Tool |
+| Context Overflow | 走独立的 Compaction 恢复路径；压缩成功后最多恢复原请求一次 |
+
+#### 两种容易和 Model 请求失败混淆的情况
+
+`bash` Tool 的退出码是 Shell 进程执行完成后交回的结果。通常 `0` 表示命令成功，非 `0` 表示命令没有按成功路径结束；`1` 是常见的通用失败值，具体原因仍由对应命令定义。此时失败的是已经执行过的 Tool，不是 Pi 发给 Provider 的 Model 请求。Pi 会把命令输出和失败状态组成 Tool Result 交给 Model，由 Model 决定解释错误、修改参数或产生新的 Tool Call；Pi 不会按 2/4/8 秒策略自动重跑原命令。即使 Model 后来主动选择再次调用，也属于 Agent Loop 中的新决策，不是自动重试。
+
+Context Overflow 表示 Pi 为一次 Model 请求组装的系统提示、消息、Tool 定义和 Tool Result 等内容，超过了当前 Model 的 Context Window。原样等待几秒再发送仍然会过大，所以它不走普通瞬时错误重试。Pi 会尝试先做 Compaction，用摘要替代较早历史并保留近期消息，再用缩小后的上下文恢复原请求一次。Compaction 是有损摘要，不等于删除 Session 存档，也不能保证所有早期细节仍存在于后续 Model 的有效上下文中。
+
+重试等待期间，TUI 会显示类似 `Retrying (1/3) in 2s... (Esc to cancel)`。`1/3` 表示第一次重试、最多三次重试，不包含最初请求；此时按 `Esc` 会取消尚未发出的下一次 Model 请求。已经完成的 Tool 或 Shell 不会因此被回滚或再次执行。
+
+简化流程为：`Model 请求失败 -> Pi 判断是否为瞬时错误 -> 等待 2/4/8 秒 -> 重新请求 Model -> 成功或耗尽重试次数`。错误分类主要依赖错误文本匹配，因此它是恢复机制，不是业务正确性或幂等性保证。
+
+本机受控实验使用离线、禁网和独立配置目录运行的临时假 Provider，固定返回规范化的 `503 Service Unavailable`。真实 Pi TUI 连续显示 4 次失败，最后显示 `Retry failed after 3 attempts`；请求日志中的相邻间隔约为 `2.005s`、`4.004s`、`8.003s`。这验证了 Pi 收到规范化瞬时错误后的默认重试次数和指数退避，不验证真实 HTTP SDK 如何把远端状态码转换为错误消息。
+
+取消实验为了留出稳定按键时间，只在隔离配置中把基础等待临时改为 10 秒；这不是 Pi 默认值。第一次 `503` 后按 `Esc`，TUI 显示 `Retry failed after 1 attempts: Retry cancelled`，独立日志也只有第一次请求，证明等待中的下一次 Model 请求没有发出。取消不会撤销已经完成的第一次请求，也不会回滚该请求可能已经产生的外部副作用。
+
+### Steering 与 Follow-up：运行中追加消息
+
+#### 为什么需要两种消息
+
+先看一项没有插话的正常任务。用户说“检查登录问题，找到原因后修改、测试并汇报”，Pi 随后在 Model 请求和 Tool 执行之间循环，直到 Model 不再请求 Tool、返回最终文本；如果也没有重试、Compaction 或排队消息，整个处理才进入 `agent_settled`。
+
+Pi 工作期间，用户的新消息可能表达两种完全不同的意思：
+
+- “当前方向不对，后面的步骤请改一下。”这是 Steering。
+- “当前任务照常完成，完成后再帮我做另一件事。”这是 Follow-up。
+
+如果两种意思共用一个队列，Pi 就无法判断新消息应当改变当前任务，还是等当前任务完成后再处理，因此需要分开。
+
+#### 从任务开始到结束的完整例子
+
+原任务仍然是：“检查登录问题，找到原因后修改、测试并汇报。”Pi 已经开始读取文件或运行检查。
+
+这时如果用户输入“先不要修改代码，只告诉我问题在哪里”，并在 Agent 仍在运行时按 `↩ Return`：
+
+1. Pi 把它放进 Steering 队列。
+2. Pi 不会强行中断当前正在进行的 Model 请求，也不会中断当前 Assistant Turn 已经开始执行的 Tool Call。
+3. 当前 Assistant Turn 的 Tool Call 全部结束后、下一次请求 Model 之前，Pi 把这条新要求加入上下文。
+4. Model 根据“已有结果 + 新要求”调整剩余步骤，不再继续修改，只汇报问题位置。
+5. 已经执行过的命令、已经完成的写入或其他副作用不会因为 Steering 自动撤销。
+
+这就是 Steering：**当前任务继续，但从下一个可调整点开始改变剩余方向。**
+
+如果用户输入“登录问题处理完后，再列出三条后续风险”，并在 Agent 仍在运行时按 `⌥↩`（Option+Return）：
+
+1. Pi 把它放进 Follow-up 队列。
+2. 当前登录问题任务继续，不会因为这条消息立刻改方向。
+3. 当当前任务已经没有 Tool Call 和 Steering、原本准备停下来时，Pi 才取出 Follow-up。
+4. Pi 将 Follow-up 作为后续用户消息交给 Model，继续处理“列出三条风险”。
+5. 所有 Follow-up 都处理完成，并且没有重试、Compaction 或其他排队消息后，Session 级运行才真正进入 `agent_settled`。
+
+这就是 Follow-up：**当前任务先照常收尾，新任务排在它后面自动继续。**
+
+| 对比项 | Steering | Follow-up |
+|---|---|---|
+| 用户意图 | 调整当前任务剩余步骤 | 当前任务结束后再做一件事 |
+| 运行中快捷键 | `↩ Return` | `⌥↩`（Option+Return） |
+| 投递时机 | 当前 Assistant Turn 的 Tool Call 结束后、下一次 Model 请求前 | 当前任务没有 Tool Call 和 Steering、原本准备停止时 |
+| 是否强行打断当前动作 | 否 | 否 |
+| 是否撤销已发生的副作用 | 否 | 否 |
+| 对结束状态的影响 | 可能让当前 Agent Loop 按新方向继续 | 队列未处理完时不能算 `agent_settled` |
+
+一句话判断：**要改“现在这件事后面怎么做”，用 Steering；要说“这件事做完以后再做什么”，用 Follow-up。** 这是消息投递顺序，不是取消、事务或回滚机制。
 
 交互式 `@文件` 的验证分两层：路径出现在草稿中，只证明文件搜索和路径插入成功；提交消息后出现对应的 `read` Tool Call，才证明文件被实际读取。CLI 启动参数中的 `@文件` 会由 Pi 主动附加文件内容，和交互式路径引用不是同一种行为。
 
