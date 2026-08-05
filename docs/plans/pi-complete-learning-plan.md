@@ -9,8 +9,8 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 版本基线：`@earendil-works/pi-coding-agent@0.83.0`
 - 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
-- 当前阶段：阶段 1；阶段 0、1.1、1.2、1.3 和 1.4 已完成，1.5 进行中
-- 下一步：继续 1.5；完整大白话时机地图已理解，下一步进行无文件修改的安全队列实验
+- 当前阶段：阶段 0 和阶段 1 已完成；阶段 2 尚未开始
+- 下一步：进入 2.1；先建立全局配置、项目配置与启动参数的合并规则和优先级地图
 - 预计投入：Pi 学习与综合项目 60-85 小时；学习网站另计 8-12 小时；按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
@@ -195,10 +195,25 @@
   - 完整退避实验证据：用户在真实 Pi TUI 中触发本地假 `503`；界面连续显示 4 条 `503 Service Unavailable`，最终显示 `Retry failed after 3 attempts`。请求日志时间点为 `5.164s`、`7.169s`、`11.173s`、`19.176s`，相邻间隔分别约为 `2.005s`、`4.004s`、`8.003s`，证明“首次请求 1 次 + 最多重试 3 次”和默认指数退避均按预期发生。实验后仓库变更范围未增加。
   - 重试取消实验证据：为留出稳定按键时间，隔离探针只在本次实验中将基础等待改为 10 秒；用户在第一次 `503` 后按 `Esc`，TUI 显示 `Retry failed after 1 attempts: Retry cancelled`，Editor 恢复可输入状态。独立请求日志只有 `attempt: 1`，证明等待中的下一次 Model 请求没有发出。该取消只阻止未来重试，不会撤销首次请求，也不能回滚首次请求已经产生的外部副作用；实验后仓库变更范围未增加。
   - 综合验收：用户准确区分 Provider 瞬时错误、Tool 失败和 Context Overflow 三条恢复路径，并说明等待 `503` 重试时按 `Esc` 只取消尚未发出的下一次重试，不会撤销首次请求或回滚其副作用。
-- [ ] 1.5 掌握 Steering 与 Follow-up 消息的差异和队列行为。
-  - 进行中：第一遍系统地图已按“原任务开始 -> 运行中追加消息 -> Pi 投递 -> 最终结束”的完整场景讲解；用户已能理解 Steering 调整当前任务的剩余步骤，Follow-up 等当前任务原本要停止时再处理。下一步进行无文件修改的本地队列实验，尚未验收实际队列行为。
-- [ ] 1.6 掌握 Print、JSON 等非交互模式的适用边界。
-- [ ] 1.7 独立完成一次“分析 -> 修改 -> 测试 -> 查看 diff -> 总结”的小任务。
+- [x] 1.5 掌握 Steering 与 Follow-up 消息的差异和队列行为。
+  - 已完成：系统地图、Steering 与 Follow-up 对照实验及模块综合复述均已通过。
+  - Steering 证据：Session `1.5-steering` 的 Bash Tool 持续运行约 `20.8s` 并正常返回 `ORIGINAL_TOOL_DONE`；运行期间按普通 `↩ Return` 排队的新要求未中断 Tool，在 Tool 结束后进入下一次 Model 请求，最终输出由 `ORIGINAL_FINAL` 改为 `STEERING_APPLIED`。
+  - Steering 理解验收：用户已确认理解“不会被打断的是已开始的 Tool，不是尚未生成的最终回答”；Steering 在 Tool 结束后的下一次 Model 请求前生效，因此旧的未来回答不会先输出。
+  - Follow-up 证据：Session `1.5-follow-up` 的 Bash Tool 持续运行约 `20.0s` 并返回 `PRIMARY_TOOL_DONE`；运行期间使用 `⌥↩` 排队后续要求，TUI 随后依次出现 `PRIMARY_FINAL`、后续用户消息和 `FOLLOW_UP_APPLIED`，证明当前任务先正常收尾，Follow-up 才作为后续用户消息进入 Model。
+  - 综合验收：用户能准确说明 Steering 不会中断已经开始的测试，会在 Tool 完成后把 Tool Result 与新要求一起交给 Model；并能说明 Follow-up 处理完成且 Pi 已无其他自动续行动作后，才进入 `agent_settled`。
+- [x] 1.6 掌握 Print、JSON 等非交互模式的适用边界。
+  - 已完成：系统地图、Interactive/Print/JSON 对照实验、源码定位和模块综合复述均已通过。
+  - Interactive 实验证据：用户以 `--no-tools --no-session` 等隔离参数启动默认 TUI，Model 返回 `MODE_OK` 后底部 Editor 仍保持可输入，Pi 进程未自动退出；已验证 Interactive 面向持续交互的生命周期行为。
+  - Print 实验证据：用户以相同隔离参数和 `-p` 执行单次任务，终端只显示最终文本 `MODE_OK`，随后自动返回 zsh 的 `%` 提示符；已验证 Print 不启动持续 TUI，并在最终文本后退出。
+  - JSON 实验证据：用户以相同隔离参数和 `--mode json` 执行单次任务，终端逐行输出 `session`、`agent_start`、`turn_start`、`message_*`、`turn_end`、`agent_end`、`agent_settled` 等 JSON 对象；最终文本 `MODE_OK` 位于消息事件中，随后自动返回 zsh 的 `%` 提示符。已验证 JSON 是完整 JSONL 事件流，而不是要求 Model 将业务答案改成 JSON。
+  - 源码定位证据：本机 Pi 0.83.0 的 `dist/main.js` 由 `resolveAppMode()` 选择运行外壳；Interactive 创建并运行 `InteractiveMode`，Print 和 JSON 共用 `runPrintMode()`。`dist/modes/print-mode.js` 中，Print 提取最后一条 Assistant Message 的文本，JSON 则订阅并逐行序列化完整 Session 事件；两者最终都会释放 Runtime 并退出。
+  - 综合验收：用户准确说明三种模式共享同一个 Agent 核心；Interactive 面向人并持续等待输入，Print 面向人或 Shell 脚本并在最终文本后退出，JSON 面向程序、自定义界面或日志系统并在完整 JSONL 事件流后退出；同时说明运行模式不决定文件修改能力。
+- [x] 1.7 独立完成一次“分析 -> 修改 -> 测试 -> 查看 diff -> 总结”的小任务。
+  - 已完成：单文件完整操作、仓库侧核对和用户综合复述均已通过。
+  - 操作证据：Session `1.7-workflow` 的 TUI 依次显示 `read -> edit -> bash（测试）-> bash（查看 diff）`；测试输出 `TEST_OK`，限定 Git diff 只包含 `status=created -> status=verified`，最终总结准确报告 Tool 顺序、测试、差异范围及未提交、未推送。
+  - 仓库证据：`labs/1.2-tools/tool-lab.txt` 仍为三行，第二行为 `status=verified`；目标文件的 Git diff 只有上述单行替换。课程文档在实验前已有未提交修改，不能把全局 dirty 状态归因于本次 Agent Run。
+  - 安全边界：启动时项目未受信任，但项目资源已显式关闭，内置 Tool 链路不受影响；`--tools read,edit,bash` 和任务提示词仍不是沙箱，实验的可控性来自独立仓库、冻结范围、精确测试与 Git 审查。
+  - 综合验收：用户准确说明 `edit` 成功只代表工具操作完成，Tool Result 仍需进入后续 Messages 交给 Model 决定下一步；测试用于证明修改满足要求，Git diff 用于证明没有额外改动，最终总结用于向用户报告操作顺序、验证结果和未执行事项。
 
 验收证据：操作记录、关键输出、Git diff、测试结果和用户对工具调用过程的口头复述。
 
@@ -351,14 +366,14 @@
 
 ### 当前断点
 
-- 状态：阶段 0 已完成；阶段 1 进行中，1.1、1.2、1.3 和 1.4 已完成，1.5 进行中。
-- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试均已验证。
+- 状态：阶段 0 和阶段 1 已完成；阶段 2 尚未开始。
+- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式，以及完整的分析、修改、测试、diff、总结闭环均已验证。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”；抽象机制先用有起点、过程和终点的完整大白话场景，再回到术语、快捷键和真实边界；用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无。
-- 下一步：继续 1.5；完整大白话时机地图已理解，进行无文件修改的安全队列实验。`⇧⌃P` 反向切换尚未单独验证，但不阻塞后续课程。
+- 下一步：进入 2.1；先建立全局配置、项目配置与启动参数的合并规则和优先级地图。`⇧⌃P` 反向切换尚未单独验证，但不阻塞后续课程。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录
@@ -373,6 +388,9 @@
 | 2026-07-31 | 1.2 内置 Tool 行为与风险 | 已完成 | `write`、分段 `read`、精确 `edit` 和无副作用 `bash` 均完成独立实验；用户通过最小 Tool 选择、Schema、安全边界和 Git 恢复综合验收 | 学习 1.3 模型与上下文状态 |
 | 2026-07-31 | 1.3 Model、Thinking 与上下文状态 | 已完成 | 用户实测 Thinking Level、Model 选择器、Scoped Models、`⌃P` 切换与 `⌃L` 恢复，并准确区分 Footer 的 Session 累计用量、当前上下文和自动 Compaction | 学习 1.4 Shell、取消与重试 |
 | 2026-08-01 | 1.4 Shell、取消与重试 | 已完成 | 用户实测 `!`/`!!` 上下文差异、Shell 取消、本地假 `503` 的 `2/4/8` 秒退避和等待取消，并准确复述 Provider、Tool、Context Overflow 与取消边界 | 学习 1.5 Steering 与 Follow-up |
+| 2026-08-03 | 1.5 Steering 与 Follow-up | 已完成 | 用户实测两类运行中消息队列，并准确复述 Steering 不打断已开始 Tool、Follow-up 完成前不能进入 `agent_settled` | 学习 1.6 非交互模式 |
+| 2026-08-04 | 1.6 Interactive、Print 与 JSON | 已完成 | 用户完成相同任务的三模式对照实验，确认 JSONL 事件链，并结合源码准确复述输出消费者、退出行为和权限边界 | 学习 1.7 完整任务闭环 |
+| 2026-08-05 | 1.7 完整任务闭环 | 已完成 | Session `1.7-workflow` 已完成 `read -> edit -> bash 测试 -> bash diff -> 总结`；`TEST_OK`、三行结构和单行目标 diff 均已核对；用户准确复述 Tool Result、测试、diff 与总结的职责 | 进入 2.1 配置合并与优先级 |
 | 2026-07-29 | 0.1 本机环境体检 | 已完成 | `docs/learning/00-environment-report.md`；四项理解题全部通过 | 进入 0.4 数据/计费边界确认 |
 | 2026-07-31 | 0.2 Pi 架构心智模型 | 已完成 | 0.2.1 至 0.2.8 全部通过；用户已完成真实只读请求并复述完整 Agent Loop | 学习 0.3 安全边界 |
 | 2026-07-30 | 0.2.2 模型上下文三盒 | 已完成 | 用户独立完成三盒归属、Tool Result 去向、Tool 暴露范围及 Model/Pi 职责验收 | 学习 0.2.3 Provider、Model、认证与 API 协议 |

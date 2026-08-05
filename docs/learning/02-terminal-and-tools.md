@@ -110,7 +110,7 @@ Project Trust 是“允许加载”的授权，不是“已经安全”的认证
 
 | 快捷键 | 功能 | 是否发送消息 | 本机状态 |
 |---|---|---|---|
-| `↩ Return` | 提交当前草稿；Agent 运行中时按消息队列规则处理 | 是 | 已验证 |
+| `↩ Return` | 提交当前草稿；Agent 运行中时按消息队列规则处理 | 是 | 普通提交与运行中 Steering 均已验证 |
 | `⇧↩` 或 `⌃J` | 在草稿中换行 | 否 | 已验证多行输入 |
 | `⌃A` | 光标移到行首 | 否 | 已验证 |
 | `⌃E` | 光标移到行尾 | 否 | 已验证 |
@@ -124,7 +124,7 @@ Project Trust 是“允许加载”的授权，不是“已经安全”的认证
 | `⌃L` | 打开 Model 选择器；等价于 `/model` | 否 | 已验证选择与恢复 Model |
 | `⌃P` / `⇧⌃P` | 在 Scoped Models 中向前/向后切换 Model | 否 | `⌃P` 已验证；反向切换待验证 |
 | `⌃T` | 展开或隐藏 Thinking 内容，不改变 Thinking Level | 否 | 阶段 1.3 验证 |
-| `⌥↩` | Agent 运行时排队 Follow-up 消息 | 是 | 阶段 1.5 验证 |
+| `⌥↩` | Agent 运行时排队 Follow-up 消息 | 是 | 已验证 |
 
 完整默认键位随 Pi 版本变化，以 `/hotkeys` 和本机安装包的 `docs/keybindings.md` 为准。本文只保留课程使用的常用键位及实测状态。
 
@@ -278,6 +278,8 @@ Pi 工作期间，用户的新消息可能表达两种完全不同的意思：
 
 这就是 Steering：**当前任务继续，但从下一个可调整点开始改变剩余方向。**
 
+因此，如果 Steering 到达时测试命令已经由 Bash Tool 启动，Pi 会让这次测试正常结束；拿到 Tool Result 后，再把“测试结果 + Steering 新要求”放进下一次 Model 请求。Steering 不会杀掉正在运行的测试，也不会撤销测试前已经完成的文件修改。
+
 如果用户输入“登录问题处理完后，再列出三条后续风险”，并在 Agent 仍在运行时按 `⌥↩`（Option+Return）：
 
 1. Pi 把它放进 Follow-up 队列。
@@ -299,11 +301,99 @@ Pi 工作期间，用户的新消息可能表达两种完全不同的意思：
 
 一句话判断：**要改“现在这件事后面怎么做”，用 Steering；要说“这件事做完以后再做什么”，用 Follow-up。** 这是消息投递顺序，不是取消、事务或回滚机制。
 
+#### Steering 本机实测
+
+Session `1.5-steering` 只向 Model 暴露 `bash`。原任务要求执行 `sleep 20 && printf 'ORIGINAL_TOOL_DONE\\n'`，Tool 完成后输出 `ORIGINAL_FINAL`；绿色 Bash 正在等待时，用户输入“不要输出 `ORIGINAL_FINAL`，只输出 `STEERING_APPLIED`”并按普通 `↩ Return`。
+
+TUI 显示 Bash 没有被中断，约 `20.8s` 后正常返回 `ORIGINAL_TOOL_DONE`；随后队列中的新要求出现在消息区，Model 最终输出 `STEERING_APPLIED`。这验证了 Steering 会等待当前 Assistant Turn 已经开始的 Tool Call 结束，再影响下一次 Model 请求和当前任务的剩余回答。它没有取消 Tool，也不代表能撤销 Tool 已经产生的副作用。
+
+这里“不会打断”只针对已经开始的 Tool，不代表原任务中尚未生成的最终文本必须先输出。`ORIGINAL_FINAL` 在 Tool 结束后的下一次 Model 请求前还不存在，而 Steering 正是在这次请求前加入上下文，因此 Model 会直接按新要求生成 `STEERING_APPLIED`。
+
+#### Follow-up 本机实测
+
+Session `1.5-follow-up` 只向 Model 暴露 `bash`。原任务要求 Bash 等待约 20 秒后返回 `PRIMARY_TOOL_DONE`，再由 Model 输出 `PRIMARY_FINAL`；绿色 Bash 正在等待时，用户输入“当前任务完成后，再只输出 `FOLLOW_UP_APPLIED`”并按 `⌥↩`（Option+Return）。
+
+TUI 按顺序显示 `PRIMARY_TOOL_DONE`、`PRIMARY_FINAL`、后续用户消息和 `FOLLOW_UP_APPLIED`。这证明 Follow-up 不会进入当前任务的剩余推理并改写 `PRIMARY_FINAL`，而是等当前任务正常收尾后，再作为后续用户消息交给 Model。队列里仍有 Follow-up 时，整个 Session 还不能进入最终的 `agent_settled`。
+
+判断 `agent_settled` 时，不能只看当前任务是否已经输出最终文本，而要看 Pi 后面是否还会自动继续。在上述实验中，出现 `PRIMARY_FINAL` 时，Follow-up 队列里仍有消息，所以还没有 settled；只有 `FOLLOW_UP_APPLIED` 处理完成，并且没有 Tool Call、Steering、Follow-up、自动重试或 Compaction 恢复等后续动作时，才进入 `agent_settled`。
+
+## Interactive、Print 与 JSON
+
+三种模式使用同一个 Pi Agent 核心，都会组装上下文、请求 Model，并在 Model 产生 Tool Call 时执行已启用的 Tool。它们的主要差别不是“有没有 Agent 能力”，而是**谁来消费输出，以及进程什么时候退出**。
+
+```mermaid
+flowchart LR
+    A["用户任务"] --> B["同一个 Pi Agent Loop"]
+    B --> C["Interactive: TUI 持续交互"]
+    B --> D["Print: 最终文本后退出"]
+    B --> E["JSON: JSONL 事件流后退出"]
+```
+
+| 模式 | 入口 | 输出 | 主要使用者 | 任务完成后 |
+|---|---|---|---|---|
+| Interactive | 默认运行 `pi` | TUI 中的人类可读消息、Tool 状态和交互控件 | 人 | 保持运行，等待下一条输入 |
+| Print | `pi -p` 或 `pi --print` | 人类可读的最终回答 | Shell 脚本或只需要最终文本的人 | 自动退出 |
+| JSON | `pi --mode json` | 每行一个 JSON 对象的完整事件流，例如 Session header、`agent_start`、消息和 Tool 执行事件 | 程序、日志处理器或自定义 UI | 自动退出 |
+
+准确边界：
+
+- Print 和 JSON 只是非交互输入输出模式，不会自动关闭 Tool，也不会形成沙箱；是否能读取、写入、执行命令仍由启用的 Tool、Extension 门禁和操作系统权限决定。
+- `--mode json` 表示“Pi 用 JSONL 报告内部事件”，不等于要求 Model 的最终业务回答必须是 JSON。
+- 非交互模式不会显示 Project Trust 询问；没有已保存的适用决策时，按全局 `defaultProjectTrust` 处理，也可以用 `--approve` 或 `--no-approve` 为本次运行明确覆盖。
+- 是否保存 Session 是另一条独立开关；需要临时运行时还要显式使用 `--no-session`。
+- `--mode rpc` 面向可持续双向控制的外部程序，留到阶段 7 与 SDK、RPC 一起学习。
+
+### 三种模式本机对照与源码主线
+
+三次实验都使用相同任务“只回复 `MODE_OK`，不要解释”，并关闭 Tool、Session 和项目资源，观察到的差别如下：
+
+| 模式 | 本机证据 | 结束行为 |
+|---|---|---|
+| Interactive | TUI 中显示 `MODE_OK`，底部 Editor 仍可继续输入 | Pi 保持运行 |
+| Print | 终端只打印 `MODE_OK` | 自动返回 zsh 的 `%` 提示符 |
+| JSON | 逐行输出 `session`、`agent_start`、`turn_start`、`message_*`、`turn_end`、`agent_end`、`agent_settled` 等 JSON 对象；`MODE_OK` 位于 Assistant 的消息事件中 | 自动返回 zsh 的 `%` 提示符 |
+
+这些结果不是三个不同的 Agent。Pi 0.83.0 的 `dist/main.js` 先由 `resolveAppMode()` 选择外壳：Interactive 创建并运行 `InteractiveMode`；Print 和 JSON 都进入同一个 `runPrintMode()`，只把输出模式分别设为 `text` 和 `json`。
+
+`dist/modes/print-mode.js` 中的区别也很直接：JSON 分支订阅 Session 事件，并把每个事件 `JSON.stringify()` 后逐行写到标准输出；Print 分支等任务完成后，只从最后一条 Assistant Message 中提取文本。两条分支最后都会释放 Runtime、刷新输出并退出。
+
+因此可以把它们记成：**Agent 核心负责把事情做完，模式外壳负责决定输出给谁看、输出多少、进程是否继续等待。** JSON 模式中的 `message_update` 是流式增量，`message_end` 是完整消息，`agent_end` 表示本次 Agent Run 已结束，`agent_settled` 表示没有排队消息、重试或其他自动续行动作。
+
 交互式 `@文件` 的验证分两层：路径出现在草稿中，只证明文件搜索和路径插入成功；提交消息后出现对应的 `read` Tool Call，才证明文件被实际读取。CLI 启动参数中的 `@文件` 会由 Pi 主动附加文件内容，和交互式路径引用不是同一种行为。
 
 本仓库的交互式实验已验证这两层：先通过 `@` 选择并插入 `docs/learning/00-environment-report.md`，此时没有读取；提交明确的读取请求后，Pi 才执行对应的 `read` Tool Call，Model 随后根据 Tool Result 返回了文件一级标题。
 
 CLI 对照实验使用 `--no-tools --no-session -p @docs/learning/00-environment-report.md`。在没有任何 Tool Call 的情况下，Model 仍正确返回文件一级标题，证明命令行参数中的 `@文件` 由 Pi 在首次 Model 请求前主动读取并附加；`--no-session` 同时避免保存该次临时实验。
+
+## 完整小任务闭环
+
+真实开发任务不能在“文件已经改了”时就宣布完成。一次最小但完整的闭环是：
+
+```mermaid
+flowchart LR
+    A["分析约束"] --> B["read: 确认当前内容"]
+    B --> C["edit: 做最小修改"]
+    C --> D["bash: 运行测试"]
+    D --> E["bash: 查看 Git diff"]
+    E --> F["总结: 报告证据与边界"]
+```
+
+| 阶段 | 本次动作 | 解决的问题 |
+|---|---|---|
+| 分析 | 理解目标文件、唯一允许的修改和禁止事项 | 防止一开始就改错范围 |
+| 读取 | `read labs/1.2-tools/tool-lab.txt` | 确认真实内容和待替换文本 |
+| 修改 | 用 `edit` 将唯一一行 `status=created` 替换为 `status=verified` | 只完成必要变更，避免重写整个文件 |
+| 测试 | 用指定 Bash 命令校验第二行内容和总行数 | 证明结果符合明确条件 |
+| 查看差异 | `git diff -- labs/1.2-tools/tool-lab.txt` | 证明变更范围只有目标文件中的目标行 |
+| 总结 | 报告 Tool 顺序、测试输出、diff 和未执行事项 | 让使用者能审计本次任务是否真正完成 |
+
+Session `1.7-workflow` 已完成本机实测。TUI 中的实际 Tool 顺序为 `read -> edit -> bash（测试）-> bash（查看 diff）`；测试输出为 `TEST_OK`；Git diff 只显示 `status=created -> status=verified`。仓库侧再次核对后，目标文件仍为三行，且没有提交或推送。
+
+这次启动时出现 “project is not trusted” 不代表任务失败。实验显式关闭了项目 Context、Extension、Skill 和 Prompt Template，使用的 `read`、`edit`、`bash` 都是 Pi 内置 Tool，因此项目资源未加载不影响本次 Tool 链路。
+
+还要注意证据边界：工作区中原本就存在课程文档的未提交修改，所以不能仅凭任务结束后的全局 `git status` 断言所有变更都由这次 Pi 运行产生。本次影响范围应结合实验前基线、TUI 中实际发生的 Tool Call，以及目标文件的限定 diff 来判断。
+
+`--tools read,edit,bash` 和提示词中的禁止事项都不是沙箱。尤其 `bash` 仍能读写文件、联网和启动进程。本次实验之所以可控，是因为使用独立学习仓库、冻结单文件目标、限定精确命令、执行测试并审查 Git diff；这些措施提高了可审计性，但不改变 Pi 进程拥有当前 macOS 用户权限这一事实。
 
 ## macOS 剪贴板图片输入
 
