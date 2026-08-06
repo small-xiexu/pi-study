@@ -9,8 +9,8 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 版本基线：`@earendil-works/pi-coding-agent@0.83.0`
 - 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
-- 当前阶段：阶段 0 和阶段 1 已完成；阶段 2 尚未开始
-- 下一步：进入 2.1；先建立全局配置、项目配置与启动参数的合并规则和优先级地图
+- 当前阶段：阶段 0 和阶段 1 已完成；阶段 2 进行中，2.1、2.2、2.3、2.4 和 2.5 已完成
+- 下一步：进入 2.6，配置并验证常用 Keybindings 和外部编辑器
 - 预计投入：Pi 学习与综合项目 60-85 小时；学习网站另计 8-12 小时；按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
@@ -221,11 +221,70 @@
 
 目标：能够为不同项目建立稳定、最小权限、可复现的 Pi 配置。
 
-- [ ] 2.1 理解全局与项目配置路径、合并规则和优先级。
-- [ ] 2.2 理解 `AGENTS.md`、`CLAUDE.md`、系统提示文件和普通上下文文件的作用差异。
-- [ ] 2.3 为本仓库编写最小 `AGENTS.md`，约束范围、测试、凭据和 Git 操作。
-- [ ] 2.4 配置模型、Thinking、重试、网络、图像、Shell 和模型轮换策略。
-- [ ] 2.5 实验 Project Trust 的接受、拒绝及非交互模式行为。
+- [x] 2.1 理解全局与项目配置路径、合并规则和优先级。
+  - 已完成：本机 Pi 与 npm 最新版本均核对为 `0.83.0`；配置来源、Project Trust、Settings 合并规则和 CLI 本次运行调整已完成理解验收；项目值覆盖全局同名值、CLI 值覆盖项目值以及 CLI 覆盖不持久化均已实测。
+  - 综合验收：用户已正确判断本次显式 CLI 值为 `low`、项目未覆盖的全局项继续生效、退出后无 CLI 参数恢复项目值 `high`，并说明 CLI 临时值不会改写配置文件；最终准确复述“显式 CLI > 项目配置 > 全局配置”。三层均无值时由 Pi 内置默认值兜底；本实验使用 `--no-session`，不把 Session 恢复状态混入配置优先级。
+  - 系统地图理解验收：用户能准确说明项目配置只覆盖同名项，未被覆盖的全局配置继续生效。
+  - 启动参数理解验收：用户能准确判断显式 `--thinking max` 只把当前运行调整为 `max`，不会改写项目默认值 `high` 或任何配置文件；下一次不带该参数的新运行仍回到有效 Settings 默认值。
+  - CLI 临时覆盖实验证据（第一步）：用户以 `--no-session --model openai/gpt-5.6-sol --thinking low --name 2.1-cli-low` 启动 Pi，Footer 显示 `gpt-5.6-sol • low`；该证据证明显式参数控制当前运行，尚未证明下一次运行会恢复默认值。
+  - CLI 临时覆盖实验证据（第二步）：退出第一步运行后，用户以相同 Model 但不带 `--thinking` 的 `2.1-settings-default` 新运行启动 Pi，Footer 恢复为 `gpt-5.6-sol • max`；仓库侧只读核对确认全局 `defaultThinkingLevel` 为 `max`，当前尚无项目 `.pi/settings.json`。两步合并证明 CLI 的 `low` 只影响第一步运行、没有持久化改写全局配置；该实验尚未证明项目值能够覆盖全局同名值。
+  - 项目覆盖实验证据：项目 `.pi/settings.json` 只设置 `defaultThinkingLevel=high`，全局 `~/.pi/agent/settings.json` 仍为 `max`。用户在当前仓库以 `--no-session --model openai/gpt-5.6-sol --name 2.1-project-high` 启动，未传 `--thinking`，Footer 显示 `gpt-5.6-sol • high`；结合静态配置核对，可证明项目同名值覆盖全局值。
+  - CLI 覆盖项目实验证据：用户随后以 `--no-session --model openai/gpt-5.6-sol --thinking low --name 2.1-cli-over-project` 启动，Footer 显示 `gpt-5.6-sol • low`；证明显式 CLI 值在本次运行中覆盖项目默认值。退出后再以不带 `--thinking` 的 `2.1-cli-reset-check` 新运行启动，Footer 恢复为 `gpt-5.6-sol • high`；证明 CLI 的 `low` 只作用于前一次运行，没有持久化改写项目配置。
+- [x] 2.2 理解 `AGENTS.md`、`CLAUDE.md`、系统提示文件和普通上下文文件的作用差异。
+  - 已完成：四类文件的系统地图、最小对照实验、源码追踪和两轮综合复述均已完成。
+  - 已验收（系统地图第一部分）：用户能说明普通 `README.md` 不会仅因存在而自动成为规则；同一目录中的 `AGENTS.md` 与 `CLAUDE.md` 是候选关系，Pi `0.83.0` 优先加载 `AGENTS.md`，不会同时加载两份。
+  - 已验收（系统地图第二部分）：用户能准确识别全局 `AGENTS.md`、父目录 `CLAUDE.md` 和当前目录 `AGENTS.md` 三份命中文件，并说明它们按全局到当前目录的顺序共同拼接进入 `systemPrompt`；当前目录 `CLAUDE.md` 因同目录已有更优先的 `AGENTS.md` 而不加载。
+  - 已验收（系统地图第三部分）：用户能准确选择 `.pi/APPEND_SYSTEM.md` 来保留 Pi 默认 Coding Agent 提示并追加项目规则，并说明 `.pi/SYSTEM.md` 会替换默认基础系统提示；两者都属于 `systemPrompt` 路径。
+  - 已验收（系统地图第四部分）：用户能准确说明 `.pi/APPEND_SYSTEM.md` 的项目规则进入 `systemPrompt`，显式 CLI `@文件` 的内容与当前请求进入 `messages`，并判断 `--no-context-files` 不会禁用显式 `@文件` 附件。
+  - 已验证（最小对照实验）：用户在受信任项目中创建只含唯一标记 `SYSTEM_RULE_2201` 的 `.pi/APPEND_SYSTEM.md`，随后以 `--no-context-files --no-tools --no-session` 和显式 CLI `@docs/learning/00-environment-report.md` 发起 Print 请求；Model 依次输出该系统规则标记和附件一级标题。启动参数没有向 Model 暴露 Tool，因此实验验证了自动追加的项目系统规则与显式 CLI 附件都能到达 Model，也验证了 `--no-context-files` 不会禁用显式 `@文件`。
+  - 证据边界：上述输出能证明两类内容都到达 Model，但不能只凭输出反推出 Pi 内部对象字段；`systemPrompt` 与 `messages` 的精确落点由下面的源码证据确认。
+  - 已验证（源码实现）：Pi `0.83.0` 的 `ResourceLoader` 在 Project Trust 允许时发现并读取项目 `.pi/APPEND_SYSTEM.md`，`AgentSession._rebuildSystemPrompt()` 将其交给 `buildSystemPrompt()` 形成最终 `systemPrompt`；CLI `processFileArguments()` 直接读取显式 `@文件`，`buildInitialMessage()` 将文件内容与用户文字合并，Print 模式再调用 `session.prompt()`，使其进入当前用户消息。`--no-context-files` 只跳过 `AGENTS.md`/`CLAUDE.md` 自动发现，不影响上述两条通道。
+  - 已校正（Trust 精确边界）：Pi `0.83.0` 的 Project Trust 不控制 `AGENTS.md`/`CLAUDE.md`；`--no-approve` 下它们仍会自动发现。Project Trust 控制项目 `.pi/*`，以及当前目录或祖先目录中的项目 `.agents/skills`；关闭自动上下文文件必须使用 `--no-context-files`。
+  - 综合复述第一次结果（待重试）：用户已正确说明显式 CLI `@README.md` 的内容进入当前用户消息；仍需修正三点：`--no-context-files` 会跳过 `AGENTS.md`，显式 `@README.md` 不会被跳过；`AGENTS.md` 若被加载也属于 `systemPrompt`，不属于 `messages`；Project Trust 位于启动期项目资源加载阶段，只门禁项目主动提供的受保护资源，不控制显式 CLI 附件，也不是操作系统权限或沙箱。
+  - 综合复述第二次结果（待补一句）：用户已准确说明 `.pi/APPEND_SYSTEM.md` 进入 `systemPrompt`、`--no-context-files` 跳过 `AGENTS.md`、显式 `@README.md` 进入 `messages`，并正确说明 Project Trust 不是操作系统权限或沙箱；尚需补充 Project Trust 的正向职责：它在启动期决定是否加载项目提供的受保护资源，且不控制显式 CLI `@文件`。
+  - 综合验收：用户最终准确说明 Project Trust 在本场景中决定项目 `.pi/APPEND_SYSTEM.md` 能否被加载；结合上一轮复述，已能完整区分 `systemPrompt`、自动上下文文件、显式 CLI `@文件` 与操作系统权限边界。
+- [x] 2.3 为本仓库编写最小 `AGENTS.md`，约束范围、测试、凭据和 Git 操作。
+  - 已完成：用户已确认后创建根目录 `AGENTS.md`，覆盖范围、验证、凭据、Git 与权限边界，并加入唯一标记 `PI_STUDY_AGENTS_V1`；静态检查通过。
+  - 已验证（正向对照）：用户以 `--no-approve --no-tools --no-session --no-extensions --no-skills --no-prompt-templates --no-themes` 启动 Print 请求，Model 准确输出 `PI_STUDY_AGENTS_V1`。这证明项目不受信任时根目录 `AGENTS.md` 仍会作为自动上下文加载；同时 `--no-tools` 与 `--no-session` 排除了 Tool 主动读取和旧 Session 记忆两种来源。该实验尚不能单独证明 `--no-context-files` 的关闭效果。
+  - 已验证（反向对照）：在其他条件与提示词不变的情况下只增加 `--no-context-files`，Model 准确输出 `CONTEXT_NOT_LOADED`。正反两次运行构成单变量 A/B 实验，证明该开关会关闭 `AGENTS.md`/`CLAUDE.md` 的自动发现。
+  - 已验收（系统地图）：用户能准确说明 `AGENTS.md` 会作为系统提示交给 Model，只是行为指令而非硬权限；它不能百分之百阻止 `bash` 执行 `git commit`，真正的强制限制仍需 Tool 门禁、Extension、受限用户或沙箱。
+  - 综合验收：最小项目规则文件、静态检查、正反加载对照和权限边界复述均已通过；2.3 完成。
+- [x] 2.4 配置模型、Thinking、重试、网络、图像、Shell 和模型轮换策略。
+  - 已完成：七类配置地图、理解检查和最小行为实验均已通过；Model、Thinking、Retry、Network、Images、Shell 与 Model 轮换策略均有行为、配置或源码证据，并在下文区分直接证据与用户操作确认。
+  - 模型四层理解验收：用户已准确区分 `models.json`（模型目录）、`defaultProvider`/`defaultModel`（默认模型）、`enabledModels`/`--models`（持久与本次启动的轮换候选），并能正确区分 `--model`（启动前为本次运行直接指定模型）与 `/model`/`⌃L`（进入 Interactive TUI 后切换当前模型）的使用时机。
+  - Model/Thinking 策略判断（已通过）：用户已正确选择 `--thinking low` 处理一次性简单任务、使用 `--model Terra` 临时切换模型，并能判断临时覆盖退出后恢复有效默认值 `gpt-5.6-sol + high`。
+  - 已验证（简称解析实验）：用户运行 `pi --no-session --model Terra --thinking low --name 2.4-terra-low`，Footer 实际显示 `openai/gpt-5.6-terra-pro • low` 和 `0.0%/1.1M`。这证明 `--thinking low` 已生效，也证明 `Terra` 是运行时模糊匹配条件，不是 `openai/gpt-5.6-terra` 的固定别名；先前根据 `pi --list-models Terra` 唯一输出推断简称会固定命中 `terra` 的结论已撤回。
+  - 已验证（源码边界）：Pi `0.83.0` 的 CLI Model Resolver 先精确匹配，再按 ID/名称部分匹配；多个别名命中时按 ID 倒序取首项。`--model` 使用全部运行时模型，`--list-models` 使用当前可用模型，因此后者的唯一输出不能证明前者候选唯一。脚本和可复现实验必须使用完整 `provider/model-id`，并以 Footer 验证实际选择。
+  - 已验证（精确 ID 对照）：用户运行 `pi --no-session --model openai/gpt-5.6-terra --thinking low --name 2.4-terra-exact`，Footer 显示 `gpt-5.6-terra • low`，上下文窗口为 `272K`。这与简称实验命中的 `terra-pro • low`、`1.1M` 形成 A/B 对照，证明完整 `provider/model-id` 能精确选择目标 Model，且 `--thinking low` 同时生效。
+  - 已验证（临时覆盖恢复）：用户退出 `openai/gpt-5.6-terra + low` 的精确 ID 实验后，运行 `pi --no-session --name 2.4-default-restore`，未传 `--model` 和 `--thinking`；Footer 显示 `gpt-5.6-sol • high`。静态配置同时表明：项目未设置默认 Provider/Model，因此 Model 取全局 `openai/gpt-5.6-sol`；项目 `defaultThinkingLevel=high` 覆盖全局 `max`。这证明上一轮 CLI 覆盖只属于原进程，没有写入持久配置；`--no-session` 还排除了旧 Session 状态的干扰。
+  - Retry 系统地图（已完成）：已根据本机 Pi `0.83.0` 的设置文档和实现核对，Agent 层默认开启，最多重试 3 次，基础等待 2 秒并按 `2/4/8` 秒退避；Provider/SDK 层默认重试 0 次。两层边界、次数语义和用户理解验收均已完成。
+  - Retry 理解检查（已通过）：用户已准确判断默认 Provider 重试为 0 时，首次请求加 Agent 层最多 3 次重试共 4 次 HTTP 请求，等待依次为 `2/4/8` 秒；并能准确区分 Agent Retry 重试失败的 Model 请求，不会自动重跑此前成功的 Tool，而 Tool 失败会形成 Tool Result 再交给 Model 决策。
+  - Provider/SDK Retry 实验（已验证）：用户在自己的终端直接调用 Pi 随包的 `retryProviderRequest()`，用内存假请求持续抛出带 `status=503` 和 `retry-after-ms=50` 的错误；设置 `maxRetries=2` 后实际输出 `attempt=1/2/3`、`final=503 local provider retry probe` 和 `total=3`。实验未访问网络、未读取凭据、未写仓库，证明该包装器执行“首次请求 + 最多两次重试”并在全部失败后传播最终错误；由于未经过 Settings 解析、真实 Provider 适配器和网络链路，不扩大为真实 Provider 集成已经验收。
+  - Network 系统地图与理解检查（已通过）：已根据本机 Pi `0.83.0` 的设置文档与实现区分 `transport`、全局 `httpProxy`、`websocketConnectTimeoutMs`、`httpIdleTimeoutMs` 和 `retry.provider.timeoutMs`；用户已准确说明 WebSocket 无法建立连接对应 `websocketConnectTimeoutMs`，HTTP 已连接但流长期无数据对应 `httpIdleTimeoutMs`，并能说明 `retry.provider.timeoutMs` 只限制单次 Model 请求，不能限制整个 Run，因为一个 Run 可能包含多次 Model 请求、Tool 执行和重试。
+  - Network 重要校正（已记录）：`--offline`/`PI_OFFLINE=1` 只关闭启动阶段的版本检查、Package 更新检查和相关遥测，不阻止后续 Model Provider 请求，也不是 Tool 网络沙箱；Pi `0.83.0` 没有独立的 TLS/CA Settings 字段，代理路线与证书信任必须分开判断。
+  - Network 最小超时实验（已验证）：用户已在真实 macOS 终端运行 `node labs/2.4-network/timeout-probe.mjs`。输出确认 Pi 向本机假 Provider 发出一次 `POST /v1/chat/completions`，随后以 `Request timed out.` 退出；Provider 共收到 1 次请求，证明 Provider 与 Pi 两层重试均已关闭；外层看门狗未介入，Pi 子进程用时 1367 ms；脚本最终输出 `实验结果：PASS`。该实验只证明 `retry.provider.timeoutMs` 限制一次 Model 请求，不证明整个 Run 存在总时限。
+  - Images 系统地图与理解检查（已通过）：用户已准确判断 `terminal.showImages=false`、`images.blockImages=false` 时终端不显示图片预览但图片仍可发送给 Model；反向配置 `terminal.showImages=true`、`images.blockImages=true` 时终端具备预览条件但图片不会发送给 Model。两个开关分别控制本地 TUI 展示和 Model 输入，互不替代；终端预览仍取决于终端能力。
+  - Images A 最小实验（已验证）：用户在 `2.4-images-a` 中将 `Show images` 设为 `false`、`Block images` 保持 `false`，用 macOS `⌃V` 插入脱敏临时图片并明确要求调用 `read`；Pi 出现 `read` Tool Call，终端未显示图片预览，Model 仍准确回答图片中最醒目的文字。顶部 Project Trust 警告与本实验无关，因实验显式关闭了项目上下文、Extension、Skill 和 Prompt Template。
+  - Images B 最小实验（已验证）：用户在 `2.4-images-b` 中将 `Show images` 设为 `true`、`Block images` 设为 `true`，使用脱敏临时图片并明确要求调用 `read`；Pi 出现 `read` Tool Call，TUI 显示图片预览，Model 最终返回 `IMAGE_BLOCKED`。这些是本地预览和 Model 行为的直接证据，与 Block Images 的预期行为一致；实验没有检查序列化后的 Provider 请求载荷，不能只凭该输出直接证明出站请求中不存在图片数据。
+  - Images A/B 综合结论（已验证，证据分级）：设置文档与 Pi `0.83.0` 的 `dist/core/sdk.js` 表明，`terminal.showImages` 控制本地 TUI 预览，`images.blockImages` 会在 `convertToLlm` 后过滤消息中的图片内容；A/B 行为与该实现一致。终端可见性与 Model 可见性相互独立，两者都不是文件权限或沙箱；本实验未抓取最终出站载荷。
+  - Images 默认恢复（已验证）：只读核验全局有效值为 `terminal.showImages=true`、`images.blockImages=false`；项目 `.pi/settings.json` 未设置这两个字段，因此不存在项目同名覆盖。实验环境已恢复到课程默认组合。
+  - Shell 默认解释器实验（已验证）：用户在 `2.4-shell-default` 中显式关闭项目上下文、Extension、Skill、Prompt Template 和 Model Tools 后，通过用户 Shell 入口执行 `!printf 'PI_SHELL=%s\n' "$0"`，实际输出 `PI_SHELL=/bin/bash`。这证明本机未显式配置 `shellPath` 时，Pi `0.83.0` 的用户 Shell 按 Unix 默认回退使用 `/bin/bash`；不表示外层 macOS 登录 Shell 已从 zsh 改为 bash，也不代表权限隔离。`--no-tools` 只隐藏 Model Tool，不禁用用户主动输入的 `!`/`!!`。
+  - Shell 显式路径实验（已验证）：用户在独立临时项目 `2.4-shell-zsh` 的 `.pi/settings.json` 中只设置 `shellPath=/bin/zsh`，以 `--approve --no-session --no-context-files --no-extensions --no-skills --no-prompt-templates --no-tools` 启动后，通过用户 Shell 入口执行与默认实验相同的命令，实际输出 `PI_SHELL=/bin/zsh`。与默认 `/bin/bash` 结果构成单变量对照，证明受信任项目的 `shellPath` 能改变 Pi 启动的命令解释器；没有修改 macOS 登录 Shell，也没有增加权限隔离。
+  - Shell 命令前缀实验（已验证）：用户在独立临时项目 `2.4-shell-prefix` 中设置 `shellPath=/bin/zsh` 与 `shellCommandPrefix="export PI_STUDY_PREFIX_2401=PREFIX_ACTIVE"`。用户 `!` 入口实际输出 `USER_PREFIX=PREFIX_ACTIVE`；Model 按要求调用绿色 `bash` Tool，Tool Result 输出 `MODEL_PREFIX=PREFIX_ACTIVE`，最终回答也与 Tool Result 一致。这证明 Pi `0.83.0` 会在两条 Shell 入口的每次正式命令前执行同一个前缀；不表示该环境变量永久写入系统，也不增加权限隔离。
+  - Model 轮换第一次实验（部分通过）：`--models` 指定 `sol`、`terra`、`terra-pro` 后，Pi 明确警告 `terra-pro` 无可用匹配，实际 `Model scope` 只包含 `gpt-5.6-sol` 与 `gpt-5.6-terra`；用户按 `⌃P` 后状态与 Footer 均显示切到 `gpt-5.6-terra • high`。这直接验证无匹配模式会被警告并排除，且正向切换只在解析后的候选范围内进行；两个候选不足以区分正向与反向顺序，尚未完成整个轮换验收。
+  - Model 轮换第二次实验（部分通过）：将第三个候选替换为可用的 `openai/gpt-5.6-luna` 后，启动信息准确显示 `Model scope: gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna`，界面状态与 Footer 显示已切到 `gpt-5.6-luna • high`。退出后只读检查显示 `defaultModel=gpt-5.6-luna`、`enabledModels=null`，直接证明 `--models` 候选范围不持久化，但轮换后选中的 Model 会写入全局默认值。当前截图未显示 `⇧⌃P` 反向过程，且默认 Model 尚未恢复为课程基线 `sol`。
+  - Model 轮换综合验收（已完成，证据分级）：界面输出直接证明无匹配候选会被警告并排除、`sol/terra/luna` 候选范围生效，以及 `⌃P` 在解析后的范围内正向轮换；用户确认 `⇧⌃P` 反向轮换操作无问题，但未保留该过程的直接界面输出。随后只读核验全局状态已恢复为 `defaultModel=gpt-5.6-sol`、`enabledModels=null`，直接证明 CLI `--models` 范围未持久化且课程基线已恢复。结合轮换中途 `defaultModel=luna` 的静态证据，可确认当前 Model 会写入全局默认值；2.4 完成。
+- [x] 2.5 实验 Project Trust 的接受、拒绝及非交互模式行为。
+  - 交互式 session-only A/B（已验证）：用户在隔离临时项目中只放置带唯一标记的 `.pi/APPEND_SYSTEM.md`；选择 `Trust (this session only)` 后启动界面列出该 Context，Model 输出 `TRUST_RESOURCE_2501`；重新启动并选择 `Do not trust (this session only)` 后出现项目不受信任警告，Model 输出 `TRUST_NOT_LOADED`。两次运行均关闭 Session、自动上下文、Extension、Skill、Prompt Template、Theme 和 Tool，形成单变量对照，证明本次 Trust 决定控制项目追加系统提示是否加载。
+  - Print 默认行为（已验证）：同一临时项目无已保存决定且全局 `defaultProjectTrust` 回退为 `ask` 时，用户运行不带 Trust 标志的 `-p` 请求；Pi 没有弹出交互选择器，直接输出 `TRUST_NOT_LOADED`，证明非交互模式无法询问时会忽略项目受保护资源。
+  - Print `--approve` 单次生效（已验证）：只增加 `--approve` 后，同一请求输出 `TRUST_RESOURCE_2501`；随后再次运行无 Trust 标志的相同命令，输出恢复为 `TRUST_NOT_LOADED`。这证明 `--approve` 只允许本次非交互运行加载项目追加系统提示，没有保存 Trust 决定。
+  - 已保存决定与 `--no-approve`（已验证）：用户为临时项目保存 `Trust` 决定，只读核对 `trust.json` 中规范化项目路径的值为 `true`。随后无 Trust 标志的 Print 输出 `TRUST_RESOURCE_2501`，增加 `--no-approve` 后输出 `TRUST_NOT_LOADED`，再次移除该标志后又输出 `TRUST_RESOURCE_2501`。这证明非交互模式会复用已保存决定，CLI `--no-approve` 优先于它且只作用于本次运行。
+  - 理解检查（已通过）：用户已理解 `.pi/APPEND_SYSTEM.md` 是受 Project Trust 控制的项目资源示例，Trust 的完整正向职责还覆盖项目 `.pi` 下的 Settings、System Prompt、Skill、Extension、Prompt Template、Theme、Package，以及当前目录或祖先目录中的项目 `.agents/skills`；非交互模式按 CLI 标志、已保存决定和全局 `defaultProjectTrust` 确定是否加载，其中 `ask` 因无法弹窗而按不信任处理。Trust 仍不是系统权限或沙箱。
+  - 综合场景第一次判断（待重试）：用户正确判断显式 `--no-approve` 使本次不加载项目资源；对保存决定是否被改写尚不确定，并误判去掉 CLI 标志后会采用全局 `defaultProjectTrust=never`。需要修正为：CLI 标志只覆盖本次、不写 Trust Store；下一次无 CLI 覆盖时，父目录已保存的 `Trust=true` 先于全局默认值命中，因此会加载项目资源。
+  - 综合场景重试（已通过）：用户准确说明 `--no-approve` 只作用于当前运行，不修改 `trust.json`；下次移除 CLI 覆盖后，Pi 先采用父目录保存的 `Trust=true`，不会继续使用全局 `defaultProjectTrust=never`。
+  - 文档沉淀（已完成）：`docs/learning/03-project-configuration.md` 已集中记录保存位置、目录继承、决策优先级、交互/非交互差异、CLI 持久化边界、完整 Mermaid 决策流程图、实验矩阵、源码入口和排查顺序。
+  - 临时状态清理（已验证）：精确查询临时项目路径在 `~/.pi/agent/trust.json` 中已不存在，输出 `NO_SAVED_DECISION`；临时实验目录经路径白名单检查后移入 macOS 废纸篓，原路径不存在并输出 `LAB_DIR_REMOVED`。该目录仍可从废纸篓恢复，不扩大为永久删除证明。
+  - 综合验收：正反 Trust 路径、交互/非交互差异、CLI 单次覆盖、父目录保存决定优先级、持久化边界、清理恢复和快速复习文档均有直接证据；2.5 完成。
 - [ ] 2.6 配置并验证常用 Keybindings 和外部编辑器。
 - [ ] 2.7 完成一次配置优先级故障排查。
 
@@ -366,20 +425,32 @@
 
 ### 当前断点
 
-- 状态：阶段 0 和阶段 1 已完成；阶段 2 尚未开始。
-- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式，以及完整的分析、修改、测试、diff、总结闭环均已验证。
+- 状态：阶段 0 和阶段 1 已完成；阶段 2 进行中，2.1、2.2、2.3、2.4 和 2.5 已完成。
+- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7、2.1、2.2、2.3、2.4、2.5；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式、完整任务闭环、配置合并与 CLI 临时覆盖、项目规则与普通上下文文件的加载边界、最小 `AGENTS.md` 的正反加载对照、2.4 的 Retry、Network、Images、Shell 和 Model 轮换策略，以及 2.5 Project Trust 的完整决策链、行为对照和临时状态清理均已验证。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”；抽象机制先用有起点、过程和终点的完整大白话场景，再回到术语、快捷键和真实边界；用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无。
-- 下一步：进入 2.1；先建立全局配置、项目配置与启动参数的合并规则和优先级地图。`⇧⌃P` 反向切换尚未单独验证，但不阻塞后续课程。
+- 下一步：进入 2.6，配置并验证常用 Keybindings 和外部编辑器。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录
 
 | 日期 | 计划项 | 状态 | 验收证据 | 下一步 |
 |---|---|---|---|---|
+| 2026-08-06 | 2.5 Project Trust | 已完成 | 交互式与非交互实验、CLI 单次覆盖、父目录保存决定优先级和综合场景均已验证；Trust 记录精确查询输出 `NO_SAVED_DECISION`，实验目录原路径检查输出 `LAB_DIR_REMOVED`；文字说明与完整流程图已沉淀 | 进入 2.6 Keybindings 和外部编辑器 |
+| 2026-08-06 | 2.4 Model 轮换 | 已完成 | 无匹配候选排除、`sol/terra/luna` 范围和 `⌃P` 正向轮换有直接界面证据；`⇧⌃P` 由用户操作确认，未保留直接界面输出；最终 `defaultModel=sol`、`enabledModels=null` | 进入 2.5 Project Trust |
+| 2026-08-06 | 2.4 Shell 命令前缀 | 已完成 | 临时项目设置唯一 `shellCommandPrefix` marker；用户 `!` 输出 `USER_PREFIX=PREFIX_ACTIVE`，Model 绿色 `bash` Tool Result 输出 `MODEL_PREFIX=PREFIX_ACTIVE` | 验证 Model 轮换策略 |
+| 2026-08-06 | 2.4 Shell 显式路径 | 已完成 | 临时项目只设置 `shellPath=/bin/zsh`；Session `2.4-shell-zsh` 中同一条用户 Shell 命令实际输出 `PI_SHELL=/bin/zsh`，与默认 `/bin/bash` 构成单变量对照 | 验证 `shellCommandPrefix` 对用户 Shell 与 Model `bash` Tool 的作用 |
+| 2026-08-06 | 2.4 Shell 默认解释器 | 已完成 | Session `2.4-shell-default` 中通过用户 `!` 入口执行 `printf 'PI_SHELL=%s\n' "$0"`，实际输出 `PI_SHELL=/bin/bash`；同时验证 `--no-tools` 不会禁用用户 Shell 入口 | 临时设置 `shellPath=/bin/zsh` 做单变量对照，再验证 `shellCommandPrefix` |
+| 2026-08-06 | 2.4 Images 默认恢复 | 已完成 | 只读核验全局 `terminal.showImages=true`、`images.blockImages=false`；项目 `.pi/settings.json` 未设置这两个字段，因此没有项目同名覆盖 | 学习 Shell 配置，随后验证 Model 轮换策略 |
+| 2026-08-06 | 2.4 Images A/B 实验 | 已完成 | A：`Show images=false` 时无终端图片预览，`Block images=false` 时 Model 正确识别图片文字；B：`Show images=true` 时 TUI 显示预览，`Block images=true` 时 Model 返回 `IMAGE_BLOCKED`；实现会过滤图片内容，但实验未检查最终出站载荷 | 恢复默认 `Show images=true`、`Block images=false`，随后学习 Shell 配置 |
+| 2026-08-06 | 2.4 Network 最小实验 | 已完成 | 用户真实终端输出：一次 `POST /v1/chat/completions`、`Request timed out.`、Provider 共收到 1 次请求、外层看门狗未介入、Pi 子进程用时 1367 ms，最终为 `实验结果：PASS` | 进入 Images 配置；不把单次请求超时扩大为整个 Run 总时限 |
+| 2026-08-05 | 2.4 运行配置与策略 | 已完成 | Model/Thinking、Retry、Network、Images、Shell 解释器与命令前缀、Model 轮换策略均已验收 | 进入 2.5 Project Trust |
+| 2026-08-05 | 2.3 最小项目规则 | 已完成 | 根目录 `AGENTS.md` 静态检查通过；正向对照在 `--no-approve --no-tools --no-session` 下输出 `PI_STUDY_AGENTS_V1`，反向只增加 `--no-context-files` 后输出 `CONTEXT_NOT_LOADED`；用户已通过规则与硬权限边界复述 | 学习 2.4 运行配置与策略 |
+| 2026-08-05 | 2.2 项目规则与上下文文件 | 已完成 | 四部分系统地图、最小实验和源码链路已通过；用户最终准确说明四类内容通道、`--no-context-files`、显式 CLI `@文件`、Project Trust 正向职责及其非沙箱边界 | 学习 2.3 最小项目规则 |
+| 2026-08-05 | 2.1 配置合并与优先级 | 已完成 | 项目 `.pi/settings.json` 为 `high`、全局为 `max`；无 CLI 参数时 Footer 为 `high`，显式 `--thinking low` 时为 `low`，退出后不带 `--thinking` 的新运行恢复 `high`；用户最终准确复述“显式 CLI > 项目配置 > 全局配置” | 学习 2.2 四类上下文文件 |
 | 2026-07-29 | 计划制定 | 已完成 | 官方文档范围核对、本机只读环境快照 | 等待用户开始阶段 0 |
 | 2026-07-31 | 教学策略与作品集阶段 | 已确定 | 三遍螺旋、本地实验协作方式、网站内容来源和阶段 9 验收已写入本计划 | 继续 0.3 安全边界实验 |
 | 2026-07-31 | 0.3 Project Trust 与安全边界 | 已完成 | 用户实测三条独立路径，并准确复述资源加载、Model Tool 可见性、当前用户权限与真正沙箱的边界 | 学习 1.1 交互式界面与输入 |

@@ -13,6 +13,7 @@
 | [00-environment-report.md](00-environment-report.md) | 本机环境、版本、路径和已执行的验证证据 |
 | [01-architecture-and-context.md](01-architecture-and-context.md) | Pi、Provider、Model、Agent Loop、Tool、Session 的职责边界，以及 Model 上下文组装 |
 | [02-terminal-and-tools.md](02-terminal-and-tools.md) | 当前学习环境、基础工具、Pi 输入类型、退出方式、内置 Tool 与安全边界 |
+| [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 保存、恢复命令及其与 Git 的边界；后续继续记录 Tree 和 Compaction |
 | [06-extensions.md](06-extensions.md) | Extension 能力、注册与触发机制、Tool/Shell 门禁，以及 MCP 与 Subagent 的引入顺序 |
 
@@ -20,7 +21,6 @@
 
 | 预留文档 | 对应主题 |
 |---|---|
-| `03-project-configuration.md` | 项目配置与上下文 |
 | `05-prompt-skill-theme.md` | Prompt、Skill 与 Theme |
 | `07-packages-models-providers.md` | Packages、Models 与 Providers |
 | `08-sdk-rpc-json-tui.md` | SDK、RPC、JSON 与 TUI |
@@ -29,7 +29,7 @@
 ## 阅读顺序
 
 1. 第一次搭建环境时先读环境报告和终端基础。
-2. 当前系统学习阶段以架构与上下文文档为主。
+2. 理解架构后，按终端与工具、项目配置的顺序完成基础实验。
 3. 遇到 Session 或 Extension 概念时，进入对应主题文档查细节。
 4. 每次继续学习前，先从完整学习计划的“当前断点”恢复进度。
 

@@ -108,7 +108,7 @@ Project Trust 是“允许加载”的授权，不是“已经安全”的认证
 
 本文统一使用 macOS 符号：`⌃ Control`、`⌥ Option`、`⇧ Shift`、`⌘ Command`、`↩ Return`。Pi 是终端程序，多数快捷键使用 `⌃ Control`，不是普通 Mac 应用常见的 `⌘ Command`；Pi 配置和英文文档中的 `Alt` 对应 Mac 的 `⌥ Option`。
 
-| 快捷键 | 功能 | 是否发送消息 | 本机状态 |
+| 快捷键 | 功能 | 是否发送消息 | 实验记录 |
 |---|---|---|---|
 | `↩ Return` | 提交当前草稿；Agent 运行中时按消息队列规则处理 | 是 | 普通提交与运行中 Steering 均已验证 |
 | `⇧↩` 或 `⌃J` | 在草稿中换行 | 否 | 已验证多行输入 |
@@ -122,7 +122,7 @@ Project Trust 是“允许加载”的授权，不是“已经安全”的认证
 | `⌃V` | 粘贴剪贴板中的图片或文字 | 仅粘贴时不发送 | 已验证完整图片读取链路 |
 | `⇧Tab` | 循环切换当前 Model 支持的 Thinking Level | 否 | 已验证 |
 | `⌃L` | 打开 Model 选择器；等价于 `/model` | 否 | 已验证选择与恢复 Model |
-| `⌃P` / `⇧⌃P` | 在 Scoped Models 中向前/向后切换 Model | 否 | `⌃P` 已验证；反向切换待验证 |
+| `⌃P` / `⇧⌃P` | 在 Scoped Models 中向前/向后切换 Model | 否 | `⌃P` 有直接界面证据；`⇧⌃P` 由用户操作确认，未保留直接界面输出 |
 | `⌃T` | 展开或隐藏 Thinking 内容，不改变 Thinking Level | 否 | 阶段 1.3 验证 |
 | `⌥↩` | Agent 运行时排队 Follow-up 消息 | 是 | 已验证 |
 

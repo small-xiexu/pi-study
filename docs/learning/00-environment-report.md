@@ -2,8 +2,10 @@
 
 - 采集日期：2026-07-29
 - 采集范围：仅非敏感系统元数据、开发工具版本和当前仓库状态
-- 当前状态：环境证据、Pi CLI 安装、中转认证、首次模型会话及四项理解验收均已完成
+- 采集时状态：环境证据、Pi CLI 安装、中转认证、首次模型会话及四项理解验收均已完成
 - 未执行：API Key 内容读取、破坏性工具调用、后续课程实操
+
+这是 2026-07-29 的历史快照，不随环境升级改写；当前课程版本基线和学习断点以 [`pi-complete-learning-plan.md`](../plans/pi-complete-learning-plan.md) 为准。
 
 ## 环境结果
 
@@ -21,10 +23,10 @@
 
 ## 版本兼容性
 
-- 当前 npm 最新版 Pi：`@earendil-works/pi-coding-agent@0.82.1`。
+- 采集时核对的 npm 最新版 Pi：`@earendil-works/pi-coding-agent@0.82.1`。
 - 该版本声明 Node.js 要求为 `>=22.19.0`。
 - 本机 Node.js 为 `v25.2.1`，满足声明的版本范围。
-- 已确认 npm 全局包和 `pi --version` 均为 `0.82.1`。
+- 采集时已确认 npm 全局包和 `pi --version` 均为 `0.82.1`。
 - 实际 zsh 终端已成功显示 Pi TUI；`openai/gpt-5.6-sol` 已通过中转站响应并保存 Session。
 
 ## 仓库隔离状态
