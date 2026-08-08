@@ -781,3 +781,94 @@ Pi `0.83.0` 的实现入口对应为：`dist/cli/args.js` 解析两个 CLI 标�
 4. 没有保存决定时，再检查全局 `defaultProjectTrust`。
 5. 若结果为 `ask`，交互模式显示选择器，非交互模式按不信任处理。
 6. Trust 允许加载后，仍要检查 `--no-skills`、`--no-extensions`、`--no-prompt-templates` 等资源专用开关。
+
+## 2.6 Keybindings 与外部编辑器
+
+Keybindings 决定“哪个按键触发动作”，外部编辑器配置决定“动作启动哪个编辑器”。两条链路相互独立：按键有效不代表编辑器选择正确，编辑器配置正确也不会自动增加快捷键。
+
+### Keybindings 是整组替换
+
+全局快捷键文件为 `~/.pi/agent/keybindings.json`；使用 `PI_CODING_AGENT_DIR` 时，文件位于对应隔离目录。外部编辑器动作是 `app.editor.external`，默认按键为 `ctrl+g`。
+
+```json
+{
+  "app.editor.external": ["ctrl+g", "f8"]
+}
+```
+
+用户为某个 Action 配置按键时，会替换该 Action 的整组默认按键，不会自动追加。因此只配置 `f8` 会使默认 `ctrl+g` 失效；要同时保留两者，必须都写入数组。
+
+Pi 运行中修改磁盘文件不会自动替换已经加载的按键映射。执行 `/reload` 后，新映射才进入当前进程。本地对照中，磁盘从 `ctrl+g,f8` 改为仅 `f8` 后：
+
+| 时点 | `Ctrl+G` | `F8` |
+|---|---|---|
+| 修改文件后、`/reload` 前 | 有效 | 有效 |
+| 执行 `/reload` 后 | 无效 | 有效 |
+
+### 外部编辑器按四级顺序选择
+
+Pi `0.83.0` 的选择顺序为：
+
+```text
+Settings.externalEditor -> VISUAL -> EDITOR -> 平台默认值
+```
+
+Windows 的平台默认值是 Notepad；其他平台是 `nano`。`VISUAL` 和 `EDITOR` 是 Pi 进程继承的环境变量。在 Pi 内通过子 Shell 执行 `export`，不能反向修改已经运行的 Pi 进程；要做环境变量对照，应使用不同的启动命令重新启动实验 Pi。
+
+本机四组隔离实验结果如下：
+
+| `externalEditor` | `VISUAL` | `EDITOR` | 实际打开 | 证明什么 |
+|---|---|---|---|---|
+| `nano` | `vi` | `vi` | PICO | Settings 优先于环境变量 |
+| 未设置 | `vi` | `nano` | Vim | `VISUAL` 优先于 `EDITOR` |
+| 未设置 | 未设置 | `vi` | Vim | 没有更高优先级值时采用 `EDITOR` |
+| 未设置 | 未设置 | 未设置 | PICO | 回退到平台默认 `nano` |
+
+本机 `/usr/bin/nano` 是指向 `pico` 的符号链接，所以 Pi 选择 `nano` 后界面显示 `UW PICO 5.09`。这不是优先级异常，而是系统命令的实际指向。
+
+外部编辑器打开的是 Pi 为当前未发送草稿准备的临时文件。保存退出后，修改内容回到 Pi 输入框；不保存退出时，原草稿仍在。这个过程本身不会提交用户消息，也不会触发 Model 调用。
+
+### 排查顺序
+
+1. 用 `/hotkeys` 确认 `app.editor.external` 当前绑定了哪些按键。
+2. 修改 `keybindings.json` 后执行 `/reload`，再同时检查旧按键失效和保留按键有效。
+3. 按 `externalEditor`、`VISUAL`、`EDITOR`、平台默认值的顺序定位实际编辑器来源。
+4. GUI 编辑器命令需要等待退出，例如 VS Code 使用 `code --wait`，否则 Pi 可能在编辑器完成前恢复输入界面。
+5. 分开验证“按键是否触发”“打开哪个编辑器”“草稿是否返回”，不要用单一现象替代整条链路。
+
+## 2.7 配置优先级故障排查
+
+现象：全局 `externalEditor=nano`，启动环境中的 `VISUAL` 和 `EDITOR` 也都是 `nano`，但进入受信任项目后按 `Ctrl+G` 打开了 Vim。
+
+### 先分两轮定位
+
+| 轮次 | 判断内容 | 本次结果 |
+|---|---|---|
+| Project Trust 门禁 | 项目 Settings 是否参与 | `--approve` 允许加载项目配置 |
+| Settings 合并 | 全局值与项目同名值合并 | 项目 `externalEditor=vi` 覆盖全局 `nano`，有效值为 `vi` |
+| 编辑器选择 | `有效 externalEditor -> VISUAL -> EDITOR -> 默认值` | 第一项已得到 `vi`，不再检查两个值为 `nano` 的环境变量 |
+
+不能把它压缩成“项目 `externalEditor` > 全局 `externalEditor` > `VISUAL` > `EDITOR`”这一条通用链。项目值和全局值先合并为一个有效 Settings 值，编辑器选择随后才读取这个有效值。
+
+### 故障与修复对照
+
+| 状态 | 全局值 | 项目同名字段 | 有效值 | 实际界面 |
+|---|---|---|---|---|
+| 修复前 | `nano` | `vi` | `vi` | Vim |
+| 仅移除项目覆盖后 | `nano` | 不存在 | `nano` | PICO |
+
+两次启动使用相同的 `--approve`、`VISUAL=nano` 和 `EDITOR=nano`。唯一变化是移除项目层的 `externalEditor`，因此前后对照把故障来源收敛到项目同名覆盖。修复后草稿仍能从外部编辑器返回 Pi，说明编辑器选择和草稿回传链路均正常。
+
+本机 `nano` 命令实际进入 PICO，所以“有效值为 `nano`”与“界面显示 `UW PICO 5.09`”并不矛盾。
+
+### 固定排查顺序
+
+1. 写清期望行为与实际行为。
+2. 只列出目标字段的 CLI、项目、全局和环境变量来源。
+3. 检查 Project Trust，确认项目来源是否参与。
+4. 先计算 Settings 合并后的有效值。
+5. 再跟踪实际功能自己的选择顺序。
+6. 只修改产生错误值的配置层，保留可恢复副本。
+7. 重新启动隔离 Pi，验证旧现象消失、预期行为出现。
+
+配置文件的静态检查只能证明磁盘状态，不能代替运行时验证。本次实验未读取或展示真实认证文件，临时目录也不作为长期配置保留。

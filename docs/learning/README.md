@@ -14,7 +14,7 @@
 | [01-architecture-and-context.md](01-architecture-and-context.md) | Pi、Provider、Model、Agent Loop、Tool、Session 的职责边界，以及 Model 上下文组装 |
 | [02-terminal-and-tools.md](02-terminal-and-tools.md) | 当前学习环境、基础工具、Pi 输入类型、退出方式、内置 Tool 与安全边界 |
 | [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
-| [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 保存、恢复命令及其与 Git 的边界；后续继续记录 Tree 和 Compaction |
+| [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone 及其与 Git 的边界；后续继续记录 Compaction |
 | [06-extensions.md](06-extensions.md) | Extension 能力、注册与触发机制、Tool/Shell 门禁，以及 MCP 与 Subagent 的引入顺序 |
 
 编号中的空位预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：

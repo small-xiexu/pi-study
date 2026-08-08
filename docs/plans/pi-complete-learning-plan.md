@@ -7,10 +7,10 @@
 - 制定日期：2026-07-29
 - 学习对象：Pi Coding Agent
 - 官方文档基线：`https://pi.dev/docs/latest`
-- npm 版本基线：`@earendil-works/pi-coding-agent@0.83.0`
+- npm 版本基线：`@earendil-works/pi-coding-agent@0.84.0`
 - 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
-- 当前阶段：阶段 0 和阶段 1 已完成；阶段 2 进行中，2.1、2.2、2.3、2.4 和 2.5 已完成，2.6 进行中
-- 下一步：完成 2.6 的 Keybindings 与外部编辑器配置链路、可回滚实验和综合验收
+- 当前阶段：阶段 0、阶段 1 和阶段 2 已完成；阶段 3 进行中，3.1、3.2、3.3 已完成
+- 下一步：进入 3.4，先从已见过的 Footer 上下文比例切入，讲清 Token、Context Window、Reserve Tokens 和 Keep Recent Tokens 的关系
 - 预计投入：Pi 学习与综合项目 60-85 小时；学习网站另计 8-12 小时；按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
@@ -23,7 +23,7 @@
 | Node.js | 可用 | `v25.2.1` |
 | npm | 可用 | `11.6.2` |
 | Git | 可用 | `2.50.1` |
-| Pi | 已安装、更新并启动 | `/opt/homebrew/bin/pi`，版本 `0.83.0`；命令与实际 TUI 启动均已核验 |
+| Pi | 已安装、更新并启动 | `/opt/homebrew/bin/pi`，版本 `0.84.0`；命令与实际 TUI 启动均已核验 |
 | 模型认证 | 已连接 | 中转站 `https://sub2api.shelfcanvas.top`；`openai-responses`；`openai/gpt-5.6-sol` 已实际响应；凭据文件权限 `0600` |
 
 ## 2. 学习目标
@@ -287,7 +287,7 @@
   - 文档沉淀（已完成）：`docs/learning/03-project-configuration.md` 已集中记录保存位置、目录继承、决策优先级、交互/非交互差异、CLI 持久化边界、完整 Mermaid 决策流程图、实验矩阵、源码入口和排查顺序。
   - 临时状态清理（已验证）：精确查询临时项目路径在 `~/.pi/agent/trust.json` 中已不存在，输出 `NO_SAVED_DECISION`；临时实验目录经路径白名单检查后移入 macOS 废纸篓，原路径不存在并输出 `LAB_DIR_REMOVED`。该目录仍可从废纸篓恢复，不扩大为永久删除证明。
   - 综合验收：正反 Trust 路径、交互/非交互差异、CLI 单次覆盖、父目录保存决定优先级、持久化边界、清理恢复和快速复习文档均有直接证据；2.5 完成。
-- [ ] 2.6 配置并验证常用 Keybindings 和外部编辑器。
+- [x] 2.6 配置并验证常用 Keybindings 和外部编辑器。
   - 进行中：已确认本机 Pi `0.83.0`；当前不存在全局 `keybindings.json`，全局与项目 Settings 均未设置 `externalEditor`，`VISUAL` 和 `EDITOR` 也未设置。
   - 系统地图理解确认：用户已理解 Keybindings 决定“哪个按键触发动作”，外部编辑器配置决定“动作启动哪个编辑器”，两条配置链路相互独立。
   - 默认基线（已验证）：隔离 Session `2.6-editor-baseline` 中，`⌃G` 实际打开 `UW PICO 5.09`；用户保存退出后两行草稿均返回 Pi 输入框，过程中没有产生用户消息或 Model 回复。
@@ -298,8 +298,26 @@
   - `/reload` 反向重试（前半段已验证）：Pi 运行时通过 `!!` 将磁盘配置从双按键改为只含 `f8`，未执行 `/reload` 时当前进程的按键行为没有变化，证明修改文件本身不会自动替换已加载到内存的 Keybindings。
   - `/reload` 完整对照（已验证）：上述磁盘修改后执行 `/reload`，Pi 报告重新加载 Keybindings；用户实测 `⌃G` 随即失效、`F8` 仍能打开 PICO。前后证据闭合，证明运行中修改配置需要 Reload 才更新当前按键映射。
   - 教学纠偏：进入外部编辑器优先级时，曾在解释 `Nano`、`Vim`、`VISUAL`、`EDITOR` 前直接提出判断题；学习者指出尚未学过这些对象，因此此前答案不计为新概念的理解验收。现已把“先解释全部陌生对象和完整场景，确认后才能提问或实验”写入计划与教学 Skill。
-  - 下一步：按新的教学门禁，从外部编辑器和终端环境变量的完整场景继续；确认没有陌生对象后，再验证 `externalEditor -> VISUAL -> EDITOR -> nano` 的选择优先级，随后恢复并清理隔离实验基线。
-- [ ] 2.7 完成一次配置优先级故障排查。
+  - 外部编辑器选择系统地图理解确认：用户已确认理解 `externalEditor -> VISUAL -> EDITOR -> nano` 的选择顺序、环境变量随 Pi 启动进程传入的含义，以及本机 `/usr/bin/nano -> pico` 对应 `UW PICO 5.09` 的原因。
+  - 外部编辑器优先级实验 A（已验证）：隔离配置设置 `externalEditor=nano`，启动 Pi 时同时传入 `VISUAL=vi`、`EDITOR=vi`；用户按 `⌃G` 后截图明确显示 `UW PICO 5.09` 和原草稿 `EDITOR_PRIORITY_A`，随后把草稿改为 `EDITOR_PRIORITY_A_PICO`、保存退出并确认修改后的文本返回 Pi。该实验直接证明 Settings 中的 `externalEditor` 优先于环境变量编辑器，并再次验证外部编辑器草稿回传链路。
+  - 外部编辑器优先级实验 B（已验证）：隔离环境未设置 `externalEditor`，启动 Pi 时传入 `VISUAL=vi`、`EDITOR=nano`；用户按 `⌃G` 后确认打开 Vim，并使用 `Esc`、`:q!` 退出后确认原草稿 `EDITOR_PRIORITY_B` 仍在 Pi 输入框。该实验直接证明没有 Settings 覆盖时 `VISUAL` 优先于 `EDITOR`，且不保存退出外部编辑器不会丢失原草稿。
+  - 外部编辑器优先级实验 C（已验证）：隔离环境未设置 `externalEditor`，使用 `env -u VISUAL` 明确移除 `VISUAL` 并传入 `EDITOR=vi`；用户按 `⌃G` 后确认打开 Vim，退出后原草稿仍在 Pi 输入框。该实验直接证明更高优先级配置不存在时 Pi 会采用 `EDITOR`。
+  - 外部编辑器优先级实验 D（已验证）：隔离环境未设置 `externalEditor`，启动时同时使用 `env -u VISUAL -u EDITOR` 移除两个环境变量；用户按 `⌃G` 后确认打开 `UW PICO 5.09`，退出后原草稿仍在 Pi 输入框。结合本机 `/usr/bin/nano -> pico`，该实验直接证明前三项均不存在时 Pi 回退到默认 `nano`。
+  - 隔离状态清理（已验证）：四个优先级实验目录均无进程占用，已整体移入 `~/.Trash/pi-study-2.6-editor-priority-labs.qCAJZ9/`；四个原 `/tmp` 路径均不存在，废纸篓中四个目录均存在并可恢复。Pi 自动生成的 `auth.json` 等运行文件未被读取或展示。
+  - 综合场景验收（已通过）：用户准确说明，磁盘按键配置改为仅 `F8` 但未 `/reload` 时，当前进程中的 `Ctrl+G` 与 `F8` 仍都有效并按 `VISUAL=vi` 打开 Vim；执行 `/reload` 后仅 `F8` 有效，编辑器仍由 `VISUAL` 选为 Vim；增加 `externalEditor=nano` 时改为选择 `nano`，三项均不存在时回退默认 `nano`。用户已能把按键内存刷新与编辑器选择两条链路组合判断。
+  - 文档沉淀（已完成）：`docs/learning/03-project-configuration.md` 已记录两条独立链路、按键整组替换、`/reload` 边界、编辑器四级优先级、本机 `nano -> pico` 现象和排查顺序；差异格式与 Markdown 围栏检查通过。
+  - 综合验收：默认与自定义按键、运行时刷新、编辑器四级选择、草稿返回、隔离清理、用户场景判断和稳定文档均有直接证据；2.6 完成。
+- [x] 2.7 完成一次配置优先级故障排查。
+  - 进行中：从“全局 `externalEditor=nano`，进入受信任项目后却打开 Vim”的真实场景建立系统地图；先区分 Settings 合并与外部编辑器选择两次优先级判断，再准备隔离故障实验。
+  - 系统地图理解确认：用户已理解配置来源、同名字段覆盖、有效值和 Project Trust 的门禁位置，并能区分 Settings 合并与外部编辑器选择两次优先级判断。
+  - 隔离故障复现（已验证）：临时 Agent 目录的全局 Settings 仅设置 `externalEditor=nano`，受信任临时项目的同名字段为 `vi`，启动环境同时设置 `VISUAL=nano`、`EDITOR=nano`；用户按 `Ctrl+G` 后实际打开 Vim，使用 `:q!` 退出后原草稿仍在 Pi 输入框。
+  - 原因定位（已通过）：用户准确判断，删除项目同名覆盖后，全局 `externalEditor=nano` 会成为有效值；本机执行 `nano` 时界面显示 PICO。故障原因不是 `VISUAL` 或 `EDITOR` 失效，而是编辑器选择在更高优先级的有效 `externalEditor=vi` 处已经结束。
+  - 最小修复与反向验证（已通过）：保留项目故障配置副本后，仅从临时项目 Settings 中移除 `externalEditor`，全局值保持 `nano`；用户重新启动相同隔离 Pi，按 `Ctrl+G` 实测从 Vim 变为 PICO，退出后草稿仍在。静态来源与运行时行为形成单变量前后对照。
+  - 组合判断（已通过）：纠偏后，用户按两轮准确复述：`--no-approve` 排除项目 Settings，第一轮得到全局有效值 `externalEditor=nano`；第二轮在有效 `externalEditor` 处选中 `nano`，因此不再检查两个值为 `vi` 的环境变量。
+  - 文档沉淀（已完成）：`docs/learning/03-project-configuration.md` 已记录现象、两轮定位、修复前后单变量对照、`nano -> PICO` 边界和固定排查顺序。
+  - 临时环境清理（已验证）：用户退出实验 Pi 并把 Shell 切回仓库后，进程占用检查为空；完整实验目录已移入 `~/.Trash/pi-study-2.7-config-priority-lab.MIvWOT/`，原 `/tmp` 路径不存在，废纸篓恢复位置及项目配置均存在。Pi 自动生成的 `auth.json` 等运行文件只检查了文件名和存在性，未读取或展示内容。
+  - 文档格式验证（已通过）：Git 空白错误检查通过，学习文档 Markdown 围栏数量为偶数。
+  - 综合验收：用户完成故障现象观察、两轮来源定位、最小修复、同条件反向验证和组合复述；稳定文档与可恢复清理均有直接证据，2.7 完成。
 
 验收产物：经过验证的项目配置、配置说明和一份“全局值为何被项目值覆盖”的排查记录。
 
@@ -307,9 +325,85 @@
 
 目标：掌握长任务的持久化、分支、恢复、上下文控制和成本意识。
 
-- [ ] 3.1 理解 Session 的自动保存、命名、恢复、删除、导出和分享边界。
-- [ ] 3.2 分别实验 Tree、Fork、Clone，并说明它们对会话文件和分支的影响。
-- [ ] 3.3 阅读一个实际 JSONL Session，识别 header、message、tool、model 和自定义条目。
+- [x] 3.1 理解 Session 的自动保存、命名、恢复、删除、导出和分享边界。
+  - 已完成：从“退出 Pi 后继续上次工作”的真实场景建立 Session 生命周期系统地图，并完成隔离实验、综合判断、稳定文档和可恢复清理。
+  - 版本基线：开课前只读核验发现本机 Pi 与全局 npm 包均已升级为 `0.84.0`；3.1 以本机 `0.84.0` 帮助、内置文档和运行行为为准，既有 `0.83.0` 实验仍保留其历史版本标注。
+  - 系统地图理解确认：用户已理解自动保存、显示名称、Session ID、恢复、本地导出、外部分享和删除回退；尤其确认 `/share` 会无二次确认地通过 `gh` 上传 secret gist，secret 只是不公开列出而非权限受控的私有存储。
+  - 分享验收边界：3.1 默认不执行 `/share`；如需运行，必须改用已脱敏的专用 Session，并在外部上传前再次取得用户明确确认。
+  - 空 Session 实验（已验证）：隔离启动时设置显示名称但不发送普通消息；用户通过 `/session` 观察到名称、JSONL 目标路径和 `Messages Total: 0`，退出后结构检查确认隔离目录中 JSONL 文件数为 `0`。这证明预分配路径不等于实际落盘。
+  - 自动保存实验（已验证）：隔离 Session 获得首条 Assistant 回复 `SESSION_AUTO_SAVE_OK` 后，用户通过 `/session` 确认名称正确、`User 1 + Assistant 1 = Total 2` 且无 Tool；Pi 仍运行时，磁盘检查已发现唯一 JSONL 文件，大小 `1514` 字节、共 `6` 行。自动保存不依赖 `/quit`。
+  - 显示名称实验（已验证）：用户执行 `/name 3.1-renamed-session` 后确认 Name 改变，而 Session ID 与 File 路径不变；磁盘仍只有同一个 JSONL，行数从 `6` 增至 `7`、大小变为 `1644` 字节。显示名称是原 Session 中追加的元数据，不是文件名或身份。
+  - 恢复实验（已验证）：退出后在相同工作目录和相同 `--session-dir` 下执行 `pi -c`，用户确认历史对话、改名后的 Name、Session ID、File 路径和 `Messages Total: 2` 均保持一致；恢复期间磁盘仍只有原来的一个 `7` 行 JSONL，没有创建副本。`-c` 是继续当前项目最近的原 Session。
+  - 本地 HTML 导出（已验证）：用户执行 `/export .../3.1-session.html` 后看到成功状态，`Messages Total` 仍为 `2`；磁盘检查确认导出物是 `272435` 字节的 UTF-8 HTML，原 JSONL 仍为唯一文件且保持 `7` 行、`1644` 字节。导出未修改原 Session，也未执行外部上传。
+  - JSONL 导出与活动 Session 删除拒绝（已验证）：本地 JSONL 备份导出成功，备份与原文件大小均为 `1644` 字节；用户在 `/resume` 中对当前 `3.1-renamed-session` 按 `Ctrl+D`，Pi 明确提示不能删除当前 Session，未进入确认。原文件仍存在且数量为 `1`。
+  - 非活动 Session 删除（已验证，恢复位置受限）：用户执行 `/new` 后确认新 Session 消息数为 `0`，再从 `/resume` 删除旧 Session；确认界面出现，Pi 报告 `Session moved to trash`。隔离 Session 目录的 JSONL 数已变为 `0`，HTML 与 `1644` 字节 JSONL 备份仍存在。macOS 拒绝 Codex 读取 `~/.Trash`，因此未把废纸篓目标文件存在性记为直接验证；恢复兜底由本地 JSONL 备份保证。
+  - 综合判断（已通过）：纠偏后，用户完整复述 `/share` 的“本地 Session -> 临时 HTML -> `gh` 上传 secret gist -> 生成链接”链路，并准确说明 `--no-session` 运行期间仍在当前进程内保存消息，但不持久化 JSONL，退出后无法通过 `pi -c` 恢复；其余自动保存、改名、恢复、导出和删除判断也均正确。
+  - 文档沉淀（已完成）：`docs/learning/04-session-tree-compaction.md` 已记录 Session 的身份与名称、自动保存、`--no-session`、恢复、导出、分享、删除边界和 3.1 实验直接证据。
+  - 文档格式验证（已通过）：Git 空白错误检查通过，学习文档 Markdown 围栏数量为偶数。
+  - 临时环境清理（已验证）：用户执行 `/quit` 并把 Shell 切回仓库后，原实验目录进程占用检查为空；完整目录已移入 `~/.Trash/pi-study-3.1-session-lifecycle-lab.wTpuHS/`，原 `/tmp/pi-3.1-session-lifecycle.eqWjHh` 不存在，废纸篓恢复位置、`272435` 字节 HTML 和 `1644` 字节 JSONL 备份均存在。只检查了路径、文件名和大小，未读取备份内容。
+  - 综合验收：Session 生命周期系统地图、隔离行为实验、用户综合判断、稳定文档、格式检查和可恢复清理均有直接证据；3.1 完成，下一步进入 3.2。
+- [x] 3.2 分别实验 Tree、Fork、Clone，并说明它们对会话文件和分支的影响。
+  - 进行中：从 3.1 已保存 Session 的真实场景切入，先讲清消息树、当前分支、Tree、Fork 和 Clone，再准备三者的隔离对照实验。
+  - 系统地图（已讲解，待理解确认）：已按本机 Pi `0.84.0` 文档与实现区分节点、父子关系、叶子、活动分支和追加式消息树；已讲清 `/tree` 留在原 Session、`/fork` 从所选用户消息之前创建新 Session、`/clone` 将当前活动分支复制为新 Session，以及三者均不复制或回退项目文件和 Git 分支。
+  - 理解反馈（待重新讲解）：用户明确表示节点 Entry、消息树和 `/tree` 尚不清楚；上一轮系统地图不计为理解通过，Fork、Clone 与本地实验暂停。
+  - 重新讲解理解确认（已通过）：用户已理解 Entry 是带 `id`/`parentId` 的 Session 记录、消息树由记录的父子关系形成，且 `/tree` 在原 Session 中选择旧位置并追加新路线，不会删除旧分支或恢复项目文件。
+  - 隔离实验（已准备）：已创建 `/tmp/pi-3.2-tree-fork-clone.isicCT/`，其中 `project/` 作为独立工作目录，`sessions/` 作为专用 Session 目录；实验关闭项目资源、自动上下文、Extension、Skill、Prompt Template、Theme 和 Tool，不修改仓库、不执行 Git 操作。
+  - 线性基线（已验证）：用户启动命名 Session `3.2-base`，依次取得 `BASE_A`、`BASE_B` 两轮问答；截图显示 `Messages Total 4`、`User 2`、`Assistant 2`、`Tools 0`，文件位于专用目录；目录检查确认当前只有 1 个 JSONL，大小 `2418` 字节。
+  - `/tree` 选点（已验证）：用户在原 Session 中选择 `BASE_B` 对应的用户消息，并确认 Session 文件未切换、树中原 `BASE_B` 回复仍存在、编辑器恢复原提示；此时尚未发送新消息，因此只证明选点与待续写状态，尚未证明新分支已经形成。
+  - `/tree` 新路线续写（已验证）：用户清空恢复的原提示后发送 `只回复：TREE_BRANCH`，Model 返回 `TREE_BRANCH`；`/session` 截图显示 Name、ID、File 均未变化，消息从 `User 2 + Assistant 2` 增至 `User 3 + Assistant 3`，Tool 仍为 `0`。磁盘仍只有原 JSONL，大小由 `2418` 增至 `3356` 字节，证明新路线追加在原 Session，而非创建新 Session。
+  - `/tree` 分支保留（已验证）：再次打开 Session Tree 后，界面直接显示 `BASE_A` 回复下面并列保留两条子路线：`TREE_BRANCH -> TREE_BRANCH` 与 `BASE_B -> BASE_B`，总计 6 个消息节点。结合原 Session 文件未切换，证明 `/tree` 在同一 Session 中改变续写位置并追加新路线，不会删除旧路线。
+  - Tree 隔离实验（已完成）：线性基线、选点待续写、原 Session 内新增路线和新旧路线共存均取得直接证据；尚未进行 Fork、Clone 实验和 3.2 综合验收。
+  - Fork 实现基线（已核对）：本机 Pi `0.84.0` 文档说明 `/fork` 通过用户消息选择器创建新 Session 文件；交互实现调用 runtime `fork(entryId)`，默认 `position="before"`，新 Session 复制到所选用户消息的父节点，把所选提示放回编辑器，并显示 `Forked to new session`。新文件 header 记录原文件为 `parentSession`，不会生成分支摘要，也不会恢复项目文件。
+  - Fork 隔离实验（已准备）：从当前 `TREE_BRANCH` 路线选择该用户消息；预期新 Session 只包含其之前的 `BASE_A` 问答，编辑器恢复 `只回复：TREE_BRANCH`。先验证新 Session 身份和编辑器状态，不发送新提示。
+  - Fork 创建与截断位置（已验证）：用户执行 `/fork` 并选择 `TREE_BRANCH` 用户消息后，界面显示 `Forked to new session`；历史区只保留 `BASE_A` 问答，所选 `只回复：TREE_BRANCH` 仅回到编辑器，未作为消息发送。磁盘从 1 个 JSONL 增至 2 个：原文件仍为 `3356` 字节，新文件为 `1620` 字节，证明 Fork 创建独立 Session 且未改写原文件。
+  - Fork 身份与历史边界（已验证）：新 Session 的 Name 继承为 `3.2-base`，但 ID 变为 `019fdb0f-81f4-7a24-8fc8-6c0fd9369297`，File 变为第二个 JSONL；`/session` 显示 `Total 2`、`User 1`、`Assistant 1`、Tool `0`，与只复制 `BASE_A` 问答一致。名称继承不代表仍是原 Session。
+  - Fork 独立续写（已验证）：用户在 Fork Session 中发送 `只回复：FORK_BRANCH`，Model 返回 `FORK_BRANCH`；`/session` 显示仍为 Fork 的 ID、File，消息增至 `Total 4`、`User 2`、`Assistant 2`。磁盘对照显示原 Tree Session 保持 `3356` 字节，只有 Fork Session 从 `1620` 增至 `2543` 字节。
+  - Fork 隔离实验（已完成）：新文件创建、`position="before"` 截断位置、所选提示返回编辑器、新身份与名称继承、独立续写且不改原文件均取得直接证据。
+  - Clone 实现基线（已核对）：本机 Pi `0.84.0` 的 `/clone` 读取当前活动叶节点并调用 runtime `fork(leafId, { position: "at" })`，将完整当前活动路径复制到新 Session，清空编辑器并显示 `Cloned to new session`；与 `/fork` 不同，它不打开历史用户消息选择器，也不把某条旧提示放回编辑器。
+  - Clone 隔离实验（已准备）：以当前含 `BASE_A`、`FORK_BRANCH` 两轮问答的 Fork Session 为源执行 `/clone`；预期出现第三个 JSONL，新 Session 初始消息仍为 `Total 4`，历史完整保留且编辑器为空。
+  - Clone 创建与完整复制（已验证）：用户执行 `/clone` 后，界面显示 `Cloned to new session`，历史区完整保留 `BASE_A`、`FORK_BRANCH` 两轮问答，编辑器为空。磁盘从 2 个 JSONL 增至 3 个；第三个 Clone 文件大小为 `2543` 字节，与源 Fork 文件相同，原 Tree 文件仍为 `3356` 字节，两个源文件均未变化。
+  - Clone 身份与历史边界（已验证）：`/session` 显示 Name 继承为 `3.2-base`，但 ID 变为 `019fdb22-6e78-7eb0-9ab2-d8c5a085b6b4`，File 指向第三个 JSONL；消息仍为 `Total 4`、`User 2`、`Assistant 2`、Tool `0`，证明新 Session 完整复制源活动路径，名称继承不代表身份相同。
+  - Clone 独立续写（已验证）：用户在 Clone Session 中发送 `只回复：CLONE_BRANCH`，Model 返回 `CLONE_BRANCH`；`/session` 显示仍为第三个 ID、File，消息增至 `Total 6`、`User 3`、`Assistant 3`。磁盘对照显示前两个文件保持 `3356/2543` 字节，只有 Clone 文件从 `2543` 增至 `3494` 字节。
+  - Clone 隔离实验（已完成）：完整活动路径复制、新身份与名称继承、空编辑器、独立续写且不改两个源文件均取得直接证据。
+  - 三项实验状态：Tree、Fork、Clone 的运行与磁盘对照均已完成；3.2 尚未验收，剩余稳定文档、用户综合判断和临时实验目录清理。
+  - 稳定文档（已完成）：`docs/learning/04-session-tree-compaction.md` 已记录消息树与活动路径、Tree/Fork/Clone 对照、贯穿场景、Pi `0.84.0` 实现边界及三文件实验结果。
+  - 文档格式验证（已通过）：Git 空白错误检查通过，主题文档 Markdown 围栏共 `12` 个且成对闭合。
+  - 综合验收（首次未通过）：用户第 3 题正确选择 `/clone`，但未说明其文件、历史和编辑器变化；第 1 题将同一 Session 内保留路线的 `/tree` 误答为 `/fork`，第 2、4 题未回答。实验结果不等于已经掌握，需针对性重试。
+  - 综合验收（第二次部分通过）：用户已准确说明 `/tree` 的同文件分支和旧路线保留、`/fork` 的选点前复制与提示回填，以及 `/clone` 的完整活动路径与空编辑器；也能说明 Fork/Clone 的 Name 继承、ID/File 改变和源文件不变。第 1 至 3 项通过。
+  - 理解反馈（待重新讲解）：用户明确表示不理解“项目文件与 Git”边界，因此第 4 项不计为通过；暂不清理实验目录，也不完成 3.2。
+  - 进一步理解反馈（待重新讲解）：用户具体不理解“`/fork` 仍使用同一个项目目录”和“`/clone` 不复制项目目录”。需先区分当前实验的 `sessions/` 与 `project/`：前者产生多个 JSONL，后者始终只有一个共享工作目录；在此理解通过前不进入 Git 恢复结论。
+  - 二次讲解反馈（仍未理解）：上一轮继续分别解释 Fork 和 Clone 的目录行为，仍让两句话看起来像不同规则。准确关系应先表述为同一个共同边界：`/fork` 与 `/clone` 都只创建新 Session JSONL，二者都保持 `cwd` 不变、都不复制项目目录；差异只在新 Session 复制哪些消息以及编辑器是否回填提示。
+  - 文档纠偏（已完成）：用户指出原讲解把“Fork 仍使用同一项目目录”和“Clone 不复制项目目录”写成不对称表述，容易误导为两者目录行为不同。`docs/learning/04-session-tree-compaction.md` 已把共同边界前置，新增 `cwd`/Session File 状态表和“是否复制项目目录”对照行，并将 Clone 的“复制活动路径”限定为复制 Session 对话消息。
+  - 纠偏格式验证（已通过）：Git 空白错误检查通过，主题文档 Markdown 围栏仍为 `12` 个且成对闭合。
+  - 目录共同边界理解确认（已通过）：用户确认理解 `/fork` 与 `/clone` 都保持 `cwd`、都不复制项目目录，二者差异只在新 Session 的消息复制边界和编辑器状态。
+  - Git 边界讲解反馈（待换场景）：已说明 Session JSONL 不承担项目文件版本保存与恢复，Git Commit 才提供可靠文件版本；用户没有直接补答，而是要求通过一个完整例子重新梳理 Tree/Fork/Clone 的区别，因此暂不验收第 4 项。
+  - Java 完整场景理解确认（已通过）：用户确认以 `DiscountService.java` 从 Git 版本 V1 被 Pi 修改为工作区 V2 的完整时间线后，Tree/Fork/Clone 的 Session 差异与共享项目目录边界已经清楚。
+  - Java 场景文档（已完成）：`docs/learning/04-session-tree-compaction.md` 已用同一起点下的三个独立选择，记录 Tree 的同 Session 分支、Fork 的选点前新 Session、Clone 的当前终点完整消息复制，以及三者都继续使用项目目录 P、不会创建 P2/P3。
+  - Java 场景格式验证（已通过）：Git 空白错误检查通过，主题文档 Markdown 围栏仍为 `12` 个且成对闭合。
+  - 最终综合复述（部分通过）：第 1 项正确说明 `/tree` 后项目文件仍为 V2；第 4 项正确说明 Clone Session 改成 V3 后原 Session 也看到 V3，恢复 V1 依赖 Git。第 2 项的 Fork 消息边界和编辑器正确，第 3 项正确选择 `/clone`，但两项都误称“项目目录会复制”；第 3 项还把 Clone 表述为复制旧 Session 全部内容，未限定为当前活动路径的对话消息。
+  - 最终综合复述（第三次部分通过）：用户已纠正 Fork/Clone 都不复制项目目录、都继续使用同一项目目录 P 且文件仍为 V2。结合上一轮已正确说明的 Fork 选点前复制和提示回填，Fork 项完整通过。Clone 的项目目录边界通过，但本轮未补充其消息范围和编辑器状态。
+  - Clone 最后复述（编辑器通过、消息范围待精确）：用户正确说明创建后编辑器为空，但“复制完整的对话消息”未限定为当前活动路径，仍可能误解为复制整个 Session 的全部分支。
+  - Clone 消息范围理解确认（已通过）：用户已理解“当前活动路径中的全部对话消息”是从根节点到当前叶节点的一条完整路线，不是整个 Session 的全部聊天记录；若原 Session 有多条分支，Clone 不复制当前路线以外的分支。
+  - 综合验收（已通过）：用户已能准确区分 Tree 的同 Session 分支、Fork 的选点前新 Session与提示回填、Clone 的当前活动路径复制与空编辑器，并理解三者共享同一项目目录、项目文件状态不随对话切换、可靠版本恢复依赖 Git。
+  - 文档精简（已完成）：`docs/learning/04-session-tree-compaction.md` 已明确 Clone 复制当前活动路径而非全部聊天记录，删除重复的 `cwd`/Session File 状态表，将相关章节收敛为层次边界、对照表和 Java 贯穿例子。
+  - 精简验证（已通过）：Git 空白错误检查通过，主题文档 Markdown 围栏仍为 `12` 个且成对闭合；关键术语检索确认 Clone 消息范围、共享项目目录和 Git 边界表述一致。
+  - 临时环境清理（已验证）：用户执行 `/quit` 并切回学习仓库后，进程占用检查为空；完整实验目录已移入 `/Users/sxie/.Trash/pi-study-3.2-tree-fork-clone.isicCT/`，原 `/tmp/pi-3.2-tree-fork-clone.isicCT` 不存在，废纸篓中的 `project/`、`sessions/` 及三个 `2543/3494/3356` 字节 Session 文件均存在。只检查路径、数量和大小，未读取 Session 内容。
+  - 综合验收：Tree/Fork/Clone 的消息边界、Session 文件变化、编辑器状态、共享项目目录与 Git 边界均通过理解确认；隔离运行、磁盘对照、稳定文档、格式检查和可恢复清理均有直接证据，3.2 完成。
+- [x] 3.3 阅读一个实际 JSONL Session，识别 header、message、tool、model 和自定义条目。
+  - 进行中：已按本机 Pi `0.84.0` 随包 `docs/session-format.md` 和 `dist/core/session-manager.d.ts` 核对 Session v3 的 header、Entry 基类、`message`/`model_change`/`custom`/`custom_message` 等条目，以及 `message.role=toolResult` 和 Assistant `toolCall` 内容块的层级；尚未读取实际 Session 或执行隔离实验。
+  - 系统地图理解确认（已通过）：用户确认 JSONL、Entry、Header、顶层 `type`、消息 `role`、Tool Call/Tool Result 与自定义条目的关系均能看懂。3.3 采用开卷识别，不要求背诵或手写字段；通过标准是能按 `type -> role -> 关联字段` 判断条目职责和上下文边界。
+  - 实验实现基线（已核对）：Pi `0.84.0` 随包 `entry-renderer.ts` 可通过 `/status-card` 产生不进模型上下文的 `custom`；`message-renderer.ts` 可通过 `/status` 产生进入上下文的 `custom_message`。可直接显式加载官方示例，不需要编写新 Extension。
+  - 隔离实验（已准备）：已创建 `/tmp/pi-3.3-jsonl-lab.xqnkNX/`，根目录权限为 `0700`；`project/fixture.txt` 只有固定文本 `SESSION_JSONL_LAB_OK`，`sessions/` 当前没有 JSONL。实验只开放 `read` Tool，关闭项目上下文与自动资源发现，并显式加载两个已审查的官方示例 Extension；不修改学习仓库。
+  - 隔离运行（已验证，待退出后检查文件）：用户截图显示 `fixture.txt` 的最终回复为 `SESSION_JSONL_LAB_OK`，`/session` 显示 `Tools: 1 calls, 1 results`；`/status-card CUSTOM_STATE_ONLY` 与 `/status CUSTOM_CONTEXT_MESSAGE` 均渲染成功，后续模型只回复 `CUSTOM_CONTEXT_MESSAGE`，直接证明前者不进上下文、后者进入上下文。Footer 和 `/session` 均显示已切换到 `gpt-5.6-terra`，Name 为 `3.3-jsonl-lab`，消息为 `User 2 / Assistant 3 / Total 6`。当前 Pi 仍在运行，尚未读取或验证 Session JSONL 结构。
+  - Extension 边界理解确认（已通过）：用户已理解 `entry-renderer.ts` 通过 `pi.appendEntry()` 产生不进入模型上下文的 `custom`，`message-renderer.ts` 通过 `pi.sendMessage()` 产生进入上下文的 `custom_message`；两者均为随包官方示例，由显式 `--extension` 加载，未复制进学习仓库。
+  - Session 结构投影（已验证）：用户退出并切回仓库后，隔离 Session 文件存在且无进程占用；未读取原始内容，使用 `jq` 仅投影 `type`、`role`、Tool/Model 名称、自定义类型、上下文显示标记和父子关系。13 行结构依次包含 `session`、`session_info`、初始 `model_change`/`thinking_level_change`、`user -> assistant(toolCall=read) -> toolResult(read) -> assistant`、`custom(status-card)`、`custom_message(status-update)`、`user -> assistant` 和末尾 `model_change(gpt-5.6-terra)`。
+  - 综合识别（部分通过）：用户准确识别第 6 行 Assistant 内的 Tool Call、第 7 行 `role=toolResult`、第 3/13 行 `model_change`，并能说明 `custom` 不进模型上下文、`custom_message` 进入上下文，以及 13 个文件条目不等于 `/session` 的 6 条消息。Header 的含义尚不清楚，暂不完成 3.3。
+  - Header 理解确认（已通过）：用户确认 Header 不是聊天消息，主要记录 Session 身份、格式版本和创建时的工作目录；已讲清 Header 不属于消息树、不计入消息 Total，显示名称由后续 `session_info` 条目保存。
+  - 综合识别（已通过）：用户已能在实际脱敏 Session 结构中识别 header、message、Assistant 内的 Tool Call、`role=toolResult`、`model_change`、`custom` 和 `custom_message`，并解释消息统计与文件行数不同的原因；采用开卷识别，不要求背诵字段。
+  - 稳定文档（已完成）：`docs/learning/04-session-tree-compaction.md` 已新增 Session JSONL 层级对照和 13 行脱敏实验结构，明确 Header、`session_info`、消息 `role`、Tool Call/Result、Model 设置、`custom`/`custom_message` 及 Messages Total 边界；未收录原始 Session 内容。
+  - 文档验证（已通过）：Git 空白错误检查通过，主题文档 Markdown 围栏仍为 `12` 个且成对闭合；关键术语检索确认没有混淆 Session JSONL 与 `pi --mode json` 事件流。
+  - 临时环境清理（已验证）：退出后的进程占用检查为空；完整实验目录已移入 `/Users/sxie/.Trash/pi-study-3.3-jsonl-lab.xqnkNX/`，原 `/tmp/pi-3.3-jsonl-lab.xqnkNX` 不存在，废纸篓中的固定输入和 Session 文件仍为 `21/4199` 字节。只检查路径、数量和大小，未再次读取 Session。
+  - 综合验收：系统地图、受控 Extension、实际 Session 脱敏投影、用户开卷识别、稳定文档、格式检查和可恢复清理均有直接证据；3.3 完成。
 - [ ] 3.4 理解 Token、Context Window、Reserve Tokens 和 Keep Recent Tokens。
 - [ ] 3.5 手动触发一次 Compaction，并对比压缩前后的模型上下文。
 - [ ] 3.6 实验分支摘要，说明它与 Compaction 的触发时机和目的差异。
@@ -438,21 +532,25 @@
 
 ### 当前断点
 
-- 状态：阶段 0 和阶段 1 已完成；阶段 2 进行中，2.1、2.2、2.3、2.4 和 2.5 已完成，2.6 进行中。
-- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7、2.1、2.2、2.3、2.4、2.5；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式、完整任务闭环、配置合并与 CLI 临时覆盖、项目规则与普通上下文文件的加载边界、最小 `AGENTS.md` 的正反加载对照、2.4 的 Retry、Network、Images、Shell 和 Model 轮换策略，以及 2.5 Project Trust 的完整决策链、行为对照和临时状态清理均已验证。
+- 状态：阶段 0、阶段 1 和阶段 2 已完成；阶段 3 进行中，3.1、3.2、3.3 已完成。
+- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7、2.1、2.2、2.3、2.4、2.5、2.6、2.7、3.1、3.2、3.3；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式、完整任务闭环、配置合并与 CLI 临时覆盖、项目规则与普通上下文文件的加载边界、最小 `AGENTS.md` 的正反加载对照、2.4 的 Retry、Network、Images、Shell 和 Model 轮换策略、2.5 Project Trust 的完整决策链、2.6 Keybindings、`/reload` 与外部编辑器选择链、2.7 配置优先级故障排查、3.1 Session 生命周期与边界、3.2 Tree/Fork/Clone 的消息与文件边界，以及 3.3 Session JSONL 的结构与上下文边界均已验证。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”；新主题先解释本轮全部陌生对象，用户确认无陌生对象后才提问或实验；抽象机制先用有起点、过程和终点的完整大白话场景，再回到术语、快捷键和真实边界；用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无。
-- 下一步：完成 2.6 的系统地图、可回滚实验、配置恢复和综合验收。
+- 下一步：进入 3.4，先从已见过的 Footer 上下文比例切入，讲清 Token、Context Window、Reserve Tokens 和 Keep Recent Tokens 的关系。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录
 
 | 日期 | 计划项 | 状态 | 验收证据 | 下一步 |
 |---|---|---|---|---|
-| 2026-08-06 | 2.6 Keybindings 和外部编辑器 | 进行中 | 默认与自定义按键 A/B 已验证；运行中改磁盘文件后按键不变，执行 `/reload` 后 `⌃G` 失效且 `F8` 生效，热加载前后对照已闭合 | 验证编辑器选择优先级并恢复、清理隔离基线 |
+| 2026-08-08 | 3.3 Session JSONL 结构 | 已完成 | 0.84.0 类型核对、受控 Session、Tool/Model/自定义条目脱敏投影、用户开卷识别、稳定文档和可恢复清理均已验证 | 进入 3.4 Token 与上下文窗口 |
+| 2026-08-07 | 3.2 Tree、Fork 与 Clone | 已完成 | Tree/Fork/Clone 的隔离实验、理解验收、稳定文档、格式检查及可恢复清理均有直接证据 | 进入 3.3 JSONL Session 结构 |
+| 2026-08-07 | 3.1 Session 生命周期与边界 | 已完成 | 自动保存、名称/身份、恢复、导出、分享、删除、`--no-session`、稳定文档、格式检查和可恢复清理均已验证 | 进入 3.2 Tree、Fork 与 Clone |
+| 2026-08-07 | 2.7 配置优先级故障排查 | 已完成 | 全局 `nano`、项目 `vi` 的 Vim 故障已复现；两轮定位、最小修复、PICO 反向验证、组合复述、排查文档、格式检查和可恢复清理均通过 | 进入 3.1 Session 生命周期与边界 |
+| 2026-08-07 | 2.6 Keybindings 和外部编辑器 | 已完成 | 默认与自定义按键、`/reload` 前后对照、`externalEditor -> VISUAL -> EDITOR -> nano` 四级选择、草稿返回、隔离清理、综合场景和主题文档均已验收 | 进入 2.7 配置优先级故障排查 |
 | 2026-08-06 | 2.5 Project Trust | 已完成 | 交互式与非交互实验、CLI 单次覆盖、父目录保存决定优先级和综合场景均已验证；Trust 记录精确查询输出 `NO_SAVED_DECISION`，实验目录原路径检查输出 `LAB_DIR_REMOVED`；文字说明与完整流程图已沉淀 | 进入 2.6 Keybindings 和外部编辑器 |
 | 2026-08-06 | 2.4 Model 轮换 | 已完成 | 无匹配候选排除、`sol/terra/luna` 范围和 `⌃P` 正向轮换有直接界面证据；`⇧⌃P` 由用户操作确认，未保留直接界面输出；最终 `defaultModel=sol`、`enabledModels=null` | 进入 2.5 Project Trust |
 | 2026-08-06 | 2.4 Shell 命令前缀 | 已完成 | 临时项目设置唯一 `shellCommandPrefix` marker；用户 `!` 输出 `USER_PREFIX=PREFIX_ACTIVE`，Model 绿色 `bash` Tool Result 输出 `MODEL_PREFIX=PREFIX_ACTIVE` | 验证 Model 轮换策略 |
