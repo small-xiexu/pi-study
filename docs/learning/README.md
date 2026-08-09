@@ -1,37 +1,40 @@
 # Pi 学习资料索引
 
-这里保存 Pi 学习过程中已经讲解并核对过的知识、命令和环境证据。
+这里保存 Pi 学习过程中已经讲解并核对过的主题知识、命令和环境证据。
 
 学习进度、验收结论和下一步只以 [完整学习计划](../plans/pi-complete-learning-plan.md) 为准；主题文档不重复维护完成状态。
 
 本目录也是未来学习网站的唯一内容源。当前先完成 Pi 学习和本地实验，阶段 8 验收后再建设网站，不维护另一套网页专用笔记。
 
-## 当前文档
+## 当前主题文档
 
 | 文档 | 内容 |
 |---|---|
 | [00-environment-report.md](00-environment-report.md) | 本机环境、版本、路径和已执行的验证证据 |
 | [01-architecture-and-context.md](01-architecture-and-context.md) | Pi、Provider、Model、Agent Loop、Tool、Session 的职责边界，以及 Model 上下文组装 |
-| [02-terminal-and-tools.md](02-terminal-and-tools.md) | 当前学习环境、基础工具、Pi 输入类型、退出方式、内置 Tool 与安全边界 |
+| [02-terminal-and-tools.md](02-terminal-and-tools.md) | Pi `0.83.0` 终端实验快照、基础工具、输入类型、退出方式、内置 Tool 与安全边界 |
 | [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
-| [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone 及其与 Git 的边界；后续继续记录 Compaction |
+| [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
+| [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill，以及命令展开、自动调用、手动调用三条路径 |
 | [06-extensions.md](06-extensions.md) | Extension 能力、注册与触发机制、Tool/Shell 门禁，以及 MCP 与 Subagent 的引入顺序 |
 
-编号中的空位预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
+后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 
 | 预留文档 | 对应主题 |
 |---|---|
-| `05-prompt-skill-theme.md` | Prompt、Skill 与 Theme |
 | `07-packages-models-providers.md` | Packages、Models 与 Providers |
 | `08-sdk-rpc-json-tui.md` | SDK、RPC、JSON 与 TUI |
 | `09-source-and-capstone.md` | 源码阅读与毕业综合项目 |
 
+## Legacy migration entry
+
+[pi-learning-notes.md](pi-learning-notes.md) 只保留旧笔记迁移入口，不属于课程主导航，也不继续追加主题正文。
+
 ## 阅读顺序
 
-1. 第一次搭建环境时先读环境报告和终端基础。
-2. 理解架构后，按终端与工具、项目配置的顺序完成基础实验。
-3. 遇到 Session 或 Extension 概念时，进入对应主题文档查细节。
-4. 每次继续学习前，先从完整学习计划的“当前断点”恢复进度。
+推荐顺序：`00（首次环境搭建时按需） -> 01 -> 02 -> 03 -> 04 -> 05 -> 06`。
+
+每次继续学习前，先从完整学习计划的“当前断点”恢复进度；主题文档用于按上述顺序学习或查阅，不承担进度恢复。
 
 ## 维护规则
 

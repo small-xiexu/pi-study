@@ -1,13 +1,13 @@
 # Pi 终端与基础工具
 
-本篇记录 Pi 的当前运行环境、基础依赖、内置 Tool 和终端输入规则。实际验证证据见 [本机环境报告](00-environment-report.md)，学习进度见 [完整学习计划](../plans/pi-complete-learning-plan.md)。
+本篇主要记录 Pi `0.83.0` 的终端实验快照、基础依赖、内置 Tool 和终端输入规则，同时承接 0.2 阶段基于 Pi `0.82.1` 得到的 Tool 启用选项与 Schema 类型转换证据。各节分别标注版本；当前 CLI 版本和学习断点见 [完整学习计划](../plans/pi-complete-learning-plan.md)，早期环境证据见 [本机环境报告](00-environment-report.md)。
 
-## 当前学习环境
+## Pi 0.83.0 历史学习环境快照
 
-| 项目 | 当前选择 |
+| 项目 | 实验时选择 |
 |---|---|
 | Pi | `0.83.0` |
-| Provider | `openai`；课程中视为官方模型能力已完整接入 |
+| Provider | `openai` |
 | API | `openai-responses` |
 | Model | `gpt-5.6-sol` |
 | Base URL | `https://sub2api.shelfcanvas.top`，不添加 `/v1` |
@@ -15,7 +15,7 @@
 
 API Key 不写入项目文档、Git 仓库或聊天记录。
 
-课程约定：底层中转不作为学习、验收或阻塞项；学习调用费用不设上限，无需逐次确认。Base URL 仅作为当前环境的可复现配置保留。
+本表只保存 Pi `0.83.0` 实验时采用的连接前提。当前费用、阻塞与课程政策只以[完整学习计划](../plans/pi-complete-learning-plan.md)为准；Base URL 仅作为该历史实验的可复现配置保留。
 
 ## 基础工具
 
@@ -34,7 +34,7 @@ API Key 不写入项目文档、Git 仓库或聊天记录。
 
 Pi 是极简的 Coding Agent Harness，不是空壳。它负责连接模型、组织对话、调用工具、保存 Session，并提供扩展入口。
 
-当前内置 Tool：
+Pi `0.83.0` 实验快照中的内置 Tool：
 
 - `read`：读取文件。
 - `bash`：执行 Shell 命令。
@@ -58,6 +58,54 @@ Pi 没有内置沙箱。`bash`、`edit` 和 `write` 可以产生真实修改，�
 四者都遵循同一条主线：Model 只产生 Tool Call；Pi 按名称找到 Tool，准备并校验参数，经过已注册的 Extension Handler 后，才由 Executor 使用 Pi 进程当前权限操作系统，最后把 Tool Result 交回 Model。Schema 校验只判断参数结构是否合法，例如 `bash.command` 是否为字符串，不判断命令是否危险。
 
 “只读”只表示不修改文件，不等于没有安全风险；`edit` 只比整文件 `write` 更精确，不等于自动正确；`bash` 可以通过 Shell 命令覆盖其他 Tool 的大量能力，因此仅隐藏 `write` 或 `edit` 不能在 `bash` 仍可用时构成只读边界。
+
+### Pi 0.82.1 的 Tool 启用选项与状态边界
+
+以下内容来自 0.2 阶段的 Pi `0.82.1` 证据，不归入 Pi `0.83.0` 实验。该版本提供 `read`、`bash`、`edit`、`write`、`grep`、`find`、`ls` 七个内置 Tool；默认向 Model 暴露 `read`、`write`、`edit`、`bash`，其余三个只读 Tool 需要通过 Tool 选项启用。
+
+| 启动选项 | Pi 0.82.1 语义 |
+|---|---|
+| `--tools read,grep,find,ls` | 只启用列出的 Tool，形成允许列表 |
+| `--exclude-tools bash,edit,write` | 从原有集合中排除指定 Tool |
+| `--no-builtin-tools` | 禁用内置 Tool，但不自动禁用 Extension 或自定义 Tool |
+| `--no-tools` | 禁用所有 Model 可调用的 Tool |
+
+这些选项只改变 Agent Loop 暴露给 Model 的 Tool 菜单。它们不关闭用户直接输入的 `!命令` 或 `!!命令`，不限制 Extension 自己运行本地代码，也不降低 Pi 进程和当前系统用户的操作系统权限。
+
+Tool 列表越大，随请求发送的契约越多，Model 的选择空间和上下文开销也越大。应按任务提供足够且尽量少的 Tool。
+
+| 状态 | 边界 |
+|---|---|
+| 默认 Tool | 无需额外 Tool 选项就进入默认启用集合 |
+| 可选 Tool | 代码已经由 Pi 提供，但只有被 Tool 选项选中后才进入本次启用集合 |
+| 已注册 | Pi 的 Tool 注册表知道该名称及其 Executor，不等于本次已向 Model 暴露 |
+| 已暴露 | Tool 契约已随当前请求发送给 Model，不等于 Model 已请求调用 |
+| 已允许 | Schema 校验和已注册的执行前门禁已经通过，不等于 Executor 已运行 |
+| 已执行 | 本地 Executor 已用 Pi 进程的当前权限真实运行，并产生 Tool Result |
+
+默认与可选描述的是启用选择，注册、暴露、允许和执行描述的是后续不同阶段；前一个状态不自动保证后一个状态。完整架构链路见 [架构与上下文](01-architecture-and-context.md)，执行前门禁见 [Extensions](06-extensions.md)。
+
+### Pi 0.82.1 的 Schema 类型转换证据
+
+Pi `0.82.1` 在 Schema 校验前会尝试转换部分常见类型。以 `bash` 的必填字符串字段 `command` 和可选数字字段 `timeout` 为例：
+
+| Tool Call 参数 | Schema 结果 | 证据含义 |
+|---|---|---|
+| `command="ls -la"` | 通过 | 必填字段存在且为字符串 |
+| 缺少 `command` | 失败 | 缺少必填字段 |
+| `command=123` | 转为字符串 `"123"` 后通过 | 数字可转换为目标字符串类型 |
+| `timeout="30"` | 转为数字 `30` 后通过 | 数字字符串可转换为目标数字类型 |
+| `timeout="abc"` | 失败 | 参数无法转换为有效数字 |
+| `command="rm -rf temp"` | 通过格式校验 | 参数仍是字符串；危险性不属于 Schema 判断 |
+
+Schema 只能验证字段是否存在、类型是否满足或能否转换，不能判断命令是否危险。结构正确但可能产生破坏性操作的参数，仍需 Tool 允许列表、Extension 门禁、用户确认以及操作系统权限或沙箱等独立控制。
+
+| 失败或风险位置 | 结果边界 |
+|---|---|
+| Model 请求不存在的 Tool 名 | Pi 名称查找失败，返回错误 Tool Result，不执行 |
+| Tool 参数缺失、类型错误且无法转换 | Schema 校验失败，返回错误 Tool Result，不执行 |
+| 参数结构正确但操作危险 | 结构校验仍可通过，必须由允许列表、门禁或用户确认处理 |
+| Tool 或 Extension 自身拥有过大权限 | 依靠操作系统权限、容器或沙箱限制，不由 Schema 解决 |
 
 ### 已验证的最小 Tool 实验
 
@@ -83,26 +131,16 @@ Pi 没有内置沙箱。`bash`、`edit` 和 `write` 可以产生真实修改，�
 
 ## Project Trust、Tool 开关与系统隔离
 
-这三类控制位于不同路径，不能互相替代：
+这些控制位于不同路径，不能互相替代：
 
 | 控制 | 实际控制什么 | 不能保证什么 |
 |---|---|---|
-| Project Trust | 是否加载项目设置、Skill、Extension、Package 等受保护的项目级资源 | 不降低 Pi 进程的操作系统权限，也不证明资源内容安全 |
+| Project Trust | 是否加载受保护的项目资源 | 不降低 Pi 进程的操作系统权限，也不证明资源内容安全 |
 | `--no-tools` | 不向 Model 暴露可调用 Tool | 不关闭用户 Shell，也不阻止 Extension 自身执行代码 |
-| Extension 门禁 | 在已经覆盖的 Tool 或用户 Shell 入口进行允许、确认或阻止 | 未加载或遗漏入口时不生效，不是系统级隔离 |
+| Extension 门禁 | 在已覆盖的 Tool 或用户 Shell 入口允许、确认或阻止 | 未加载或遗漏入口时不生效，不是系统级隔离 |
 | 操作系统权限、容器、虚拟机或沙箱 | 从底层限制文件、进程和网络访问 | 需要单独设计和验证隔离策略 |
 
-Project Trust 是“允许加载”的授权，不是“已经安全”的认证。即使选择信任，仍应审查项目级 Skill、Extension、Package 及其脚本和外部依赖。反过来，拒绝 Project Trust 也不表示 Pi 无法读取任何项目内容；例如项目说明文件、用户明确要求读取的文件和 Shell 路径有各自的加载或执行规则。
-
-本仓库完成过一次最小对照实验：
-
-1. 使用 `--no-approve` 启动时，项目级 `pi-learning-coach` 不出现在 `/skill:` 列表中。
-2. 同时使用 `--no-tools` 时，用户直接输入 `!!pwd` 仍可成功执行，因为它走 `user_bash`，不是 Model Tool Call。
-3. 使用 `--approve` 启动时，项目级 `pi-learning-coach` 被加载并出现在手动 Skill 命令列表中。
-
-这个实验只证明三条路径彼此独立：Project Trust 控制项目资源加载，Tool 开关控制 Model 的 Tool 可见性，用户 Shell 使用 Pi 进程当前拥有的系统权限。它不能证明 Pi 已被沙箱化。
-
-外部文件、网页、Tool Result 和项目资源还可能包含诱导 Model 改变行为的恶意指令，即 Prompt Injection。Project Trust、系统提示和 Model 自律都不能单独形成强隔离；高风险任务仍应组合使用最小 Tool 集、应用层门禁、人工确认和系统级隔离。
+本仓库的最小对照证明三条路径相互独立：`--no-approve` 时项目 Skill 不加载，`--no-tools` 时用户 `!!pwd` 仍可执行，`--approve` 时项目 Skill 可加载。Project Trust 的资源范围、决策顺序和完整证据统一见 [项目配置与上下文](03-project-configuration.md)；Tool/Shell 门禁见 [Extensions](06-extensions.md)。这些机制都不能单独替代系统级隔离。
 
 ## macOS 交互快捷键
 
@@ -123,7 +161,7 @@ Project Trust 是“允许加载”的授权，不是“已经安全”的认证
 | `⇧Tab` | 循环切换当前 Model 支持的 Thinking Level | 否 | 已验证 |
 | `⌃L` | 打开 Model 选择器；等价于 `/model` | 否 | 已验证选择与恢复 Model |
 | `⌃P` / `⇧⌃P` | 在 Scoped Models 中向前/向后切换 Model | 否 | `⌃P` 有直接界面证据；`⇧⌃P` 由用户操作确认，未保留直接界面输出 |
-| `⌃T` | 展开或隐藏 Thinking 内容，不改变 Thinking Level | 否 | 阶段 1.3 验证 |
+| `⌃T` | 展开或隐藏 Thinking 内容，不改变 Thinking Level | 否 | Pi `0.83.0` 实验已验证 |
 | `⌥↩` | Agent 运行时排队 Follow-up 消息 | 是 | 已验证 |
 
 完整默认键位随 Pi 版本变化，以 `/hotkeys` 和本机安装包的 `docs/keybindings.md` 为准。本文只保留课程使用的常用键位及实测状态。
@@ -192,7 +230,7 @@ Footer 中的 Token 信息分为两套统计，不能混为一谈：
 
 多轮请求会反复携带有效历史，所以 Session 累计输入达到 `10K`、当前上下文只有约 `5.2K` 并不矛盾。发生 Compaction 后，Pi 用摘要替代较早消息，并在后续请求中发送“摘要 + 保留的近期消息”：当前上下文比例通常下降，刚压缩完还可能暂时显示 `?/272K`；`↑`、`↓`、缓存和费用等累计值不会回退，生成摘要本身还可能继续增加这些累计值。
 
-本机 Pi `0.83.0` 的综合验收已通过：用户能够区分 Session 累计用量和当前上下文用量，说明 Compaction 前后的显示变化，并准确解释 `(auto)` 的边界。
+本机 Pi `0.83.0` 实验表明：Session 累计用量与当前上下文用量是两套指标；Compaction 通常降低后者，但累计值不会回退；`(auto)` 只表示自动 Compaction 已启用。
 
 ## 输入类型与退出
 
@@ -228,7 +266,7 @@ Footer 中的 Token 信息分为两套统计，不能混为一谈：
 
 ### Model 请求的自动重试
 
-Pi 的 Agent 级自动重试针对 Model/Provider 的瞬时错误，不负责重跑失败的 Tool 或用户 Shell。当前设置没有覆盖 `retry`，因此本机 Pi `0.83.0` 使用默认值：启用自动重试，最多重试 3 次，基础等待 2 秒，按指数退避依次等待 2、4、8 秒。这里的“3 次”不包含最初请求，所以最多会产生 4 次 Model 请求。
+Pi 的 Agent 级自动重试针对 Model/Provider 的瞬时错误，不负责重跑失败的 Tool 或用户 Shell。1.4 验收时的设置没有覆盖 `retry`，因此本机 Pi `0.83.0` 使用默认值：启用自动重试，最多重试 3 次，基础等待 2 秒，按指数退避依次等待 2、4、8 秒。这里的“3 次”不包含最初请求，所以最多会产生 4 次 Model 请求。
 
 | 失败场景 | Pi 的主要处理 |
 |---|---|
@@ -341,7 +379,7 @@ flowchart LR
 - `--mode json` 表示“Pi 用 JSONL 报告内部事件”，不等于要求 Model 的最终业务回答必须是 JSON。
 - 非交互模式不会显示 Project Trust 询问；没有已保存的适用决策时，按全局 `defaultProjectTrust` 处理，也可以用 `--approve` 或 `--no-approve` 为本次运行明确覆盖。
 - 是否保存 Session 是另一条独立开关；需要临时运行时还要显式使用 `--no-session`。
-- `--mode rpc` 面向可持续双向控制的外部程序，留到阶段 7 与 SDK、RPC 一起学习。
+- `--mode rpc` 面向可持续双向控制的外部程序；本文不展开 SDK/RPC 集成。
 
 ### 三种模式本机对照与源码主线
 

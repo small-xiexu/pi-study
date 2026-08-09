@@ -48,24 +48,24 @@ Extension 与 Tool 的区别：Tool 是一次可调用操作；Extension 是插�
 所以“Extension 像拦截器”只描述了它的事件拦截能力。更完整的理解是：**Extension 是插件容器，拦截器只是它能够注册的一类组件。**
 
 ```mermaid
-flowchart LR
-    E["Extension 被加载"] --> A["注册 Tool"]
-    E --> B["注册 Command / 快捷键"]
-    E --> C["订阅生命周期事件"]
-    E --> D["注册 UI / Renderer"]
-    E --> F["注册 Provider / 资源"]
+flowchart TD
+    subgraph STARTUP["启动阶段：加载并建立注册表"]
+        A["Pi 启动"] --> B["发现并加载 Extension 模块"]
+        B --> C["执行一次注册逻辑"]
+        C --> R1["事件注册表<br/>事件名 -> Handler"]
+        C --> R2["命令注册表<br/>命令名 -> Handler"]
+        C --> R3["Tool 注册表<br/>Tool 名 -> Executor"]
+    end
 
-    M["Model 的 Tool Call"] --> A
-    U["用户操作"] --> B
-    P["Pi Agent Loop"] --> C
-    X["Handler 或 Tool"] --> D
-    S["启动、重载、模型请求"] --> F
-
-    A --> R["改变 Pi 的可执行能力"]
-    B --> R
-    C --> R
-    D --> R
-    F --> R
+    subgraph RUNTIME["运行阶段：按名称调用已注册能力"]
+        D["Pi 运行"] --> E{"运行时入口"}
+        E -->|"生命周期事件名"| R1
+        E -->|"用户命令名"| R2
+        E -->|"Model Tool 名"| R3
+        R1 --> H1["调用匹配的 Handler"]
+        R2 --> H2["调用匹配的 Handler"]
+        R3 --> H3["调用匹配的 Executor"]
+    end
 ```
 
 需要特别注意：Extension 是本地可执行代码，拥有 Pi 进程和当前系统用户的权限。它能实现权限门禁，也能绕过门禁直接读文件、执行命令或访问网络，因此“安装了安全 Extension”不等于获得了系统级沙箱。
@@ -81,29 +81,12 @@ Pi 不会让 Model 猜测是否需要启动某个 Extension。Pi 启动时先加
 | 自定义 Tool | Model 间接触发、Pi 实际调度 | Model 返回与已注册 Tool 名匹配的 Tool Call |
 | UI 或状态逻辑 | Extension 自己 | 已触发的事件、命令或 Tool 处理器继续调用 UI 或状态 API |
 
-```mermaid
-flowchart TD
-    A["Pi 启动"] --> B["发现并加载 Extension"]
-    B --> C["Extension 执行注册逻辑"]
-    C --> R1["事件注册表<br/>事件名 → Handler"]
-    C --> R2["命令注册表<br/>命令名 → Handler"]
-    C --> R3["Tool 注册表<br/>Tool 名 → Executor"]
-
-    D["Pi 运行"] --> E{"发生了什么"}
-    E -->|"到达生命周期节点"| R1
-    E -->|"用户输入 /命令"| R2
-    E -->|"Model 返回 Tool Call"| R3
-    R1 --> H["调用匹配的 Extension Handler"]
-    R2 --> H
-    R3 --> H
-```
-
 “触发 Extension”通常包含两个阶段：
 
 1. **加载阶段**：Pi 找到 Extension 文件并执行一次注册逻辑。
-2. **运行阶段**：Pi 根据事件名、命令名或 Tool 名调用已经登记的处理器。
+2. **运行阶段**：Pi 根据事件名或命令名调用已登记的 Handler，根据 Tool 名调用已登记的 Executor。
 
-Extension 本身通常在启动时已经加载。后续被触发的不是整个文件重新加载，而是其中注册的 Handler、Command 或 Tool Executor。
+Extension 本身通常在启动时已经加载。后续被触发的不是整个文件重新加载，而是其中注册的事件/Command Handler 或 Tool Executor；`tool_call` Handler 只是 Executor 运行前的检查点，不能与 Executor 混为一谈。
 
 ## Shell 门禁
 
@@ -112,11 +95,13 @@ Extension 本身通常在启动时已经加载。后续被触发的不是整个�
 ```mermaid
 sequenceDiagram
     participant M as Model
+    participant A as Provider / API Adapter
     participant P as Pi / Agent Loop
     participant E as 安全 Extension
     participant T as bash Tool
 
-    M-->>P: Tool Call：执行危险命令
+    M-->>A: Tool Call：执行危险命令
+    A-->>P: 解析并交给 Agent Loop
     P->>E: 触发 Tool Call 拦截事件
     E-->>P: 允许、拒绝或要求用户确认
     alt 允许
@@ -125,7 +110,8 @@ sequenceDiagram
     else 拒绝
         P->>P: 生成“调用被阻止”的结果
     end
-    P->>M: 携带结果继续下一次推理
+    P->>A: 携带结果发起后续请求
+    A->>M: 按 API 协议发送
 ```
 
 上图只覆盖 Model 发起的 `bash` Tool Call。`user_bash` 是 Pi 在用户输入 `!命令` 或 `!!命令` 时触发的 Extension 事件：Shell 命令仍由 Pi 接收和执行，但绕过 Model 决策与 Tool Call 流程。要保护所有 Shell 入口，需要分别处理：
@@ -139,7 +125,7 @@ sequenceDiagram
 
 交互模式可以询问用户；无 UI 模式无法弹出确认框，应预先规定默认拒绝或其他明确策略。只有 Extension 已加载、正确识别危险命令并覆盖对应入口时，才能保证门禁生效。
 
-在这张图中，Agent Loop 是整条工作流程；Extension 是流程中的一个可插入检查点。后续 `0.2.4` 会深入 Agent Run、Turn 和停止条件，阶段 5 会实际开发并验证 Extension。
+Agent Run、Turn 和停止条件见 [架构与 Model 上下文](01-architecture-and-context.md)；Extension 在 Agent Loop 中的注册点、触发点和门禁边界以本章为准。
 
 ## MCP 与 Subagent
 

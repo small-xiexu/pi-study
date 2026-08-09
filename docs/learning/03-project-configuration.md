@@ -2,7 +2,9 @@
 
 本章记录 Pi 配置来源、Project Trust、合并规则、启动参数优先级，以及项目规则如何进入 Model 上下文。
 
-## 先记住一句话
+## 2.1 配置来源、Project Trust 与优先级
+
+### 一句话结论
 
 在一个全新的、未恢复旧 Session 的 Pi 运行中，同一个设置的取值顺序是：
 
@@ -12,7 +14,7 @@
 
 这里的 `>` 表示“左边有明确值时，优先使用左边的值”。它不是文件加载顺序，也不表示 CLI 会改写配置文件。
 
-## 大白话心智模型
+### 大白话心智模型
 
 可以把 Pi 启动想成先准备两份长期配置，再接收一张本次运行的临时便签：
 
@@ -23,7 +25,7 @@
 
 例如，全局设置 Thinking 为 `max`，当前项目设置为 `high`，本次命令又显式传入 `--thinking low`，本次运行最终就是 `low`。退出后重新启动且不传 `--thinking`，又会回到项目值 `high`。
 
-## 启动流程
+### 启动流程
 
 ```mermaid
 flowchart TD
@@ -42,7 +44,7 @@ flowchart TD
 
 准确地说，Pi 先把 Settings 文件合并，再由各个 CLI 参数在对应功能的使用位置调整本次运行。CLI 不是一个会被保存到 `settings.json` 的通用配置层。
 
-## 两个配置文件
+### 两个配置文件
 
 | 配置来源 | 路径 | 作用范围 |
 |---|---|---|
@@ -60,7 +62,7 @@ Project Trust 只决定是否加载受保护的项目资源，包括项目 `.pi/
 
 注意：`AGENTS.md` / `CLAUDE.md` 是独立的自动上下文文件，不属于上述受保护项目资源。项目 `.agents/skills` 虽然也不在 `.pi/` 中，但属于 Project Trust 门禁范围。
 
-## Project Trust 与常用开关速查
+### Project Trust 与常用开关速查
 
 | 场景或开关 | `AGENTS.md` / `CLAUDE.md` | 受保护的项目资源 | 暴露给 Model 的 Tool | Pi 进程的操作系统权限 |
 |---|---|---|---|---|
@@ -78,7 +80,75 @@ Trust 管项目 .pi/* 和项目或祖先 .agents/skills；
 它们都不是操作系统沙箱。
 ```
 
-## 项目规则如何进入 systemPrompt
+### Settings 合并规则
+
+项目 Settings 在全局 Settings 的基础上覆盖：
+
+| 值的情况 | 结果 |
+|---|---|
+| 项目中存在同名普通值 | 使用项目值 |
+| 项目中没有这个字段 | 保留全局值 |
+| 两边同名值都是对象 | 合并对象中的字段，项目中的同名子字段优先 |
+| 项目值是数组或普通值 | 项目值整体替换全局值 |
+
+因此，“项目覆盖全局”不是把整份全局配置全部丢掉，而是只覆盖项目明确提供的部分。
+
+Pi `0.83.0` 的实现对同名对象执行一层字段合并。遇到更深层的嵌套对象时，不要只凭“递归合并”这个说法做假设，应结合对应版本源码或实测确认。
+
+### Thinking 优先级实验
+
+本仓库已经完成以下只读配置核对和 Footer 实验：
+
+| 步骤 | 有效输入 | Footer 结果 | 证明什么 |
+|---|---|---|---|
+| 1 | 全局 `defaultThinkingLevel=max`，无项目同名配置，无 CLI 覆盖 | `max` | 全局值生效 |
+| 2 | 项目增加 `defaultThinkingLevel=high`，不传 `--thinking` | `high` | 项目同名值覆盖全局值 |
+| 3 | 保留项目 `high`，显式传入 `--thinking low` | `low` | CLI 调整本次运行 |
+| 4 | 退出后重新启动，不传 `--thinking` | `high` | CLI 值没有写回项目配置 |
+
+用户最终复述：
+
+```text
+显式 CLI > 项目配置 > 全局配置
+```
+
+这准确概括了本次固定条件下的三层优先级；如果三层都没有值，再由 Pi 内置默认值兜底。
+
+### Session 是另一件事
+
+上述实验全部使用 `--no-session`，专门排除了 Session 恢复的影响。
+
+恢复已有 Session 时，Pi 还可能恢复该 Session 之前保存的 Model 或 Thinking 状态。因此，不应把“新运行的配置优先级”误当成所有续接 Session 的完整规则。排查时要先确认自己是在新运行，还是在继续旧 Session。
+
+CLI 临时值作用于当前 Pi 启动或进程，不等于“写进当前 Session 配置”，更不会自动改写全局或项目 `settings.json`。
+
+### 排查顺序
+
+发现实际值和预期不一致时，按下面顺序检查：
+
+1. 查看启动命令是否显式传入了对应 CLI 参数。
+2. 确认是不是恢复了已有 Session。
+3. 只检查项目 `.pi/settings.json` 中的目标字段。
+4. 只检查全局 `~/.pi/agent/settings.json` 中的目标字段。
+5. 确认当前项目是否受信任；修改 Trust 后要重启 Pi。
+6. 通过 Footer 或最小实验验证最终有效值。
+
+检查配置时只读取目标字段，不要把可能含凭据的完整配置输出到截图、日志或学习文档中。
+
+### Pi 0.83.0 版本化证据入口
+
+本章阶段 2 的结论基于 Pi `0.83.0` 的本地文档、源码和终端实验；当前 CLI 版本见 [完整学习计划](../plans/pi-complete-learning-plan.md)：
+
+- `docs/settings.md`：配置路径、Project Trust、项目覆盖和对象合并说明。
+- `dist/core/settings-manager.js`：全局与项目 Settings 的读取、Trust 门禁及实际合并逻辑。
+- `dist/cli/args.js`：`--thinking` 参数解析。
+- `dist/core/sdk.js`：CLI Thinking、Session 恢复、Settings 默认值和内置默认值的选择顺序。
+
+升级 Pi 后，如果行为和本章不同，应以新版本文档、源码和最小实验重新核对。
+
+## 2.2 项目规则与 systemPrompt
+
+### 项目规则如何进入 systemPrompt
 
 Pi 启动时会沿目录层级查找项目规则文件。每个目录中的 `AGENTS.md` 和 `CLAUDE.md` 是候选关系：
 
@@ -91,7 +161,7 @@ Pi 启动时会沿目录层级查找项目规则文件。每个目录中的 `AGE
 
 普通 `README.md` 不会仅因位于仓库中就自动成为规则。它只有在被显式附加、被 Tool 读取，或内容通过其他机制加入上下文后，Model 才能看到。
 
-## SYSTEM.md 与 APPEND_SYSTEM.md
+### SYSTEM.md 与 APPEND_SYSTEM.md
 
 可以把 Pi 内置系统提示想成默认的 Coding Agent 工作手册：
 
@@ -114,7 +184,7 @@ flowchart TD
 
 项目中的 `.pi/SYSTEM.md` 和 `.pi/APPEND_SYSTEM.md` 都受 Project Trust 控制。项目未受信任时，Pi 会忽略这些项目资源；这仍然只是资源加载门禁，不是权限沙箱。
 
-## 自动项目规则与显式文件引用
+### 自动项目规则与显式文件引用
 
 可以把两类内容分别理解为“长期工作制度”和“本次工单材料”：
 
@@ -140,7 +210,7 @@ flowchart TD
     H["已启用 Tool 定义"] --> G
 ```
 
-## 2.2 最小对照实验
+### 最小对照实验
 
 实验同时放入两份带有不同标记的内容：
 
@@ -172,7 +242,7 @@ SYSTEM_RULE_2201
 
 证据边界也要保留：Model 的输出只能证明两类内容都已到达，不能单靠输出判断 Pi 内部把它们存在哪个对象字段。`.pi/APPEND_SYSTEM.md` 进入 `systemPrompt`、CLI `@文件` 进入当前请求 `messages` 的精确落点，由下面的 Pi `0.83.0` 源码追踪确认。
 
-## 2.2 源码追踪：两条内容通道
+### 源码追踪：两条内容通道
 
 大白话理解：Pi 启动时同时准备“工作制度”和“本次工单”。两者最后都会交给 Model，但走的不是同一条通道。
 
@@ -192,14 +262,14 @@ flowchart LR
     J --> K
 ```
 
-### 通道一：APPEND_SYSTEM.md 进入 systemPrompt
+#### 通道一：APPEND_SYSTEM.md 进入 systemPrompt
 
 1. `dist/core/resource-loader.js` 的 `discoverAppendSystemPromptFile()` 只在项目受信任时选择项目 `.pi/APPEND_SYSTEM.md`，否则再检查全局文件。
 2. 同一文件的资源加载流程读取追加提示内容；这段逻辑与 `noContextFiles` 控制的 `AGENTS.md`/`CLAUDE.md` 加载分支相互独立。
 3. `dist/core/agent-session.js` 的 `_rebuildSystemPrompt()` 从 Resource Loader 取得追加提示，并把它作为 `appendSystemPrompt` 传给 `buildSystemPrompt()`。
 4. `dist/core/system-prompt.js` 的 `buildSystemPrompt()` 把追加内容拼到基础系统提示后，形成最终 `systemPrompt`。
 
-### 通道二：CLI @文件进入 messages
+#### 通道二：CLI @文件进入 messages
 
 1. `dist/cli/file-processor.js` 的 `processFileArguments()` 在调用 Model 前直接读取文本文件，并包装为 `<file name="...">...</file>`。
 2. `dist/cli/initial-message.js` 的 `buildInitialMessage()` 把文件内容与本次 CLI 用户文字合并成 `initialMessage`。
@@ -207,7 +277,7 @@ flowchart LR
 
 这里最容易混淆的是“Pi 进程读取文件”和“Model 请求 `read` Tool”并不是一回事。本实验使用 `--no-tools`，只是没有把 Tool 暴露给 Model；CLI 自己仍然可以在发起 Model 请求前处理用户显式提供的 `@文件`。
 
-### 为什么 --no-context-files 没挡住本实验
+#### 为什么 --no-context-files 没挡住本实验
 
 Pi `0.83.0` 中，`--no-context-files` 只让 Resource Loader 跳过 `AGENTS.md` 和 `CLAUDE.md` 的自动发现。它没有关闭：
 
@@ -280,72 +350,6 @@ CONTEXT_NOT_LOADED
 4. `--no-session` 排除了从旧 Session 历史中恢复标记的可能。
 
 实验只能证明规则内容到达 Model，不能证明 Model 一定遵守规则。即使 `AGENTS.md` 写着“禁止提交”，真正的强制限制仍要依赖 Tool 门禁、Extension、受限用户、容器或其他系统级隔离。
-
-## Settings 合并规则
-
-项目 Settings 在全局 Settings 的基础上覆盖：
-
-| 值的情况 | 结果 |
-|---|---|
-| 项目中存在同名普通值 | 使用项目值 |
-| 项目中没有这个字段 | 保留全局值 |
-| 两边同名值都是对象 | 合并对象中的字段，项目中的同名子字段优先 |
-| 项目值是数组或普通值 | 项目值整体替换全局值 |
-
-因此，“项目覆盖全局”不是把整份全局配置全部丢掉，而是只覆盖项目明确提供的部分。
-
-Pi 0.83.0 的实现对同名对象执行一层字段合并。遇到更深层的嵌套对象时，不要只凭“递归合并”这个说法做假设，应结合当前版本源码或实测确认。
-
-## Thinking 优先级实验
-
-本仓库已经完成以下只读配置核对和 Footer 实验：
-
-| 步骤 | 有效输入 | Footer 结果 | 证明什么 |
-|---|---|---|---|
-| 1 | 全局 `defaultThinkingLevel=max`，无项目同名配置，无 CLI 覆盖 | `max` | 全局值生效 |
-| 2 | 项目增加 `defaultThinkingLevel=high`，不传 `--thinking` | `high` | 项目同名值覆盖全局值 |
-| 3 | 保留项目 `high`，显式传入 `--thinking low` | `low` | CLI 调整本次运行 |
-| 4 | 退出后重新启动，不传 `--thinking` | `high` | CLI 值没有写回项目配置 |
-
-用户最终复述：
-
-```text
-显式 CLI > 项目配置 > 全局配置
-```
-
-这准确概括了本次固定条件下的三层优先级；如果三层都没有值，再由 Pi 内置默认值兜底。
-
-## Session 是另一件事
-
-上述实验全部使用 `--no-session`，专门排除了 Session 恢复的影响。
-
-恢复已有 Session 时，Pi 还可能恢复该 Session 之前保存的 Model 或 Thinking 状态。因此，不应把“新运行的配置优先级”误当成所有续接 Session 的完整规则。排查时要先确认自己是在新运行，还是在继续旧 Session。
-
-CLI 临时值作用于当前 Pi 启动或进程，不等于“写进当前 Session 配置”，更不会自动改写全局或项目 `settings.json`。
-
-## 排查顺序
-
-发现实际值和预期不一致时，按下面顺序检查：
-
-1. 查看启动命令是否显式传入了对应 CLI 参数。
-2. 确认是不是恢复了已有 Session。
-3. 只检查项目 `.pi/settings.json` 中的目标字段。
-4. 只检查全局 `~/.pi/agent/settings.json` 中的目标字段。
-5. 确认当前项目是否受信任；修改 Trust 后要重启 Pi。
-6. 通过 Footer 或最小实验验证最终有效值。
-
-检查配置时只读取目标字段，不要把可能含凭据的完整配置输出到截图、日志或学习文档中。
-
-## 当前版本证据入口
-
-本章结论基于 Pi `0.83.0` 的本地文档、源码和终端实验：
-
-- `docs/settings.md`：配置路径、Project Trust、项目覆盖和对象合并说明。
-- `dist/core/settings-manager.js`：全局与项目 Settings 的读取、Trust 门禁及实际合并逻辑。
-- `dist/cli/args.js`：`--thinking` 参数解析。
-- `dist/core/sdk.js`：CLI Thinking、Session 恢复、Settings 默认值和内置默认值的选择顺序。
-
-升级 Pi 后，如果行为和本章不同，应以新版本文档、源码和最小实验重新核对。
 
 ## 2.4 七类运行配置的系统地图
 
@@ -607,7 +611,7 @@ Images B 中仍然出现了 `read` Tool Call。`read` 找到了图片文件，Pi
 
 ### Shell：解释器与命令前缀是两个控制点
 
-先看完整场景：当前学习仓库使用 zsh，但 Pi 在没有配置 `shellPath` 时，会为每条 Shell 命令单独启动 `/bin/bash`。为了验证显式配置是否生效，需要创建一个不影响学习仓库和全局设置的临时项目，只改变 `shellPath`，再执行与默认实验完全相同的命令。
+先看 2.4 验收场景：学习仓库使用 zsh；Pi `0.83.0` 在没有配置 `shellPath` 时，会为每条 Shell 命令单独启动 `/bin/bash`。为了验证显式配置是否生效，实验创建了一个不影响学习仓库和全局设置的临时项目，只改变 `shellPath`，再执行与默认实验完全相同的命令。
 
 临时项目由四条命令准备：
 

@@ -1,6 +1,6 @@
 # Pi 架构与 Model 上下文
 
-Pi 是协调者，Model 是推理者，Tool 是执行者，Session 是记录，Extension 用来改变或增加协调能力。终端和内置 Tool 的使用见 [终端与基础工具](02-terminal-and-tools.md)，Extension 的完整能力见 [Extensions](06-extensions.md)。
+Pi 是协调者，Model 是推理者，Tool 是执行者，Session 是记录，Extension 用来改变或增加协调能力。本文的 0.2 实验与源码证据基于 Pi `0.82.1`；当前 CLI 版本见 [完整学习计划](../plans/pi-complete-learning-plan.md)。终端和内置 Tool 的使用见 [终端与基础工具](02-terminal-and-tools.md)，Extension 的完整能力见 [Extensions](06-extensions.md)。
 
 ## Pi 是什么
 
@@ -62,7 +62,7 @@ flowchart TB
 | Extension | 注册或拦截 Tool、命令、事件和 UI，改变 Pi 的行为 | 不是 Model，也不是 Session |
 | Session | 持久化消息、Tool Call、Tool Result、Model 信息和会话树 | 不是 Git 快照，也不是 Model 永久记忆 |
 
-### Agent Loop 是运行流程
+### Agent Loop 架构概览
 
 Agent Loop 不是需要单独安装的组件，也不是另一个大模型。它是 Pi 内部反复执行的控制流程：调用 Model，检查响应，必要时执行 Tool，再把 Tool Result 交给 Model，直到流程结束。
 
@@ -70,7 +70,7 @@ Agent Loop 不是需要单独安装的组件，也不是另一个大模型。它
 flowchart TD
     A["用户提交任务"] --> B["Pi 开始一次 Agent Run"]
     B --> C["组装当前上下文"]
-    C --> D["调用 Model"]
+    C --> D["经 Provider / API Adapter<br/>调用 Model"]
     D --> E{"Model 返回什么"}
     E -->|"最终文本，无 Tool Call"| F["保存并展示结果"]
     E -->|"一个或多个 Tool Call"| G["Pi 解析、校验并执行 Tool"]
@@ -102,7 +102,7 @@ Turn 1：Model 响应
 Turn 2：Model 根据两个结果进行比较并给出最终回答
 ```
 
-这样做可以减少 Model 往返次数。Pi 0.82.1 默认先逐个完成 Tool Call 的执行前检查，再并行执行能够执行的同批工具；所有结果仍属于产生它们的同一个 Turn。若后一个动作必须依赖前一个结果，例如“先读取配置，再根据内容决定编辑参数”，通常应等结果返回后在下一个 Turn 再决定，而不是强行放进同一批。
+这样做可以减少 Model 往返次数。0.2 验收所用 Pi `0.82.1` 默认先逐个完成 Tool Call 的执行前检查，再并行执行能够执行的同批工具；所有结果仍属于产生它们的同一个 Turn。若后一个动作必须依赖前一个结果，例如“先读取配置，再根据内容决定编辑参数”，通常应等结果返回后在下一个 Turn 再决定，而不是强行放进同一批。
 
 这里的 `Turn` 使用 Agent Loop 事件定义，即“一次 Model 响应及其产生的 Tool Call 和 Tool Result”。Pi 的 Compaction 文档还会把“从一条用户消息开始，到下一条用户消息之前的全部内容”称为 turn；那是会话整理语境下的用法，学习时需要根据场景区分。
 
@@ -203,7 +203,7 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     U["用户"] -->|"提交任务"| P["Pi"]
-    P -->|"统一模型请求"| V["Provider"]
+    P -->|"统一模型请求"| V["Provider / API Adapter"]
     V -->|"协议调用"| M["Model"]
     M -->|"文本或 Tool Call"| V
     V -->|"统一响应"| P
@@ -211,7 +211,7 @@ flowchart LR
     T -->|"系统调用"| O["文件系统、Shell 或外部服务"]
     O -->|"原始结果"| T
     T -->|"Tool Result"| P
-    P -->|"携带结果再次推理"| M
+    P -->|"更新上下文并发起统一模型请求"| V
 ```
 
 默认情况下只有 Pi 调用 Model。Model 是被调用的大模型；内置 Tool 不调用大模型。自定义 Tool 可以主动调用其他模型或服务，但那是 Tool 自己的实现，不是默认架构。
@@ -302,21 +302,7 @@ flowchart LR
 
 自定义 Tool 可以在自身实现中额外调用 Model，但这不是内置 `read` 的默认职责。
 
-Session 保存整棵对话树；`messages` 只取当前活动路径。假设 A、B 从同一个节点分叉，当前位于 B，当次请求通常包含公共祖先和 B 路径，不会自动包含 A 路径。
-
-| 对象 | 保存或发送的范围 |
-|---|---|
-| Session 文件 | 公共历史、A、B 以及其他持久化条目 |
-| 当次 `messages` | 公共历史、当前活动路径，以及必要的 Compaction 或分支摘要 |
-
-需要在 B 使用 A 的信息时，按内容类型处理：
-
-- 对话结论：通过 `/tree` 从 A 切换到 B 时选择生成分支摘要；Pi 会把离开的 A 路径压缩为 `BranchSummaryEntry`，作为 B 后续上下文的一部分。摘要有损，关键数值、约束或原文应显式复制到 B，或让 Tool 重新读取权威文件。
-- 代码和文件：Session 分支不是 Git 分支，切换 `/tree` 不会恢复或合并工作区文件。需要隔离两套实现时，应使用 Git 分支或 worktree，再通过 merge、cherry-pick 或人工整合代码。
-
-如果当前已经位于 B：先用 `/tree` 临时切到 A，并跳过对 B 的摘要；再从 A 切回 B，这次选择总结 A，并用自定义要求限定只保留相关结论、文件和风险。少量必须逐字保留的内容，可以在 `/tree` 中选中 A 的消息后复制到 B。
-
-因此，跨分支协作的原则是“传递必要结论或重新读取事实”，而不是把两个分支的完整历史全部塞进 `messages`。
+Session 保存完整会话树，`messages` 只取当前活动路径。兄弟路线不会自动同时进入一次 Model 请求；离开路线的结论只能通过有损的 Branch Summary、显式复制或重新读取权威文件进入新路线。Session 路线也不会恢复或合并工作区文件。Tree、Compaction、Branch Summary 的操作和证据统一见 [Session、Tree 与 Compaction](04-session-tree-compaction.md)。
 
 ### “有效上下文”不等于“语义上最相关”
 
@@ -363,7 +349,7 @@ Pi 能自动规避的是结构和容量问题：隔离兄弟分支、保留近�
 | Model | Tool 的 `name`、`description` 和 `parameters` 参数结构；Provider 可补充协议字段 | 本机执行函数、文件内容、系统权限和真实执行结果 |
 | Pi | 完整 Tool 对象，包括 Model 可见的契约和本地 `execute` 执行器 | Model 尚未产生的任务决策 |
 
-因此，Pi 内存中的 Tool 不只是 Schema；但通过 Provider 发给 Model 的 `tools` 字段只包含可调用契约。当前 OpenAI Responses 适配层会将普通 Tool 转换成 `type: function`，并补充 `strict` 等协议字段。以 `read` 为例，Model 能知道它需要 `path` 等参数，却不能直接看到 `read` 的本地实现或目标文件内容。
+因此，Pi 内存中的 Tool 不只是 Schema；但通过 Provider 发给 Model 的 `tools` 字段只包含可调用契约。0.2 验收所用 Pi `0.82.1` 的 OpenAI Responses 适配层会将普通 Tool 转换成 `type: function`，并补充 `strict` 等协议字段。以 `read` 为例，Model 能知道它需要 `path` 等参数，却不能直接看到 `read` 的本地实现或目标文件内容。
 
 用 Java Web 类比：
 
@@ -393,7 +379,8 @@ flowchart TD
     J --> K["已注册的执行前门禁"]
     K --> L["本地 Executor 执行"]
     L --> M["Tool Result 加入 messages"]
-    M --> N["再次调用 Model"]
+    M --> N["Provider / API Adapter"]
+    N --> O["再次调用 Model"]
 ```
 
 这条链路必须逐步成立：
@@ -421,73 +408,15 @@ flowchart TD
 
 前一个状态不自动保证后一个状态。例如“已安装”不等于“Model 可见”，“Model 可见”不等于“Model 一定调用”，“Tool Call 已产生”也不等于“操作已经执行”。
 
-#### 当前内置 Tool 与启用范围
+#### Pi 0.82.1 Tool 架构证据与安全边界
 
-Pi `0.82.1` 提供七个内置 Tool：`read`、`bash`、`edit`、`write`、`grep`、`find`、`ls`。默认给 Model 的是 `read`、`write`、`edit`、`bash` 四个；其余只读 Tool 可以通过 Tool 选项启用。
-
-| Tool | 主要能力 | 从 Model Tool 入口看是否只读 | 主要风险 |
-|---|---|---|---|
-| `read` | 读取文件内容 | 是 | 可能读取当前用户有权访问的敏感文件 |
-| `grep` | 按内容搜索文件 | 是 | 可能从大量文件中检索出敏感信息 |
-| `find` | 按名称或路径查找文件 | 是 | 可能暴露目录结构和敏感文件位置 |
-| `ls` | 列出目录内容 | 是 | 可能暴露目录结构和文件名 |
-| `write` | 创建或覆盖文件 | 否 | 可新增内容或覆盖原文件 |
-| `edit` | 对现有文件做定点修改 | 否 | 可修改代码、配置和数据 |
-| `bash` | 运行当前用户可执行的 Shell 命令 | 否 | 可读写、删除、联网、启动进程，能力面远大于单一文件 Tool |
-
-因此，只排除 `write` 和 `edit`、却继续暴露 `bash`，不能称为 Model 只读模式。Model 仍可请求 `bash` 执行重定向、删除命令或脚本，完成写文件 Tool 本来能够完成的操作，甚至产生更大的系统影响。
-
-| 启动选项 | 作用 |
-|---|---|
-| `--tools read,grep,find,ls` | 只启用列出的 Tool，形成允许列表 |
-| `--exclude-tools bash,edit,write` | 从原有集合中排除指定 Tool |
-| `--no-builtin-tools` | 禁用内置 Tool，但不自动禁用 Extension 或自定义 Tool |
-| `--no-tools` | 禁用所有 Model 可调用的 Tool |
-
-Tool 列表越大，发送给 Model 的契约越多，Model 的选择空间和上下文开销也越大。应根据任务提供足够但尽量少的 Tool，而不是默认把所有外部能力都接入。
-
-`--tools read,grep,find,ls` 可以称为“Model 可调用 Tool 的只读允许列表”。这个说法只描述 Agent Loop 暴露给 Model 的 Tool 边界，不代表 Pi 进程被沙箱化，也不代表用户 Shell 或 Extension 失去了当前系统用户权限。
-
-#### Tool Schema 不是安全策略
-
-Schema 是 Tool 参数的“格式说明书”。它规定 Model 产生 Tool Call 时可以提交哪些字段、哪些字段必填，以及校验完成后每个字段应是什么数据类型。
-
-Pi `0.82.1` 校验前会尝试转换部分常见类型。例如数字 `123` 可以被转成字符串 `"123"`，字符串 `"30"` 可以被转成数字 `30`；转换后仍不符合 Schema 才会失败。
-
-以 `bash` Tool 为例，可以把它的参数规则简化理解为：
-
-| 字段 | 格式要求 |
-|---|---|
-| `command` | 必填，必须是字符串 |
-| `timeout` | 选填，必须是数字 |
-
-| Tool Call 参数 | Schema 结果 | 原因 |
-|---|---|---|
-| `command` 是 `ls -la` | 通过 | 必填字段存在，而且是字符串 |
-| 没有 `command` | 失败 | 缺少必填字段 |
-| `command` 是数字 `123` | 转成字符串后通过 | Pi 会将它转换为 `"123"` |
-| `timeout` 是字符串 `"30"` | 转成数字后通过 | Pi 会将它转换为 `30` |
-| `timeout` 是字符串 `"abc"` | 失败 | 无法转换成有效数字 |
-| `command` 是 `rm -rf temp` | 通过格式校验 | 它仍然是字符串；是否危险不属于格式判断 |
-
-这类似 Java 接收请求时先反序列化为 DTO，再做字段校验：可以发现字段缺失或类型不合法，但除非额外编写业务规则，否则不会理解一条 Shell 命令是否危险。
-
-参数 Schema 可以检查字段是否存在、类型是否正确，却不能证明操作在业务上安全。例如 `bash` 的 `command` 是合法字符串，不代表其中的命令无破坏性。
-
-| 风险 | 对应保护 |
-|---|---|
-| Model 生成不存在的 Tool 名 | Pi 查找失败，返回错误 Tool Result，不执行 |
-| Model 生成结构错误的参数 | Pi 参数校验失败，返回错误 Tool Result，不执行 |
-| 参数结构正确但操作危险 | Tool 白名单、Extension 门禁和用户确认 |
-| Tool 或 Extension 自身越权 | 操作系统权限、容器或沙箱 |
-
-禁用 Tool 只能缩小 Model 通过 Agent Loop 发起操作的能力面，不会降低 Pi 进程或当前系统用户的权限，也不会把 Pi 变成沙箱。`--no-tools` 仍不会关闭用户直接输入的 `!命令`、`!!命令`，也不会阻止 Extension 自己运行本地代码。
+本节基于 Pi `0.82.1` 证据，只保留架构边界：Tool Schema 校验参数结构，不判断操作是否安全；Tool 已注册、已暴露、已请求、已允许和已执行是不同状态。Pi `0.82.1` 的内置 Tool 默认/可选范围、启用选项与 Schema 类型转换实验见 [终端与基础工具](02-terminal-and-tools.md)中的对应历史小节；Pi `0.83.0` 的终端与 Tool 行为实验也由该文档汇总。Tool/Shell 门禁见 [Extensions](06-extensions.md)。禁用 Tool 只缩小 Model 通过 Agent Loop 发起操作的能力面，不降低 Pi 进程或当前系统用户的权限。
 
 ## 0.2.3 Provider、Model、认证与 API 协议
 
 四者分别回答四个不同问题：
 
-| 概念 | 回答的问题 | 当前学习环境中的例子 |
+| 概念 | 回答的问题 | 0.2 实验环境中的例子 |
 |---|---|---|
 | Provider | Pi 通过哪一个服务入口和配置集合发送请求 | `openai` |
 | Model | 具体让哪个推理模型处理请求 | `gpt-5.6-sol` |
@@ -498,7 +427,7 @@ Provider 配置通常还包含 `baseUrl`、请求头、默认 API 类型和它�
 
 Provider 也不等于 API 格式。`openai` Provider 表示 Pi 使用名为 `openai` 的服务接入单元，负责关联服务配置、认证和模型目录；“按照 OpenAI Responses 的请求格式通信”则是 `openai-responses` 协议适配器的职责。同一个 Provider 可以为不同 Model 指定不同 API 协议，兼容同一协议的其他 Provider 也可以复用这种通信格式。
 
-#### 把 Provider 和 API 协议彻底拆开
+### 把 Provider 和 API 协议彻底拆开
 
 最简单的点餐类比：
 
@@ -549,7 +478,7 @@ flowchart LR
 
 认证只负责证明访问资格。API Key 正确，不代表 Model 名称存在、账号有该 Model 权限、请求参数正确或服务端一定成功。
 
-#### 认证通过不等于请求成功
+### 认证通过不等于请求成功
 
 | 场景 | 通过了什么 | 失败在哪里 |
 |---|---|---|
@@ -565,7 +494,7 @@ flowchart LR
 
 API 协议是通信规则。它规定 Pi 如何把 `systemPrompt`、`messages`、`tools` 等内部数据转换成服务端接受的请求，以及如何把流式响应转换回 Pi 能理解的统一事件。协议本身不负责推理。
 
-#### 这条流程适用于什么场景
+### 这条流程适用于什么场景
 
 下面的流程描述的是 **Agent Loop 中一次 Model API 调用**。它的起点是“当前 Model 已经选定，而且 Pi 已经组装好 `systemPrompt`、`messages`、`tools`”；终点是“Pi 收到并理解这一轮 Model 输出”。
 
@@ -592,6 +521,18 @@ flowchart LR
 ```
 
 可以用寄快递类比：Provider 是快递公司和网点，Model 是指定的收件处理部门，认证是寄件资格或账号凭证，API 协议是双方统一填写的面单格式。四者缺少任意一项，请求链路都可能无法成立。
+
+## 0.2.4 Agent Loop
+
+Agent Loop 是 Pi 在 Model 调用与 Tool 执行之间推进状态的控制流程。一次 Run 可以包含多个 Turn；Tool Result 写回上下文后，Pi 仍需经过 Provider/API Adapter 再次请求 Model。完整运行图、终止条件和 ReAct 边界见前文 [Agent Loop 架构概览](#agent-loop-架构概览)。
+
+## 0.2.5 Tool 系统
+
+Tool 系统的架构主线是“注册与启用 -> 契约随请求发送 -> Model 返回 Tool Call -> Pi 查找、校验和门禁 -> Executor 执行 -> Tool Result 回到下一次 Model 请求”。各状态不能互相代替；内置 Tool 与终端用法的 Pi `0.83.0` 历史实验快照见 [终端与基础工具](02-terminal-and-tools.md)。
+
+## 0.2.6 Extension
+
+Extension 是可选的本地插件层，可以注册 Tool、Command 和事件处理器，也可以在固定生命周期节点拦截流程。没有 Extension，Pi 的内置 Tool 和 Agent Loop 仍可运行；注册、触发、门禁和 UI 策略见 [Extensions](06-extensions.md)。
 
 ## 0.2.7 Session、当前上下文、模型永久记忆与 Git 历史
 
@@ -634,7 +575,7 @@ Git 解决的是文件版本恢复，不解决对话恢复；Session 解决的�
 - 黄色区域显示 Model 基于文件内容返回的最终文本“阶段 0.1 本机环境体检报告”。
 - 底栏显示当前 Session 名称和 Model。
 
-下面名称查找、Schema 校验、Extension 事件以及两个生命周期事件并不会全部直接显示在这张界面里；它们是结合 Pi 0.82.1 文档和已经验收的架构规则还原出的内部链路。
+下面名称查找、Schema 校验、Extension 事件以及两个生命周期事件并不会全部直接显示在这张界面里；它们是结合本次 0.2.8 实验所用 Pi `0.82.1` 文档和已经验收的架构规则还原出的内部链路。
 
 ```mermaid
 sequenceDiagram
