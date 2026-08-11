@@ -16,7 +16,7 @@
 | [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
 | [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
-| [06-extensions.md](06-extensions.md) | Extension 能力、注册与触发机制、Tool/Shell 门禁，以及 MCP 与 Subagent 的引入顺序 |
+| [06-extensions.md](06-extensions.md) | Pi `0.84.1` Extension 的完整加载场景、核心对象、通用生命周期、四类入口与五个排序槽位、Trust/去重/重载、TypeScript/依赖边界，以及后续能力地图 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 
@@ -41,6 +41,7 @@
 - 学习计划是唯一进度台账；主题文档只保存稳定知识和可复用操作。
 - 环境报告只记录实际验证证据，不把计划项存在当成完成证据。
 - 一个知识点只在最合适的主题文档中完整说明，其他文档使用链接引用。
+- 重点机制在用户理解确认后及时写入对应主题文档；优先保留大白话场景、流程图、关键边界和版本证据，不把对话记录原样堆入正文。
 - 主题变大时优先增加清晰的小节；只有职责明显不同且检索受影响时才继续拆分。
 - 每个成熟模块尽量保留原理、实验步骤、验证证据、结论与边界；网站只负责呈现这些内容。
 - 旧入口 `pi-learning-notes.md` 只保留迁移说明，不再追加正文。

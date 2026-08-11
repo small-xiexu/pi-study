@@ -9,9 +9,9 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 历史版本基线：`@earendil-works/pi-coding-agent@0.84.0`；当前 CLI 见下方环境快照
 - 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
-- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3 和阶段 4 已完成；阶段 5 尚未开始
-- 下一步：进入 5.1；先从现有项目资源的真实加载场景讲清 Extension 的全局、项目和 CLI 临时位置及优先级，再确认开发环境实验卡
-- 预计投入：Pi 学习与综合项目 60-85 小时；学习网站另计 8-12 小时；按验收结果推进
+- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3 和阶段 4 已完成；阶段 5 的 5.1 进行中
+- 下一步：A/B 重新拆解进行中；逐项讲清隔离环境变量和原始 Pi 启动参数，再由用户手工执行可见的 A/B 对照，不直接运行封装脚本
+- 预计投入：Pi 学习与综合项目 73-103 小时；学习网站另计 8-12 小时；阶段 5-6 作为定制开发核心加深学习，按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
 ### 当前环境快照
@@ -35,7 +35,7 @@
 3. 正确使用会话恢复、树分支、Fork、Clone、消息队列和上下文压缩。
 4. 编写并调试 `AGENTS.md`、项目设置、Prompt Template、Skill 和 Theme。
 5. 使用 TypeScript Extension 扩展事件、工具、命令、UI 和权限门禁。
-6. 创建、审查、安装和发布 Pi Package，区分 Custom Model 与 Custom Provider。
+6. 创建、审查和安装 Pi Package，完成可发布制品与发布前演练，并区分 Custom Model 与 Custom Provider。
 7. 通过 SDK、RPC 和 JSON Event Stream 将 Pi 接入外部程序，并理解 TUI 组件。
 8. 阅读 `pi-mono` 核心源码，定位 Agent 执行链路并运行相关测试。
 9. 独立交付一个安全可控、可测试、可复用的 Pi 综合项目。
@@ -59,12 +59,13 @@
 执行规则：
 
 - 不再为每个术语安排零散小测；每个模块使用一次贯穿实验和一次综合验收。
+- 学习深度以能够正确配置、实现、测试和排查 Pi 为准；依赖管理等通用工具只讲与当前任务直接相关的决策和故障边界，不单独展开内部解析算法，确需深入时再结合真实实现或故障补充。
 - 给出实验命令前，必须先说明真实场景、待验证问题、固定条件、唯一变量、预期可观察差异、通过标准，以及结果能证明和不能证明什么；没有对照组时，也要说明操作与证据之间的因果链。
 - 实验发现错误时，先解释证据和原因，再完成一次正确重试。
 - 新主题首次出现时，必须先从学习者已经做过的真实操作切入，逐个解释本轮所有陌生对象，再讲完整场景和术语映射；学习者确认没有陌生对象后，才能进入判断题、复述或实验。
 - 禁止用问题代替首次讲解；学习者按已有规则答对、但明确表示不认识题目中的对象或术语时，不计为新概念的理解验收，必须退回重新教学。
 - 抽象机制先用一个有起点、过程和终点的完整大白话场景讲清“为什么需要、原任务如何开始、中途发生什么、Pi 如何处理、最终如何结束”，再映射到术语、快捷键、源码位置和真实边界；不得从流程中段或孤立定义开始。
-- 主题文档在模块形成稳定结论后更新，不逐条转录聊天内容。
+- 重点机制在用户理解确认并形成稳定结论后，自动更新到对应主题文档；保留大白话场景、必要图表、版本和证据边界，不逐条转录聊天内容。
 - 每个模块验收后立即回写本计划；Git 提交仍只在用户明确要求时执行。
 - 真实 Pi 实验、最小 Agent Demo、Extension 和 SDK/RPC 程序都在本机运行；学习网站只展示脱敏后的可重复材料和结论。
 - 快捷键统一按 macOS 视角讲解：使用 `⌃ Control`、`⌥ Option`、`⇧ Shift`、`⌘ Command` 和 `↩ Return`；首次出现同时写出按键全名，只有说明平台差异时才补充 Windows/Linux 表述。
@@ -103,8 +104,8 @@
 | 2 | 项目配置与上下文 | 5-7 小时 | 可复用项目配置 |
 | 3 | Session、Tree 与 Compaction | 6-8 小时 | 会话实验与结构分析 |
 | 4 | Prompt、Skill 与 Theme | 6-8 小时 | Prompt、只读 Skill、Theme |
-| 5 | TypeScript Extensions | 10-14 小时 | 安全门禁与自定义工具扩展 |
-| 6 | Packages、Models 与 Providers | 6-8 小时 | 本地 Pi Package 与 Provider 对比报告 |
+| 5 | TypeScript Extensions | 18-24 小时 | 可测试的安全门禁与自定义能力 Extension |
+| 6 | Packages、Models 与 Providers | 12-18 小时 | 可管理的本地 Pi Package 与模型接入实验 |
 | 7 | SDK、RPC、JSON 与 TUI | 8-12 小时 | 外部集成程序 |
 | 8 | 源码与综合项目 | 10-15 小时 | 源码导读和毕业项目 |
 | 9 | 学习网站与面试作品集 | 8-12 小时 | 在线网站、GitHub 项目和面试讲解材料 |
@@ -571,37 +572,130 @@
 
 ### 阶段 5：TypeScript Extensions
 
-目标：具备开发、测试和审查 Pi Extension 的能力。
+目标：掌握 Pi 最核心的定制入口，能够开发、测试和审查 Extension，并准确区分注册、事件派发、Tool 执行、UI 呈现和系统权限。
 
-- [ ] 5.1 建立 Extension 开发环境，理解全局、项目和临时加载位置。
+贯穿产物：项目级 `pi-study-guard` Extension。它逐步加入只读项目检查 Tool、同能力 Slash Command、Model/User 双 Shell 入口门禁、Session 状态和最小 Widget；阶段 5 保持本地开发形态，阶段 6 再打包。
+
+证据分层：纯函数/Fake 单测证明局部逻辑，隔离 Pi 运行证明真实加载和事件派发，真实 Model Tool Call 证明 Agent 链路。三类证据分别记录，不能互相替代。
+
+- [ ] 5.1 建立 Pi `0.84.1` Extension 开发环境，理解全局、项目、Settings 附加路径和 CLI 临时加载。
+  - 进行中（2026-08-11）：四类来源、工厂初始化、TypeScript 直接加载、类型检查、运行/开发依赖和锁文件边界已讲解；Pi 核心包只保留“由宿主提供”的实用结论，`peerDependencies` 的具体发布配置延后到阶段 6；开发依赖安装与 E 组 Green/Red/Green 已通过。A 组已有运行证据但操作过程尚未完成学习验收，B 组暂停，C-D 与 F 仍待隔离验收。
+  - 审查建议修复（已验证，2026-08-11）：`docs/learning/06-extensions.md` 已按“完整场景 -> 定义与核心对象 -> 通用生命周期 -> 来源/Trust -> TypeScript/依赖 -> 证据边界 -> 后续能力”重排；四类证据口径、Handler/Executor、`pi/api` 参数关系、四类入口/五个槽位及审查列出的独有事实均已保留；实验 README 已修正 `fixtures/loading/reload.ts` 路径并移除动态验收重复，学习索引已同步。围栏、相对链接、4 张 Mermaid 真实渲染、去重保护、Git 空白与计划状态检查均通过；5.1 保持未勾选，A 验收撤回、B 暂停、C-D/F 待验证及下一步均未改变。
+  - 理解确认（2026-08-11）：用户已准确区分“模块加载、工厂初始化、API 注册、运行时 Handler 触发”；确认注册完成不代表门禁已经执行，也理解同步/异步只是工厂完成一次性准备的不同方式。
+  - 理解确认（2026-08-11，插件工厂与 API 传参）：用户经完整流程图确认理解：插件工厂只是默认导出的启动入口函数；Pi 先导入模块取得工厂，再创建 Extension 记录和真实 `ExtensionAPI` 对象，并把该对象作为普通函数参数传入；工厂通过它登记能力，真实事件发生后 Pi 才调用 Handler。
+  - 理解确认（2026-08-11，TypeScript 加载边界）：用户经双路线图纠偏后确认理解：`jiti` 加载与 `tsc --noEmit` 类型检查是互不替代的证据；加载成功但类型检查失败时，5.1 仍不能验收。
+  - 理解确认（2026-08-11，`skipLibCheck`）：用户已确认理解 Pi npm 包及其传递依赖携带的 `.d.ts` 是供 TypeScript 使用的类型说明书，不是 Pi 运行时提供的真实 `ExtensionAPI` 对象；该选项跳过依赖声明内部检查，但仍使用其公开类型检查本项目源码。
+  - 理解确认（2026-08-11，依赖分类）：用户已将 `ms` 准确映射为业务代码直接使用、生产运行必须存在的第三方依赖（近似 Maven 默认 `compile`，但 npm 分类不与 Maven Scope 一一对应），并理解 `ms` 提供真实运行代码、`@types/ms` 只为开发期类型检查服务；运行时第三方库不能只放在 `devDependencies`。
+  - 理解确认（2026-08-11，依赖锁定）：用户已理解固定根项目直接依赖不等于固定传递依赖；`package-lock.json` 记录最终解析的完整依赖树，而 Pi/Node 运行时实际加载 `node_modules`。
+  - 学习深度确认（2026-08-11）：用户确认依赖知识以正确配置和排查为目标，不继续展开 npm 内部解析；5.1 只保留四条实用判断：运行时第三方库放 `dependencies`、开发工具和类型声明放 `devDependencies`、Pi 核心包由宿主提供、锁文件固定完整依赖树。`peerDependencies` 的具体发布配置留到阶段 6 的 Package 实践。
+  - 文档结构与格式证据（2026-08-11）：`docs/learning/06-extensions.md` 已覆盖完整场景、核心对象、通用生命周期、四类入口/五个槽位、Trust/顺序/去重/重载、TypeScript 双路线、四条依赖判断和分层证据；实验 README 与学习索引已同步。主题文档的 `10` 行 Markdown 围栏成对闭合，`3` 个相对链接均存在，全部 `4` 张 Mermaid 已由本机 `mmdc` 实际渲染，`git diff --check` 通过；这些证据只证明文档结构与格式，不代表 5.1 行为或学习验收完成。
+  - 实验卡（已确认，2026-08-11）：真实场景是同一项目同时存在个人全局 Extension、团队项目 Extension、项目 Settings 附加 Extension 和本次命令临时 `-e` Extension，需要确认 Pi 实际加载谁、Trust 挡住谁、临时项何时消失、重复路径是否只执行一次，以及自动发现项能否通过 `/reload` 更新。
+    - 重新拆解进行中（2026-08-11）：已暂停黑盒脚本路线；用户已确认 `ExtensionAPI` 类似 Java 接口、`pi` 是宿主传入的真实对象引用，并理解四类实验来源均由入口而非文件名或代码内容决定：`-e` 指定 CLI 临时来源，隔离 `PI_CODING_AGENT_DIR/extensions/` 形成全局自动发现，当前项目 `.pi/extensions/` 形成项目自动发现，项目 `.pi/settings.json` 则通过相对于 `.pi/` 的 `../project-settings.ts` 显式附加目录外文件；后两类受 Project Trust 控制。四类映射已理解，但不扩大为 A 组验收；下一步逐项拆解隔离环境和原始 Pi 参数，再由用户手工完成 A/B 对照。
+    - 固定条件：Pi `0.84.1`、隔离 `PI_CODING_AGENT_DIR`、受控临时项目、`--offline`、不加载 Context/Skill/Prompt/Theme、不保存 Session、不发送普通 Model/Provider 请求。四个最小 TypeScript Extension 只注册各自唯一的 CLI Flag；重载组只额外向实验临时目录追加一次版本 marker，不启动进程、Socket、Watcher 或 Timer。
+    - A 组（Trust 拒绝）：使用 `--no-approve` 查看帮助；预期只出现 CLI 与全局 Flag，项目 Settings 与项目自动发现 Flag 不出现。
+      - 已执行、学习验收撤回（2026-08-11）：用户运行 `/tmp/pi-study-5-1-a.nSOlpz/run-a.sh`，`PI_EXIT=0`。原始帮助输出只出现 CLI 与全局自动发现 Flag；按标志名重新统计为 `CLI=1`、`GLOBAL_AUTO=1`、`PROJECT_SETTINGS=0`、`PROJECT_AUTO=0`、`TRUST_PROMPT=0`，符合 Trust 拒绝路径预期。脚本原汇总误报 `GLOBAL_AUTO=0`，原因是帮助排版把较长标志名与 `[5.1]` 紧邻，而计数规则错误要求标志名后必须为空白或行尾；这不改变原始运行证据。用户随后指出直接执行封装脚本无法理解具体操作，因此撤回 A 组学习验收；保留运行证据，重新从探针文件、目录映射、隔离环境和原始 Pi 参数逐步学习，不把黑盒脚本成功当作掌握。
+    - B 组（Trust 允许与顺序）：唯一变量改为 `--approve`；预期四个 Flag 均出现，顺序为 CLI、项目 Settings、项目自动发现、全局自动发现。
+      - 已准备但暂停运行（2026-08-11）：`run-b.sh` 复用 A 组隔离目录和四个已审计探针；相对修正后的 `run-a.sh`，Pi 调用的唯一实验变量是 `--no-approve` 改为 `--approve`，另只改变输出文件名。两份脚本语法检查通过、权限均为 `700`；新版统计器已用 A 组原始输出复算出正确计数和 `ORDER=CLI>GLOBAL_AUTO`，独立只读复核无 P1/P2。因封装脚本遮蔽学习过程，B 组暂停，不再直接要求用户运行；先完成逐步材料检查和原始命令讲解，再决定手动对照步骤。`--offline` 与 `--no-tools` 不是系统沙箱，本次低风险结论仍依赖四个探针只注册 Flag。
+    - C 组（CLI 临时性）：在 B 组基础上只移除 `-e`；预期只有 CLI Flag 消失，其余三个仍在。
+    - D 组（规范路径去重）：只把同一真实文件同时放入 `-e` 与一个发现入口；预期对应 Flag 只出现一次。
+    - E 组（开发环境）：先保留一次受控类型错误取得 `tsc --noEmit` 失败证据，再修正并通过类型检查；使用 Fake `ExtensionAPI` 做一次“工厂注册了预期 Flag”的最小测试。依赖清单和安装命令必须先审查，并在用户单独确认后执行。
+    - F 组（热重载）：在无模型请求的 TUI 中加载一个自动发现 Extension；外部把版本 marker 从 V1 改为 V2，未执行 `/reload` 时不产生 V2 记录，执行一次 `/reload` 后产生 V2 记录，最后恢复实验文件并退出。
+    - 通过标准：A-F 的实际观察全部符合预期，类型检查和最小测试通过，实验目录可恢复，且不读取真实用户凭据、不发送普通 Model/Provider 请求、不留下持久 Session 或后台资源，也不产生非实验文件改动。Pi 仍可能初始化模型子系统，并访问隔离目录中的空认证存储；这不等于完全没有接触认证相关文件。
+    - 证据边界：帮助中的 Flag 证明模块工厂完成并注册了 Flag，不证明 Handler 已触发；Fake 测试不证明真实 Pi 加载；`tsc` 只证明纳入当前配置的静态契约；F 组只验收官方承诺的自动发现热重载，不把 Settings 或 CLI 的当前源码重载行为当作稳定契约；不在 5.1 验证 Tool/Command/Handler 同名冲突、第三方运行依赖或 Package 发布。
+  - 实验材料（已准备并安装，2026-08-11）：`.pi/extensions/pi-study-guard/` 已建立最小工厂、严格 `tsconfig.json`、Fake API 测试、四类来源探针和受限临时文件重载探针；夹具位于自动发现深度之外，主工厂及全部探针只注册唯一 Flag，不注册业务能力、不联网、不启动后台资源。
+    - 安装验证：经用户单独确认，在实验目录执行 `npm ci --ignore-scripts --omit=optional --audit=false --fund=false`，退出码为 0，共落盘 136 个包；三个根开发依赖的实际版本分别为 Pi `0.84.1`、TypeScript `5.9.3` 和 `@types/node` `24.12.4`，`npm ls --all` 退出码为 0，11 个 optional 包均未落盘，安装前后锁文件 SHA-256 均为 `7fac7407f26d229af028df772ed94f40d260abcaba45a275bffd2e2f889e48aa`。命令中的 `--ignore-scripts` 只证明本次要求 npm 跳过生命周期脚本，不证明依赖本身安全。
+    - 安装后初始校验：`npm test` 的 Fake API 测试为 1/1 通过；正式类型检查最初被 Pi 传递依赖的 `.d.ts` 错误挡住，包括 `undici-types`/`@modelcontextprotocol/sdk` 模块解析和 Pi AI 的 JSON import 声明。临时执行 `tsc --noEmit --skipLibCheck` 退出码为 0，只作为配置修正前的定位证据。
+    - E 组（已验证）：经用户理解确认后，`tsconfig.json` 正式启用 `skipLibCheck`，保持项目源码不变运行 `npm run typecheck` 退出码为 0；随后临时把本项目 `GUARD_FLAG` 声明为字符串却赋值数字，类型检查退出码为 2，并在 `index.ts:3` 报告 `TS2322`，证明本项目源码仍被检查；再把 `registerFlag` 的字符串名称临时改为数字，类型检查退出码为 2，并在 `index.ts:6` 报告 `TS2345`，证明 Pi 的公开 `name: string` 契约仍用于检查项目调用。两次恢复后 `index.ts` SHA-256 均与实验前同为 `17f554db1983584590d91185a43ecc1c8c9071e12d44039e0b2d9227fa037923`；最终 `npm run check` 退出码为 0，Fake API 测试 1/1 通过。该证据不证明真实 Pi 加载或 Handler 行为。
+    - 锁文件审计：使用 `--package-lock-only --ignore-scripts --audit=false --fund=false --workspaces=false` 生成 npm lockfile v3，未创建 `node_modules`、未执行生命周期脚本；锁图 147 个包，根开发依赖精确固定为 Pi `0.84.1`、TypeScript `5.9.3`、`@types/node` `24.12.4`，所有 `resolved` 均为无凭据的 npm 官方 HTTPS Registry，当前 Node `25.2.1` 满足全部声明的 Engine。
+    - 依赖风险边界：锁图标记 `@google/genai@1.52.0` 与 `protobufjs@7.6.5` 有安装脚本，后续安装继续统一禁用；11 个可选包中含平台二进制，后续安装省略 optional；Pi 上游 shrinkwrap 中 6 个 `@earendil-works` 内部包条目有固定版本和官方 HTTPS 地址但没有 `integrity`，因此不能声称锁图每个传递包都有完整性摘要。
+  - 核心内容：默认导出工厂、同步/异步初始化、TypeScript 直接加载、官方可用 import、类型检查与依赖锁定；区分全局目录、受 Project Trust 控制的项目 `.pi/extensions/`、Settings 附加路径和 `-e/--extension` 临时路径。
+  - 贯穿实验：使用隔离 `PI_CODING_AGENT_DIR` 和唯一来源标记，对照全局、项目可信/不可信、Settings 附加路径和 CLI 临时四类加载；建立 `pi-study-guard` 的类型检查和测试入口，暂不实现业务能力。
+  - 验收与边界：真实启动结果能区分来源、Trust 正反路径、临时加载和自动发现路径的 `/reload`，加载顺序与规范路径去重由本机行为和源码共同核对。加载标记只证明模块工厂完成并登记了实验能力，不证明 Handler 已触发、能力正确或运行安全。
 - [ ] 5.2 理解 Extension 生命周期及启动、会话、Agent、模型、工具、Shell 和输入事件。
+  - 核心内容：按“工厂注册 -> Pi 按事件名、Command 名或 Tool 名确定性派发”理解生命周期；重点串联 Session、Input、Agent、Turn、Message、Model、Tool、User Bash 和 Shutdown，不要求死记全部事件。
+  - 贯穿实验：增加脱敏事件追踪模式，只记录事件名、reason/source、Tool 名和序号；分别触发 Extension Command、普通输入、一次只读 Tool Call、Model 切换和用户 `!` Shell。
+  - 验收与边界：用真实事件序列复述一次完整路径，准确区分 `agent_end`/`agent_settled`、Model Tool/User Shell 和工厂/Handler/Executor。一次序列只证明当前版本与本次入口，未观察到某事件不等于它不会发生。
 - [ ] 5.3 掌握 Extension Context、模式差异、取消信号和错误处理。
-- [ ] 5.4 实现一个自定义只读 Tool，包含参数校验、输出截断和清晰渲染。
-- [ ] 5.5 实现一个 Slash Command，并正确处理有 UI 与无 UI 模式。
-- [ ] 5.6 实现危险 Shell 命令审批门禁，覆盖拒绝、允许和非交互行为。
+  - 核心内容：区分 `ctx.cwd`、`ctx.mode`、`ctx.hasUI`、Project Trust、SessionManager、Model 状态及活动请求的取消信号；核对普通 Handler、`tool_call` Handler 和 Tool Executor 的错误传播差异。
+  - 贯穿实验：同一诊断入口分别在 TUI 与 Print 运行；TUI 使用 UI，无 UI 走明确 fallback；用可取消的本地 Fake 延迟和受控异常验证取消、Handler 失败与 Tool 失败。
+  - 验收与边界：无 UI 不等待、不误放行，取消后工作停止，错误形成可观察失败而非静默成功。Fake 取消不等于真实 `Esc` 端到端，Print 通过也不代表 JSON/RPC 已验证；已有副作用不会因报错自动回滚。
+- [ ] 5.4 实现自定义只读 Tool `pi_study_inspect`，包含参数校验、路径边界、输出截断和清晰渲染。
+  - 核心内容：`registerTool`、严格 Schema、参数语义校验、允许根目录、符号链接边界、取消检查、`content/details`、输出截断与 `renderCall/renderResult`。
+  - 贯穿实现：只读取 `docs/learning/` 下 Markdown 的标题和链接统计；拒绝绝对路径、`..` 和符号链接逃逸；超出阈值时返回明确截断提示，不修改文件、不执行 Shell、不联网。
+  - 验收与边界：覆盖合法输入、Schema 非法输入、越界路径、符号链接、文件不存在、取消、执行异常和大输出；单测与真实 Model Tool Call 均有证据。业务逻辑只读不等于 Extension 受到操作系统只读限制，截断结果也不是完整内容。
+- [ ] 5.5 实现 `/study-inspect` Slash Command，并正确处理有 UI 与无 UI 模式。
+  - 核心内容：Command 由用户直接触发，命中后不依赖 Model 决策；学习参数解析、补全、`ExtensionCommandContext`，并让 Tool 与 Command 复用纯业务服务而不是互相伪装调用。
+  - 贯穿实现：`/study-inspect` 调用与 Tool 相同的只读检查服务；TUI 呈现通知或选择结果，无 UI 模式使用稳定 fallback，禁止等待不可用的交互组件。
+  - 验收与边界：合法参数、缺失/未知参数、补全、TUI 和 Print 均验证，归一化结果与 Tool 一致；Command 成功不证明 Model Tool 调度成功，Print fallback 不代表阶段 7 的 RPC UI 协议。
+- [ ] 5.6 实现危险 Shell 命令审批门禁，覆盖 Model `bash` 与用户 `!`/`!!` 两条入口。
+  - 核心内容：纯策略分类器与 Pi 适配层分离；Model `bash` 经过 `tool_call`，用户 Shell 经过 `user_bash`；安全命令放行，危险命令在交互模式确认，拒绝、取消、超时、无 UI 和策略异常均默认拒绝。
+  - 贯穿实验：单测可以检查危险字符串，真实运行只使用“被规则识别为危险但实际无副作用”的 marker 命令；分别验证安全放行、危险拒绝、交互允许、取消和无 UI 默认拒绝，禁止真实删除或提权练习。
+  - 验收与边界：两条入口均保留一次稳定 Red -> 最小 Green -> 扩展回归证据，并证明被拒 marker 未执行。有限规则不能覆盖任意 Shell 混淆；门禁不控制 Extension 自身代码、用户普通终端或操作系统权限，也不是沙箱。
 - [ ] 5.7 使用 Extension Entry 保存并恢复状态。
-- [ ] 5.8 实现一个最小 Widget 或自定义 UI 组件。
-- [ ] 5.9 为 Extension 补充单元测试、错误路径测试和手工验收记录。
-- [ ] 5.10 审查资源释放、热重载、Session 切换和模式兼容性风险。
+  - 核心内容：区分内存状态、`appendEntry` Custom Entry、进入 Model Context 的消息和 Tool Result `details`；状态按当前 Branch 重放，在 Session 启动、Tree 导航和 Session 替换后重建。
+  - 贯穿实验：保存门禁模式、累计阻止数和最近一次脱敏决策；验证 `/reload`、退出后恢复、Tree 分支切换、Fork、Resume，以及 `--no-session` 不持久化的反例。
+  - 验收与边界：用脱敏 Session 结构投影和界面状态证明当前活动分支恢复正确，Custom Entry 不进入 Model Context。Session Entry 不是全局配置、数据库、Git 版本或项目文件恢复机制。
+- [ ] 5.8 实现最小 Widget，展示 Extension 当前状态。
+  - 核心内容：只覆盖 `setWidget`、稳定标识、更新、清除、`hasUI/mode` 门禁和 Theme 语义色；完整 Component、键盘、Overlay 与 TUI 内部机制留在阶段 7。
+  - 贯穿实现：Widget 显示门禁模式、阻止计数和最近决策；状态变化后原位更新，Reload/Shutdown 时清除，无 UI 模式跳过 UI。
+  - 验收与边界：TUI 中初始、允许、拒绝、恢复四种状态有可观察对照，无重复 Widget，Print 不报错或挂起，窄终端仍可读。Widget 只呈现状态，不负责门禁，也不证明状态已持久化。
+- [ ] 5.9 为 Extension 补充自动测试、错误路径测试和手工验收记录。
+  - 核心内容：建立纯函数单测、Fake API 注册测试、隔离 Pi CLI 集成和真实 TUI 手工验收四层证据；高风险门禁使用稳定 Red -> Green -> 回归流程。
+  - 贯穿验证：覆盖 Schema、路径逃逸、截断、取消、Tool 抛错、模式分支、双 Shell 入口、默认拒绝、状态重放、Widget 更新和幂等清理；执行类型检查、完整测试、`git diff --check` 和实际差异审查。
+  - 验收与边界：记录实际命令、关键 FAIL/PASS 和手工矩阵。Fake Handler 不能证明 Pi Core 已真实派发，Mock/Fake 不能冒充真实 Provider 链，单次手工成功不能证明所有输入和并发均安全。
+- [ ] 5.10 审查资源释放、热重载、Session 切换、并发和模式兼容性风险。
+  - 核心内容：工厂阶段不启动长期资源，资源延后到 Session 或实际入口；`session_shutdown` 必须幂等；Reload 后旧实例失效，Session 替换后不得复用旧 Context/SessionManager；同轮 Tool 可能并发，不能依赖兄弟 Tool Result。
+  - 贯穿实验：连续两次 `/reload`，再执行 New、Resume、Fork、Tree 和正常退出；用实例标识与脱敏计数检查重复 Handler/Widget、状态串线和未释放资源；TUI 与 Print 运行最终兼容矩阵。
+  - 验收与边界：真实序列证明 Reload/Session 切换后的重建与清理，退出在限定时间内完成，门禁始终默认拒绝，并由用户完成完整场景复述。观察不到泄漏不等于任意资源均无泄漏；结论限定当前 Pi 版本。
 
-验收产物：一个包含自定义 Tool、Command、安全门禁、状态和 UI 的可测试 Extension。
+验收产物：`pi-study-guard` 源码、锁定的开发依赖、自动测试、脱敏生命周期矩阵、TUI/Print 手工验收记录，以及 `docs/learning/06-extensions.md` 中的稳定结论。
 
-阶段门禁：Extension 必须在交互模式和至少一种非交互模式下验证，危险操作默认拒绝。
+阶段门禁：类型检查与完整测试通过；真实 TUI 和至少一种无 UI 模式均验证；Model `bash` 与用户 `!`/`!!` 两条入口均覆盖；危险、取消、超时、无 UI 和策略异常默认拒绝；状态经 Reload、恢复和分支切换正确；无凭据、原始 Session、后台残留或意外 Git 改动。
 
 ### 阶段 6：Packages、Models 与 Providers
 
-目标：能够安全复用与分发能力，并理解模型接入层。
+目标：掌握 Pi 能力的安全复用、安装与分发，并理解模型目录、认证、协议适配和自定义流式 Provider 的接入边界。
+
+贯穿产物：把阶段 4 的 Prompt/Skill/Theme 与阶段 5 的 `pi-study-guard` 封装为本地 `pi-study-workbench` Package；另用 localhost Custom Model Mock 和纯内存 Mock Provider 分别验证“复用支持协议”和“实现新 Provider”两条链。
+
+统一实验边界：使用课程自建材料、隔离 `PI_CODING_AGENT_DIR`、临时目录和本机回环地址；默认不安装真实第三方 Package、不访问外部模型服务、不读取现有认证文件、不产生模型费用。真实安装、登录、Provider 调用、发布或推送必须另行确认。
 
 - [ ] 6.1 掌握 npm、Git、本地路径三种 Package 来源及其固定版本策略。
+  - 核心内容：比较三类 Source 的身份判定、全局/项目位置、临时 `-e` 和更新语义；npm 固定精确版本，Git 比较分支、Tag 与 Commit，本地路径记录 Git Commit、文件清单和 SHA-256。
+  - 贯穿实验：用同一课程自建包构造 local、localhost npm fixture 和本机 Git fixture，准备 A/B 两版，对比未固定与固定来源在更新后的实际解析结果，全程禁止外网。
+  - 验收与边界：记录 Source、解析位置、版本/Commit、内容哈希和 A/B 结果，并能为个人调试、团队复现和正式分发选择策略。Tag 可被重指向，本地路径内容可原地变化，文档规则不能替代运行证据。
 - [ ] 6.2 学会审查 Package 的资源清单、依赖、安装脚本和系统权限风险。
-- [ ] 6.3 将阶段 4-5 的资源打成一个本地 Pi Package。
+  - 核心内容：审查显式 `pi` Manifest 与约定目录、发布清单、直接/传递依赖、`dependencies`/`peerDependencies`/`bundledDependencies`、锁文件、lifecycle scripts、Extension 初始化及外部命令、网络和文件访问。
+  - 贯穿实验：为课程自建风险样例加入只向临时目录写 marker 的 lifecycle script 和 Extension factory；先完成静态审查，再分别观察安装期、加载期和资源禁用路径，禁止真实恶意代码。
+  - 验收与边界：形成安全审查表、归档清单和 marker A/B 证据，能在执行前指出安装期与加载期代码。安装脚本限制不等于 Extension 受限，资源禁用不等于卸载，Project Trust 和 Tool 白名单都不是进程沙箱。
+- [ ] 6.3 将阶段 4-5 的资源封装成一个本地 Pi Package。
+  - 核心内容：建立单一 Package 根目录，用显式 Manifest 声明 Prompt、Skill、Theme 和 Extension；明确运行依赖、Pi Peer Dependencies、语义化版本、许可证、入口、资源命名和发布文件清单，避免形成两套可漂移源码。
+  - 贯穿实验：执行 `npm pack --dry-run` 与 `npm publish --dry-run`，再生成本地归档并检查实际内容；从干净隔离目录分别加载源目录和归档解包后的目录，逐类验证资源发现和阶段 5 关键行为回归。
+  - 验收与边界：Manifest、发布前检查、归档清单和 SHA-256 固定，制品不含 Session、凭据、缓存或无关实验文件，四类资源均从 Package 来源被发现。本项不向外部 Registry 发布、不推送 Git；真实发布必须另行确认，打包成功也不替代 Extension 的原验收，等价性验证前不得删除原资源。
 - [ ] 6.4 验证 Package 的安装、禁用、筛选、更新和卸载。
+  - 核心内容：掌握 `install/list/config/update/remove`、全局/项目作用域、临时 `-e`、资源级启停，以及省略、空数组、glob、排除和精确包含/排除的筛选语义。
+  - 贯穿实验：只在隔离目录管理 6.3 自建 Package，完成安装、单资源禁用、筛选、A/B 更新、卸载和重装；分别观察 Settings、安装目录和新进程资源发现。
+  - 验收与边界：每步保留退出状态、结构化配置变化和实际资源清单；卸载后分别核对配置、发现结果与磁盘缓存，再完成可逆恢复。“列表不存在”“资源未加载”“缓存已删除”是三个不同结论。
 - [ ] 6.5 区分内置 Provider、Custom Model 和 Custom Provider。
-- [ ] 6.6 理解认证解析顺序、环境变量、认证文件和 OAuth 的边界。
-- [ ] 6.7 配置一个受支持 API 的 Custom Model，或用无费用 Mock 完成等价验证。
-- [ ] 6.8 阅读 Custom Provider 接口，并完成最小 Mock Provider 实验。
+  - 核心内容：内置 Provider 提供既有协议适配和认证约定；Custom Model 通过 `models.json` 复用受支持 API；Custom Provider 通过 Extension 注册，用于自定义认证、动态 Model 目录或非标准流协议。
+  - 贯穿实验：在隔离环境并列展示一个内置 Model、一个 localhost Custom Model 和一个本地 Extension 注册的 Mock Provider Model，先验证目录与选择链，不发送外部请求。
+  - 验收与边界：形成“需求 -> 配置/代码入口 -> 协议适配者 -> 认证来源”对照，并能判断代理换地址、兼容新 Model、非标准流协议和企业 OAuth 的正确入口。Custom Model 不是训练模型；出现在列表中不证明请求成功；SDK/RPC 留在阶段 7。
+- [ ] 6.6 理解认证解析顺序、环境变量、认证文件、命令取值和 OAuth 的边界。
+  - 核心内容：通过当前文档与源码确认 CLI、认证存储、环境变量和 Provider 配置的实际解析顺序；区分 `$ENV`、字面值、`!command`、自定义 Header、API Key 与 OAuth 登录/刷新/取值链。
+  - 贯穿实验：在全新隔离目录使用脱敏 marker 和 localhost Mock，逐层增删来源，令请求侧只记录命中来源编号或哈希；OAuth 只做内存 Fake 的登录取消、过期与刷新失败，不打开浏览器、不交换 Token。
+  - 验收与边界：解析顺序、缺失凭据、无 UI 和刷新失败均有直接证据，临时认证文件权限正确，任何凭据值不进入文档或终端记录。不得读取现有 `auth.json`；`!command` 是本地代码执行入口；认证存在、认证有效、协议兼容和服务授权是四件事。
+- [ ] 6.7 使用受支持 API 配置一个无费用 Custom Model，并完成真实 Pi 到 localhost Mock 的请求闭环。
+  - 核心内容：学习 Provider/Model 字段、API 类型、Model ID、输入类型、Context Window、最大输出、费用元数据、Thinking 映射和兼容开关；明确序列化和流解析仍由 Pi 内置协议适配器负责。
+  - 贯穿实验：在隔离 `models.json` 中配置唯一 Provider/Model，指向只监听 `127.0.0.1` 的兼容 Mock；完成发现、精确选择、确定性流式文本、受控 Tool Call 和错误响应。
+  - 验收与边界：证明完整 `provider/model-id`、请求次数、必要请求字段、响应事件和错误路径，无静默成功或外层看门狗代偿。Mock 只证明配置与受支持协议链，不证明真实认证、计费、限流、图片、质量或商业可用性。
+- [ ] 6.8 阅读 Custom Provider 公共接口，并完成最小 Mock Provider 实验。
+  - 核心内容：理解完整 Provider 与兼容配置注册、注册时机、Model 目录、认证解析、流式事件、消息与 Usage/Cost、Tool Call、停止原因、Context Overflow、AbortSignal、错误终态和 Unregister 恢复。
+  - 贯穿实验：复用阶段 5 的 Extension 能力，注册纯内存、无网络、无凭据的 `pi-study-mock-provider`；分别实现文本成功、Tool Call、普通错误、畸形数据、Context Overflow 和取消路径。
+  - 验收与边界：单测验证事件顺序和终态唯一性，真实 Pi 能选择该 Model 并取得结果，Unregister 或卸载后 Model 消失。只使用公共接口和必要定点源码，不提前完成阶段 7/8；Mock Provider 不能证明真实 API、OAuth、Token 计量或跨 Provider 兼容。
 
-验收产物：可安装的本地 Pi Package、安装安全审查表和模型接入对比报告。
+验收产物：可安装、可筛选、可更新、可卸载的本地 `pi-study-workbench` Package；Package 安全审查表；内置 Provider、Custom Model、Custom Provider 对比报告；localhost Custom Model Mock；覆盖成功、Tool Call、错误与取消的纯内存 Mock Provider。
+
+阶段门禁：6.1-6.8 均有当前版本依据、受控实验和用户理解验收；Package 管理在隔离配置中验证可逆性，发布前演练和可发布制品检查通过；Custom Model 与 Custom Provider 分别取得独立证据；不把 Mock 当作真实 Provider 可用性，不读取真实凭据，不安装第三方 Package，不执行外部发布。
 
 里程碑 B：完成阶段 4-6 后，达到“Pi 定制开发者”。
 
@@ -674,20 +768,22 @@
 
 ### 当前断点
 
-- 状态：阶段 0、阶段 1、阶段 2、阶段 3 和阶段 4 已完成；阶段 5 尚未开始。
+- 状态：阶段 0、阶段 1、阶段 2、阶段 3 和阶段 4 已完成；阶段 5 的 5.1 进行中。
 - 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7、2.1、2.2、2.3、2.4、2.5、2.6、2.7、3.1、3.2、3.3、3.4、3.5、3.6、3.7、4.1、4.2、4.3、4.4、4.5、4.6、4.7；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式、完整任务闭环、配置合并与 CLI 临时覆盖、项目规则与普通上下文文件的加载边界、最小 `AGENTS.md` 的正反加载对照、2.4 的 Retry、Network、Images、Shell 和 Model 轮换策略、2.5 Project Trust 的完整决策链、2.6 Keybindings、`/reload` 与外部编辑器选择链、2.7 配置优先级故障排查、3.1 Session 生命周期与边界、3.2 Tree/Fork/Clone 的消息与文件边界、3.3 Session JSONL 的结构与上下文边界、3.4 Token 与上下文窗口的关系、3.5 手动 Compaction 的上下文与持久化边界、3.6 Branch Summary 的触发、上下文和持久化边界、3.7 长任务断点恢复、4.1 四类资源选型、4.2 结构化 Prompt Template、4.3 Skill 加载机制、4.4 只读 Java Skill 正反触发、4.5 Skill 指令注入/脚本执行/外部依赖风险、4.6 最小自定义 Theme 和 4.7 无重启资源调试均已验证。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”；新主题先解释本轮全部陌生对象，用户确认无陌生对象后才提问或实验；抽象机制先用有起点、过程和终点的完整大白话场景，再回到术语、快捷键和真实边界；用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
+- 计划强化：阶段 5-6 已扩展为两个贯穿项目、逐项受控实验、分层证据和独立阶段门禁；5.1 进行中，5.2-5.10 与 6.1-6.8 尚未开始。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无。
-- 下一步：进入 5.1；先从现有项目资源的真实加载场景讲清 Extension 的全局、项目和 CLI 临时位置及优先级，再确认开发环境实验卡。
+- 下一步：A/B 重新拆解进行中；逐项讲清隔离环境变量和原始 Pi 启动参数，再由用户手工执行可见的 A/B 对照，不直接运行封装脚本。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录
 
 | 日期 | 计划项 | 状态 | 验收证据 | 下一步 |
 |---|---|---|---|---|
+| 2026-08-11 | 阶段 5-6 学习计划深化 | 已确定 | 5.1-5.10、6.1-6.8 已补齐核心内容、贯穿实验、验收证据与边界；建议投入调整为 18-24 小时和 12-18 小时；所有 checkbox 保持未勾选 | 从 5.1 Extension 开发环境开始 |
 | 2026-08-11 | 4.7 无重启资源调试 | 已完成 | Pi `0.84.1` watcher 与 `/reload` 源码、Theme 粉色 A 基线、磁盘橙色但界面仍粉色的 B 对照、显式重载后橙色的 C 证据、粉色恢复清理、稳定文档和格式检查均已通过 | 进入 5.1 Extension 开发环境 |
 | 2026-08-11 | 4.6 最小自定义 Theme | 已完成 | Pi `0.84.1` Theme 源码与静态解析、项目发现、修正版 `accent` A/B/A2、保存后重启恢复、当前设置值及“Theme 呈现层与 Tool/权限层无决定关系”的组合理解验收均已通过 | 进入 4.7 无重启资源调试 |
 | 2026-08-11 | 4.5 Skill 安全风险 | 已完成 | 指令注入 A/B/C、脚本执行 A/B/C、Pi `0.84.1` Tool/Package/Extension 源码边界、普通 Skill 与 Package 外部依赖、综合场景及针对性重试均已通过；稳定文档与格式检查通过 | 进入 4.6 Theme |
