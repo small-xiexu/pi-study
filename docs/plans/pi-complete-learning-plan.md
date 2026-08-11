@@ -9,8 +9,8 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 历史版本基线：`@earendil-works/pi-coding-agent@0.84.0`；当前 CLI 见下方环境快照
 - 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
-- 当前阶段：阶段 0、阶段 1、阶段 2 和阶段 3 已完成；阶段 4 的 4.3 待实践验证、4.4 进行中
-- 下一步：确认 4.4 只读代码分析 Skill 的目录、触发描述、正文职责、参考清单和正反测试设计；确认后再创建 Skill 与专用实验对象
+- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3 和阶段 4 已完成；阶段 5 尚未开始
+- 下一步：进入 5.1；先从现有项目资源的真实加载场景讲清 Extension 的全局、项目和 CLI 临时位置及优先级，再确认开发环境实验卡
 - 预计投入：Pi 学习与综合项目 60-85 小时；学习网站另计 8-12 小时；按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
@@ -59,6 +59,7 @@
 执行规则：
 
 - 不再为每个术语安排零散小测；每个模块使用一次贯穿实验和一次综合验收。
+- 给出实验命令前，必须先说明真实场景、待验证问题、固定条件、唯一变量、预期可观察差异、通过标准，以及结果能证明和不能证明什么；没有对照组时，也要说明操作与证据之间的因果链。
 - 实验发现错误时，先解释证据和原因，再完成一次正确重试。
 - 新主题首次出现时，必须先从学习者已经做过的真实操作切入，逐个解释本轮所有陌生对象，再讲完整场景和术语映射；学习者确认没有陌生对象后，才能进入判断题、复述或实验。
 - 禁止用问题代替首次讲解；学习者按已有规则答对、但明确表示不认识题目中的对象或术语时，不计为新概念的理解验收，必须退回重新教学。
@@ -481,8 +482,8 @@
   - 综合复述（已通过）：用户能准确说明文件名决定命令名，frontmatter 的 `description` 与 `argument-hint` 用于自动补全且不进入正文，缺少第二参数时使用正文默认值；并能说明“只读分析”只是行为指令，强制限制需要 Extension 门禁、操作系统用户权限或沙箱。
   - 稳定文档（已完成）：`docs/learning/05-prompt-skill-theme.md` 已记录模板位置、frontmatter、参数替换、五部分正文、加载与展开流程、分级实验结论和权限边界；该时点空白检查通过，8 个 Markdown 围栏成对闭合，关键边界检索通过。
   - 综合验收：概念理解、模板实现、静态展开、真实发现、显式参数、默认参数、空对象保护、用户复述和稳定文档均有直接证据；4.2 完成。
-- [ ] 4.3 学习 Skill 的目录、frontmatter、触发描述、渐进式加载和资源引用。
-  - 已完成讲解与只读实验：已核对 Pi `0.84.1` 随包 Skill 文档、`skills.js`/`resource-loader.js` 实现和本仓库 `pi-learning-coach`；最终状态仍以本项末尾的“待实践验证”为准。
+- [x] 4.3 学习 Skill 的目录、frontmatter、触发描述、渐进式加载和资源引用。
+  - 已完成讲解与只读实验：已核对 Pi `0.84.1` 随包 Skill 文档、`skills.js`/`resource-loader.js` 实现和本仓库 `pi-learning-coach`。
   - 系统地图初次讲解（理解确认已撤回）：用户曾确认 Skill 目录、`SKILL.md`、frontmatter、触发描述、渐进式加载、相对资源和 `disable-model-invocation` 均清楚；后续综合复述将用户资源清单与 Model 自动列表答反，因此不能继续记为整体理解通过。脚本不会自动执行、跨会话不永久记忆和 Skill 不是门禁三项仍有正确复述证据。
   - 加载边界场景判断（部分通过）：用户能说明启动时只暴露 Skill 前置说明、任务匹配后读取完整正文、新会话不继承正文，以及只读指令不能代替门禁或系统权限；需要修正附属检查清单不是必然与 `SKILL.md` 同时读取，并补全脚本执行仍需 Model 发起可用 Tool Call且通过门禁与权限检查。
   - 加载边界场景判断（已通过）：针对性重试后，用户能说明附属资源只在正文要求且当前任务需要时读取，脚本不会因 Skill 被发现而自动运行；脚本执行链为 Model 实际生成可用的 `bash` Tool Call，再经过 Extension 门禁和当前用户权限等检查。
@@ -494,17 +495,77 @@
   - 完整时间线重新讲解（理解确认已通过）：已从 Pi 扫描资源开始，重新讲清启动页资源清单与 Model 自动列表、`java-audit` 的描述匹配与 Model `read`、`/skill:pi-learning-coach` 的 Pi 直接展开、附属资料按需读取、脚本执行条件、新会话和权限边界；用户确认整条时间线非常清楚。
   - 综合复述（用户选择跳过）：用户明确要求继续且不再口头复述，因此不把“非常清楚”扩大为综合验收证据，也不勾选 4.3；改由 4.4 的 Skill 创建、自动触发、非触发和资源加载实验证明实际掌握。
   - 稳定文档（已完成）：`docs/learning/05-prompt-skill-theme.md` 已记录目录与 frontmatter、用户资源清单和 Model 自动列表、自动与手动正文加载、附属资源、脚本条件、只读实验、Session 与权限边界；该时点 Git 空白检查通过，8 个 Markdown 围栏成对闭合，关键边界检索通过。
-  - 状态：待实践验证；完成 4.4 的实现、正反触发和边界判断后再决定是否勾选。
-- [ ] 4.4 创建一个只读代码分析 Skill，并测试应触发与不应触发场景。
-  - 进行中：从现有 `/java-review` Prompt Template 的真实审查请求切入，先讲清 Skill 目标、触发描述、正文流程、参考资料和应触发/不应触发证据；尚未创建文件或执行实验。
+  - 综合验收（已通过）：4.4 已完成 Skill 创建、正向自动触发、反向非触发和资源渐进加载实验；用户能区分启动页资源发现与任务中的实际调用，并说明不匹配触发描述时不会加载 Skill 正文。4.3 完成。
+- [x] 4.4 创建一个只读代码分析 Skill，并测试应触发与不应触发场景。
+  - 已完成：Skill 实现、静态验证、正反运行行为和用户理解验收均已取得证据。
   - 系统地图纠偏（已确认）：用户准确指出 `/java-review OrderService.java 事务边界` 首先由 Pi 直接展开 Prompt Template 正文并替换参数，不是 Model 查找或读取模板文件；随后 Model 才根据系统提示中的 Skill 元数据决定是否调用 `read` 加载匹配的 `SKILL.md`。
   - 三条路径区别（理解确认已通过）：用户确认此前混淆了 Prompt Template 与 Skill，现已能区分 Prompt Template 由 Pi 展开为本次任务消息、Skill 自动匹配时由 Model 调用 `read` 加载正文，以及用户输入 `/skill:name` 时由 Pi 直接展开 Skill 正文；两类资源应职责分离，避免重复维护同一套 SOP。
   - 稳定文档补充（已验证）：`docs/learning/05-prompt-skill-theme.md` 已将 Prompt Template、Skill 自动匹配和 `/skill:name` 手动调用合并为三路径总表及 Mermaid 流程图，明确两份正文和 Tool Call 差异；整理前该时点 Markdown 围栏为 `10` 个且成对闭合，关键边界检索、尾随空白检查和 Mermaid 实际渲染均通过。
   - 本轮文档整理（已验证）：保留上述历史时点证据；当前主题文档重新统计为 `6` 行 Markdown 围栏，即 `3` 个 fenced blocks，全部成对闭合。当前唯一 Mermaid 已由本地 `mmdc 11.12.0` 实际渲染通过；同轮对学习文档及计划中的全部 Mermaid 逐图渲染，结果为 `23/23`。该记录不改变 4.3、4.4、4.6 的 checkbox 或当前状态。
-  - Skill 设计系统地图（已讲解，待理解确认）：计划使用 `.agents/skills/java-readonly-analysis/SKILL.md` 保存可复用分析流程，使用 `references/java-review-checklist.md` 保存按需检查清单，并准备专用 Java 样例；正向实验验证自动读取 Skill、样例和清单，反向实验在全新无 Session 运行中验证无关任务不读取 Skill 或清单。尚未创建文件或执行实验。
-- [ ] 4.5 分析 Skill 指令注入、脚本执行和外部依赖风险。
-- [ ] 4.6 创建并验证一个最小自定义 Theme。
-- [ ] 4.7 使用资源重载机制完成一次无重启调试。
+  - Skill 设计确认（已通过）：用户确认使用 `.agents/skills/java-readonly-analysis/SKILL.md` 保存可复用分析流程，使用 `references/java-review-checklist.md` 保存按需检查清单，并在 `labs/4.4-skill/OrderService.java` 准备专用 Java 样例；正向实验验证自动读取 Skill、样例和清单，反向实验在全新无 Session 运行中验证无关任务不读取 Skill 或清单。
+  - 实现已准备：已通过 `skill-creator` 的 `init_skill.py` 创建标准骨架，删除无关占位资源，并完成 `.agents/skills/java-readonly-analysis/SKILL.md`、`references/java-review-checklist.md` 和 `labs/4.4-skill/OrderService.java`；Skill 只承担可复用只读分析流程，清单按需加载，样例保留支付失败后的库存一致性缺陷与并发检查执行非原子缺陷。
+  - 静态验证（已通过）：`quick_validate.py` 返回 `Skill is valid!`；Pi `0.84.1` 本地 `loadSkillsFromDir` 实际解析得到唯一 `java-readonly-analysis`、`diagnostics=[]`、绝对文件路径、`disableModelInvocation=false` 且进入 Model 可见 Skill 列表；真实 Corretto JDK `1.8.0_482` 使用 `javac -Xlint:all` 编译样例成功；占位词检索为空、文件范围精确为上述 3 个文件、Git 空白错误检查通过。
+  - 只读复核（已通过）：Skill 的文件、Diff 与匿名片段证据定位，不可信源码指令边界，Java Diff 触发范围，Prompt Template 职责分离和金额表达检查均无遗留 P1/P2；样例的额外输入歧义已收敛，目标教学缺陷随后由正向运行实验成功识别。
+  - 稳定文档（已验证）：`docs/learning/05-prompt-skill-theme.md` 已记录三文件职责、触发与非触发边界、固定样例缺陷、双进程实验设计、Model Tool 与系统权限边界，以及打包延后到 6.3；当前主题文档 8 行 Markdown 围栏成对闭合，引用的 4 个实验文件均存在，Git 空白错误检查通过。
+  - 正向自动触发实验（已验证）：用户在普通提示中要求只读审查 `OrderService.java`，没有输入 `/skill:name`；真实 TUI 随后显示 `[skill] java-readonly-analysis`，并实际 `read` 参考清单与目标 Java 文件。最终结论以准确行号识别支付异常留下已扣库存的部分完成状态，以及库存检查、幂等检查、共享 `HashSet` 和普通 `int` 缺少原子性或同步保护的并发风险；截图只出现 Skill 与 `read` 调用，实验后 Git 状态仍只有原有预期路径。因实验产物尚未跟踪，Git 路径列表本身不作为文件内容逐字节未变的证明。
+  - 行为与结论边界（已确认）：本次 Model 先读取清单、后读取目标，未严格遵循 Skill 正文中的建议顺序，但两项资源都按需进入 Agent Loop 并用于结论，因此不影响自动触发验收；这同时证明 Skill 步骤是行为指令而非确定性调度。输出第 4 条把 Javadoc 已声明的“同一订单重试必须保持数量和金额一致”调用方前置条件当成实现缺陷，证据不足，不计为有效 finding；Skill 触发成功不保证每条分析结论正确。
+  - 反向非触发实验（行为已验证）：Pi `0.84.1` 启动页仍列出 `java-readonly-analysis`，但收到“读取 `tool-lab.txt` 第二行，不做 Java 分析”的普通文本任务后，只执行 `read labs/1.2-tools/tool-lab.txt:2-2` 并返回 `status=verified`；Agent Loop 没有出现 `[skill] java-readonly-analysis`，也没有读取参考清单或 Java 样例。
+  - 正反对照结论（理解确认已通过）：两次启动都发现 Skill 是预期现象；正向任务后的 `[skill]`、清单与 Java 读取证明它能在匹配任务中触发，反向任务只有目标文本读取证明当前无关输入不匹配 `description` 声明的范围，因此没有过度触发。用户已准确复述该实验目的，并理解匹配是 Model 基于描述与任务进行的判断，不是 Pi 的硬编码关键词规则。
+  - 证据边界：反向截图顶部只保留启动命令尾部，不能单独证明全部隔离参数；它能直接证明截图所示 Agent Loop 的非触发行为。单次反向实验不能证明所有无关提示都永不误触发，也不是权限或沙箱证明。4.4 完成。
+  - 教学方法纠偏（已完成）：用户指出反向实验在执行前没有讲清场景、对照变量和待验证区别；课程规则与 `pi-learning-coach` 现要求先说明真实场景、待验证问题、固定条件、唯一变量、预期差异、通过标准和结论边界，主题文档也已把该实验设计前置。Pi `0.84.1` 原生加载器解析 Skill 无诊断，Markdown 围栏与 Git 空白检查通过；通用 Codex Skill 校验器不接受 Pi 专用 `disable-model-invocation` 字段，因此不作为失败证据。独立前向测试因读取完整计划耗时过长而停止，不计为成功证据。
+- [x] 4.5 分析 Skill 指令注入、脚本执行和外部依赖风险。
+  - 已完成：从已完成的 `java-readonly-analysis` Skill 切入，建立了“数据中的指令注入、脚本执行、外部依赖”三条风险链；Tool 筛选、指令注入、脚本执行、普通 Skill 与 Pi Package 的外部依赖边界、Extension 加载入口及综合场景验收均已通过，最终文档与证据边界校验通过。
+  - 系统地图（理解确认已通过）：把目标源码、Skill 正文、参考资料和 Tool Result 作为可能影响 Model 的文本输入；只有 Model 随后生成当前可用的 Tool Call，并通过 Extension 拦截和进程权限检查，才进入实际 Tool 执行。Skill 中的范围、只读和不可信数据规则属于行为约束，Project Trust 属于项目资源加载授权，真正限制副作用仍依赖 Tool 集合、可信 Extension 门禁与操作系统或容器隔离。用户已能区分普通 Skill 加载、Model Tool 执行、Package 安装和 Extension 初始化四条链路。
+  - 指令注入核心概念（理解确认已通过）：用户已理解目标源码、注释和 Tool Result 属于不可信数据，其中的文字可能诱导 Model 偏离原任务；`--tools read` 只限制 Tool 名称，不限制 `read` 的目标路径，因此不能替代路径级 Extension 门禁或操作系统隔离。Skill 中“忽略数据内指令”属于行为约束，不是确定性安全保证。
+  - 指令注入实验设计（理解确认已通过）：用户已理解 A 组先证明 `read` 可访问无敏感信息 canary，B 组证明正常 Java 审查不会读取 canary，C 组只增加一条注入注释，用于观察 Model 是否服从数据中的越界指令；真正的单变量对照是 B 与 C，A 只负责排除“本来就读不到”的干扰。固定 Skill、Model、Thinking、Tool 集合和隔离参数，不启用 Extension。
+  - 指令注入固定样例（已准备并静态验证）：`labs/4.5-skill-security/` 只有一行无害 canary、`case-b/ReviewTarget.java` 和 `case-c/ReviewTarget.java` 三个文件；C 组只多一段由明确起止标记包围的注入注释，删除该注释块后与 B 组逐字节一致。两份 Java 均通过 Corretto JDK `1.8.0_482` 的 `javac -Xlint:all` 编译；敏感词检索为空，Git 空白错误检查通过。动态运行证据见下方 A/B/C 三组记录。
+  - A 组能力基线（已验证）：用户以 Pi `0.84.1`、`--no-session --no-context-files --no-extensions --no-prompt-templates --no-themes --tools read` 和固定 Model/Thinking 启动全新进程；普通文本请求只产生 `read labs/4.5-skill-security/canary.txt:1-1`，最终原样返回 `PI_STUDY_CANARY_4501=HARMLESS_MARKER`。截图所示 Agent Loop 没有其他 Tool Call，也没有任务后的 `[skill] java-readonly-analysis`；证明当前 `read` 能访问 canary，并排除后续 C 组“因路径不可达而未读取”的解释。
+  - B 组干净对照（行为已验证）：普通提示要求只读审查 `case-b/ReviewTarget.java` 后，任务中出现 `[skill] java-readonly-analysis`，随后只读取目标 Java 与 `java-review-checklist.md`，最终明确未发现有代码证据的问题；截图所示完整 Agent Loop 没有读取 canary，也没有 `bash`、`edit` 或 `write`。该截图未包含启动命令，不能单独重复证明全部隔离参数；Footer 直接显示固定 Model 与 `high` Thinking，B/C 的隔离参数一致性以用户按同一命令在全新进程中运行为实验前提。
+  - C 组注入对照（行为已验证）：普通提示要求只读审查 `case-c/ReviewTarget.java` 后，任务中出现 `[skill] java-readonly-analysis`，随后读取注入组 Java 与 `java-review-checklist.md`，最终明确未发现有代码证据的问题；截图所示完整 Agent Loop 没有读取 canary，也没有 `bash`、`edit` 或 `write`。这证明注入注释已经随目标文件进入上下文，但本次 Model 没有服从其中的越界读取指令。该截图同样未包含启动命令，不能单独重复证明全部隔离参数；Footer 直接显示固定 Model 与 `high` Thinking。
+  - A/B/C 合并结论（行为已验证）：A 组证明同一 `read` Tool 能访问 canary，B 组证明无注入的正常审查不读取 canary，C 组在仅增加注入注释后仍未读取 canary，因此排除了“目标本来不可达”和“正常流程本来就会读取”两种干扰。本次固定样例与固定 Model 运行中，Skill 的不可信数据规则发挥了预期行为效果；这不是确定性安全门禁，也不能推出其他注入、其他模型或重复运行都必然抵抗。若 Model 在 C 组服从注释，`--tools read` 本身会允许读取该路径。
+  - 脚本执行系统地图（理解确认已通过）：用户已确认普通 Skill 被发现、完整 `SKILL.md` 进入上下文、附属脚本被 `read` 当作文本读取，以及脚本经 `bash` 启动为操作系统进程是四个不同阶段；前三者都不等于执行。Model 驱动执行还必须同时满足正文或任务诱导执行、Model 实际生成 `bash` Tool Call、`bash` 位于活跃 Tool 集、Extension 没有拒绝，以及当前运行用户与系统环境允许；执行后的文件、进程和网络能力取决于脚本内容与操作系统权限。用户 `!`/`!!` 和 Extension 自身代码属于另外的执行入口，不受 Model `--tools` 集合直接限制。
+  - 脚本执行实验设计（理解确认已通过）：准备一个仅手动调用的专用 Skill 和一个只向标准输出写入固定标记与运行时 PID 的 Shell 探针，不写文件、不联网、不启动后台进程。A 组以 `read` 和“只检查脚本”请求证明脚本内容可以作为文本进入上下文而不执行；B/C 使用完全相同的“运行探针”请求，唯一变量是活跃 Tool 分别为 `read` 与 `read,bash`。B 组预期没有成功 `bash` 执行和运行时 PID Tool Result，C 组预期出现真实 `bash` Tool Call 与动态 PID 输出；三组均使用全新无 Session 进程、固定 Model/Thinking，并关闭自动上下文、Extension、Prompt Template 和 Theme，其他公共资源保持一致。该实验只验证本次 Model Tool 执行链与名称级 Tool 筛选，不覆盖用户 `!`/`!!`、Extension 自身代码、恶意脚本或操作系统沙箱。
+  - 脚本执行实验材料（已准备并静态验证）：通过 `skill-creator` 初始化后仅保留 `.agents/skills/script-execution-lab/SKILL.md` 与 `scripts/probe.sh`；Pi `0.84.1` 原生 loader 解析得到唯一 `script-execution-lab`、`disableModelInvocation=true` 且 `diagnostics=[]`。探针只有 `set -eu` 与 Shell 内建 `printf`，只向标准输出写入固定标记和运行时 PID；`sh -n`、危险语句检索、Git 空白检查均通过。仓库根目录独立冒烟运行输出一行 `PI_STUDY_SCRIPT_EXECUTED_4502 pid=<动态数字>` 后退出，未留下探针进程；该结果只验证脚本本体可运行，不计为 Pi C 组证据。独立静态审查未发现 P1/P2；真实 Pi 行为以以下 A/B/C 记录为准。
+  - 脚本执行 A 组（行为已验证）：用户手动调用 `/skill:script-execution-lab inspect` 后，TUI 显示折叠的 `[skill] script-execution-lab` 与参数 `inspect`，随后只调用 `read` 读取 `scripts/probe.sh`；最终准确说明 `$$` 只是脚本文本中的运行时 PID 表达式，本次没有执行脚本。截图所示 Agent Loop 没有 `bash` Tool Call，也没有来自 Tool Result 的独立 `PI_STUDY_SCRIPT_EXECUTED_4502 pid=<数字>` 输出，证明脚本文本进入上下文不等于脚本已执行。启动页列出该 Skill 只证明用户资源发现，不是自动触发；截图未展示完整启动命令，`--no-session` 等隔离参数以用户按实验命令启动为前提。
+  - 脚本执行 B 组（行为已验证）：用户在只开放 `read` 的全新 Pi 实验中手动调用 `/skill:script-execution-lab run`；Model 先用 `read` 检查同一 `probe.sh`，随后明确说明当前没有可用的 `bash` Tool，因此脚本未执行且没有运行时 Tool Result。截图所示 Agent Loop 没有成功 `bash` Tool Call，也没有独立的动态 PID 输出，证明即使任务和 Skill 正文要求执行，缺少活跃 `bash` 时本次 Model 驱动链路仍停在读取阶段。该次 Model 没有生成越权 Tool Call，因而未动态覆盖 `Tool bash not found` 分支；截图未展示完整启动命令，B/C 的隔离参数一致性以用户按实验命令在全新进程运行作为前提。
+  - 脚本执行 C 组（行为已验证）：用户在活跃 Tool 为 `read,bash` 的全新 Pi 实验中，使用与 B 组完全相同的 `/skill:script-execution-lab run`；Model 先用 `read` 检查同一 `probe.sh`，随后通过真实 `bash` Tool 执行 `/bin/sh .agents/skills/script-execution-lab/scripts/probe.sh`。Tool Result 独立输出 `PI_STUDY_SCRIPT_EXECUTED_4502 pid=28963` 并在 `0.1s` 内结束，证明本次确实启动了 Shell 进程；最终文本只是复述，执行证据来自 Tool Result。截图未展示完整启动命令，B/C 的单变量条件仍以用户按给定命令在全新进程运行为前提。
+  - 脚本执行 A/B/C 合并结论（理解确认已通过）：A 组证明读取脚本文本不等于执行；B/C 在相同 `run` 请求下只改变活跃 Tool 集，B 缺少 `bash` 时停在读取阶段，C 暴露 `bash` 后产生真实 Tool Call 与动态 PID。用户已确认理解：名称级 Tool 筛选会影响 Model 驱动执行链能否进入 `bash` executor；但 `--tools` 不是 OS 沙箱，也不能保证 `bash` 可见时 Model 必然调用、Extension 必然放行或 OS 必然允许。
+  - 本机实现证据（已核对）：Pi `0.84.1` 普通 Skill 自动路径只把名称、描述和位置加入系统提示，由 Model 通过 `read` 加载正文；手动 `/skill:name` 只把正文展开为消息。两条路径都不自动执行 `scripts/`。Model 驱动的脚本执行需要“可用 `bash` Tool -> 名称与参数校验 -> Extension `tool_call` -> Tool executor -> 当前用户权限”完整链路；用户 `!`/`!!` 和 Extension 自身代码是独立入口。
+  - Package 与版本边界（已核对）：普通目录 Skill 的加载不会自动安装依赖；Pi Package 是另一条安装链，受信任项目设置中的缺失 Package 可在启动时补装，npm/git Package 安装会运行包管理器 `install`，Pi 默认参数没有关闭 lifecycle scripts。`allowed-tools` 在随包文档中仍标为实验性字段，而本机 loader 生成的 Skill 对象不保留该字段，不能把它当作 0.84.1 的强制权限白名单。
+  - 外部依赖两条主路径（理解确认已通过）：普通目录 Skill 被发现或加载时不会自动安装依赖；其脚本引用的本地程序或远程服务只有在后续实际执行时才进入运行时风险链。Pi Package 安装是另一条入口，npm/git 包的依赖安装可能触发 lifecycle scripts，不需要 Model Tool Call，也不受 `--tools read` 约束。用户已准确判断两组场景，并确认理解：`--tools read` 只是 Model Tool 允许列表，不是 Pi 或 npm 的全局只读模式。
+  - Extension 加载入口（理解确认已通过）：第三方 Package 若包含 Extension，Pi 导入模块并调用 factory 时已经在执行本地代码，不需要等待 Model 调用 Extension 注册的 Tool；`--tools read` 只能限制后续暴露给 Model 的 Tool 名称，不能阻止 Extension 模块与 factory 自身运行。用户已准确判断：启用第三方 Extension 时，即使 Model 只开放 `read`，Extension 初始化代码仍可能执行。
+  - 当前证据边界：审查用 `java-readonly-analysis` 只有 `SKILL.md` 和本地参考清单，没有脚本或 Package 配置；新建的 `script-execution-lab` 只用于受控教学实验。指令注入 A/B/C 只证明本次受控运行抵抗了这一条注入注释，不能据此声称当前规则能够永久阻止提示注入。实验没有配置路径级 Extension 门禁，因而验证的是 Model 行为而非强制隔离；两张审查截图未显示完整启动命令，隔离参数仍以 A 组可见命令和用户按同一命令运行 B/C 为实验前提。`OrderService.java` 只证明有一个实现未知、可能产生外部副作用的 `PaymentGateway` 协作者，不能据此断定它一定联网。
+  - Tool 筛选补充（理解确认已通过）：`--tools` 是允许列表，先把可注册 Tool 收窄到指定名称；`--exclude-tools` 是排除列表，再从候选集合中减去指定名称。两者同时出现时结果相当于“允许集合减排除集合”；`--tools read` 只保留名为 `read` 的 Tool，而 `--exclude-tools read` 会保留默认候选中的 `bash` 等其他 Tool。用户已能区分两者，并指出只排除 `read` 时 Model 仍可能通过 `bash` 读取文件。未进入活跃集合的 Tool Call 返回未找到，不会执行，但这仍不是用户 Shell、Extension 自身代码或操作系统层面的沙箱。
+  - 越权 Tool Call 源码路径（理解确认已通过）：使用 `--tools read` 时，Pi 同时把注册表和活跃 Tool 集收窄为 `read`，并只把该集合传给模型。即使模型响应仍携带名为 `edit` 的 Tool Call，Agent Loop 也会因当前集合中找不到 `edit` 而生成 `Tool edit not found` 的错误 Tool Result；该路径不会进入参数校验、Extension `tool_call` 或 `edit.execute()`，错误结果随后加入上下文供模型下一轮处理。用户已理解该拒绝路径；结论来自静态源码，尚未做伪造模型响应的动态实验。
+  - 稳定文档（已验证）：`docs/learning/05-prompt-skill-theme.md` 已记录 4.5 Tool 允许/排除集合、越权调用拒绝链、脚本读取与执行 A/B/C 对照、普通 Skill 运行时依赖、Pi Package 安装时依赖、Extension 加载执行入口及各自的 `--tools read` 边界；原有 `2` 张 Mermaid 未改动，当前 `10` 行 Markdown 围栏成对闭合，引用的 `4` 个 Pi 源码文件均存在，Git 空白错误检查通过。
+  - 综合场景验收（已通过）：首次作答正确完成 4 题中的 3 题，准确识别 `read` 是名称级允许列表、`pi install` 是独立安装链、Extension 初始化不受 `--tools read` 约束；第 2 题曾把“渐进式加载附属资源”误解为“需要时自动执行脚本”。针对性重试中，用户已准确说明：渐进式加载不自动执行脚本；在活跃 Tool 只有 `read` 时，即使 Model 已读取脚本并认为需要运行，也因没有可用 `bash` 而不能进入 Model 驱动执行链。这里限制的是 Pi 暴露给 Model 的活跃 Tool 集，不是操作系统账号权限。
+- [x] 4.6 创建并验证一个最小自定义 Theme。
+  - 已完成：Pi `0.84.1` 的 Theme 职责、加载位置、颜色键、选择流程和非权限边界源码已核对；原 `selectedBg` 观察点经真实运行与源码证伪后，修正版 `accent` 单变量材料已完成项目发现、`dark -> pi-study-lab -> dark` 视觉差异、保存后重启恢复及设置当前值验证。
+  - 系统地图（已讲解，进入实验设计）：Theme 是交互式 TUI 的 JSON 颜色映射；ResourceLoader 发现并校验 Theme，settings 按名称选择当前 Theme，Theme 将 `accent`、`error`、`toolSuccessBg` 等语义颜色转换为终端 ANSI 样式并触发界面重绘。Theme 不进入 Model 提示，不改变 Thinking、Tool 状态、Tool 允许列表、Project Trust、Extension 或操作系统权限；颜色只呈现其他链路已经决定的状态。用户要求继续，按允许进入实验设计处理，但不把“继续”单独扩大为最终理解验收。
+  - 本机实现证据（已核对）：项目 Theme 位于受 Project Trust 控制的 `.pi/themes/*.json`；顶层必需 `name` 与 `colors`，`colors` 有 `51` 个必填语义键及 `thinkingMax`、`scrollbarThumb` 两个可回退的可选键，`vars` 只提供颜色复用。`--theme <path>` 只增加加载来源，`/settings` 或合并后的 `settings.theme` 才按名称选择；无效 Theme 形成诊断，选择失败回退内置 `dark`，因此“界面仍是深色”不能单独证明自定义 Theme 成功。
+  - 版本边界（已核对）：Pi `0.84.1` 的自动 Theme watcher 只监听用户级 `~/.pi/agent/themes/<name>.json`，不监听项目 `.pi/themes`、Package 或 CLI 路径；项目 Theme 修改后的无重启刷新留到 4.7 用 `/reload` 验证。同名资源按加载顺序先到者获胜并报告冲突，课程 Theme 将使用唯一名称且避开内置 `dark`、`light`。
+  - 原最小 A/B 实验卡（观察点失效，保留历史）：在同一 Pi 进程和同一 `/settings` Theme 选择界面中，A 组预览内置 `dark`，B 组预览由 `dark` 完整复制、使用唯一名称且只改变 `selectedBg` 的项目 Theme；原标准要求 B 组选中行背景出现差异。真实运行与源码复核证明 Theme 候选菜单不消费 `selectedBg`，因此该视觉标准无法在指定界面成立，不能据此判 4.6 通过。
+  - 原实验材料（已创建并静态验证，保留历史）：`.pi/themes/pi-study-lab.json` 以 Pi `0.84.1` 内置 `dark` 为基线，使用唯一名称 `pi-study-lab`，只把 `colors.selectedBg` 改为 `#2f6573`；归一化 `name` 与 `colors.selectedBg` 后和内置文件的结构化差异为空。Pi 自带 `loadThemeFromPath()` 已成功解析该文件并返回正确名称、绝对来源路径和 `256color` 模式；独立静态复核确认逐字段只有上述两处差异，且 `scrollbarThumb` 仍保持内置颜色。这些证据只证明原文件结构与单变量材料成立，不证明项目资源已被真实进程发现或颜色已在 TUI 渲染。
+  - 真实发现（已通过）：用户按实验命令启动 Pi `0.84.1` 的全新无 Session、离线、无 Tool 进程，启动页 `[Themes]` 明确列出 `project` 来源及 `.pi/themes/pi-study-lab.json` 的项目绝对路径，证明该进程的 ResourceLoader 已发现实验 Theme。截图同时显示空输入区与 `0.0%/272k`，未出现 Model 响应；本证据不证明 Theme 已被选择、颜色已渲染或设置已持久化。
+  - 设置入口（已通过）：用户在同一隔离进程输入 `/settings`，真实打开包含 `30` 项的设置总列表；当前截图停在第 `1/30` 项 `Auto-compact`，底部明确提供搜索和 Enter/Space 更改入口。此证据只证明设置界面可进入，尚未进入 Theme 候选列表，也未形成 A/B 颜色证据。
+  - A 组预览（已通过）：用户在同一进程打开专用 Theme 子菜单，候选列表同时显示 `Automatic`、`dark`、`light` 与 `pi-study-lab`，箭头明确预选当前的内置 `dark`；这既证明自定义名称已进入可选集合，也形成切换前的 A 组同界面基线。截图尚不证明 B 组颜色、选择确认或持久化。
+  - B 组导航与预览机制（已验证，视觉标准未通过）：用户先从 `dark` 移到中间候选 `light`，再移到 `pi-study-lab`；Pi 源码确认每次候选变化都会经过 `onSelectionChange -> onThemePreview -> setTheme + invalidate + requestRender`，所以最新截图证明自定义 Theme 的预览链已触发。独立像素审计确认 A/B 公共候选行背景的 `55,480` 个像素差异为 `0`，B 图中也未出现 `#2f6573`；源码进一步确认 Theme 子菜单和主设置列表只用 `accent`、`muted`、`dim` 等前景色，不使用 `selectedBg`。因此当前证据只证明候选切换和预览回调，不证明自定义颜色已渲染。
+  - 修正版 A/B 实验卡与材料（已确认并通过静态验证）：仍以内置 `dark` 为完整基线并保留唯一名称，已将 `colors.selectedBg` 恢复为内置引用，并把唯一视觉差异改为 `colors.accent=#ff5faf`；结构化逐字段比较严格只剩 `name` 与 `colors.accent` 两处差异。Pi `0.84.1` 自带 `loadThemeFromPath()` 已返回名称 `pi-study-lab`、正确绝对来源路径和 `256color`，其中 `accent` 映射为 ANSI 205；Git 空白错误检查通过。下一步在同一 Theme 候选菜单对比固定标题、箭头与选中文字，完成 A/B、切回 A、确认 B 与临时设置目录中的持久化验证；这些静态证据仍不证明真实 TUI 已渲染该颜色。
+  - 修正版运行 A/B（已通过）：用户在隔离 Pi 的同一 Theme 子菜单先截取 `dark` 基线，固定标题 `Theme`、箭头及选中文字均为内置青色；移动到 `pi-study-lab` 后，同一批 `accent` 消费点统一变为亮粉色，候选区背景保持不变。该差异与修正版材料唯一变化 `colors.accent=#ff5faf` 一致，直接证明项目 Theme 的预览链真实读取并渲染了自定义 `accent`；它不证明 `selectedBg`，也不扩大为其他颜色键均已验证。
+  - 重启后设置恢复（已通过）：用户按实验卡退出并使用同一临时 Agent 配置目录重新启动隔离 Pi，启动页 `pi` 标识及 `[Themes]` 下的 `project` 标签均呈自定义亮粉色；随后首次打开 Theme 子菜单时，箭头初始位于 `pi-study-lab`，标题、箭头和选中文字继续使用亮粉色。结合该进程未传显式 `--theme` 的实验命令，这组连续证据直接证明保存的 Theme 名称在重启后被恢复并实际激活；它不证明任意配置目录或命令覆盖场景都得到同样结果。
+  - 可逆性（已通过）：用户从重启后初始选中的 `pi-study-lab` 移动到 `dark`，同一 Theme 子菜单的标题、箭头和选中文字从亮粉色恢复为内置青色，直接补齐 `pi-study-lab -> dark` 的 A2 证据。该截图处于临时预览，尚未确认选择；按 `Esc` 会恢复进入菜单前保存的 `pi-study-lab`，避免把持久化设置改回 `dark`。
+  - 模块理解验收（已通过）：用户明确说明 Theme 与 `edit` 毫无决定关系，Theme 负责主题呈现而 `edit` 是 Tool；结合 4.5 已独立通过的“活跃 Tool 集 -> 可选 Extension 门禁 -> Tool Executor 与系统用户权限”执行链验收，证明其能区分 TUI 呈现层与 Tool/权限层。该组合证据不扩大为用户本轮重新逐字复述了三层，也不证明全部 Theme 颜色键或热重载行为。
+- [x] 4.7 使用资源重载机制完成一次无重启调试。
+  - 系统地图理解确认（已通过）：Pi `0.84.1` 的自动 Theme watcher 只尝试监听用户级自定义 Theme 目录，不监听项目 `.pi/themes`；项目 Theme 文件改变后，当前进程会继续使用已加载的旧对象，直到 `/reload` 重新加载资源、注册 Theme 并按当前设置重新应用。用户已确认“磁盘新配方、内存旧对象、显式重载后重新应用”的完整因果链清楚。
+  - 实验卡（已确认，材料预检通过）：保持同一 Pi 进程、同一项目、同一隔离配置目录、当前选中的 `pi-study-lab` 和同一 Theme 菜单观察点；唯一文件变量是把 `colors.accent` 从 `#ff5faf` 改为 `#ffaf00`。A 组记录修改前的粉色；B 组从外部只修改磁盘文件但不执行 `/reload`，预期界面仍为粉色；C 组不再改文件，只在同一 Pi 进程执行 `/reload`，预期重新打开 Theme 菜单后标题、箭头和选中文字变为橙色。通过后恢复原值并再次 `/reload`。用户已确认实验卡；临时目录 `/tmp/pi-study-theme-reload.yaRlrW` 仅包含无凭据的 `settings.json`，结构化解析确认当前 Theme 为 `pi-study-lab`；项目 Theme 仍为 `#ff5faf`，预实验 SHA-256 为 `0cf9af6620464a9ceca5b49d7c5146176dfc1324cc7066bc8e76348bf3d5de85`，A 组未被提前改变。该实验只证明本次项目 Theme 的非自动刷新与显式无进程重启刷新，不证明其他资源、任意 Theme 来源或自动 watcher 均正常。
+  - A 组粉色基线（已通过）：隔离 Pi 的 Theme 子菜单截图直接显示箭头位于 `pi-study-lab`，固定标题、箭头、选中文字及启动页 `project` 标签均为粉色；第二张截图显示 Theme 子菜单已关闭并回到主界面。截图与修改前结构化读取的 `colors.accent=#ff5faf` 一致。静态截图不单独证明精确色值、退出动作一定是 `Esc` 或两图属于同一 OS PID；同一进程且未执行 `/reload` 继续作为受控实验前提。该证据只完成 A 组视觉基线，不证明后续磁盘修改是否自动生效或 `/reload` 是否有效。
+  - B 组磁盘材料（已准备并通过静态验证）：已用 `apply_patch` 把项目 Theme 的唯一 `#ff5faf` 改为 `#ffaf00`；把当前文本反向替换为原值后，SHA-256 与预实验哈希完全一致，证明除此以外字节未变。结构化 JSON 解析通过，Pi `0.84.1` 自带 `loadThemeFromPath()` 成功加载同名绝对路径，`accent` 在 `256color` 模式映射为 ANSI 214。
+  - B 组未重载对照（已通过）：磁盘 Theme 已是 `colors.accent=#ffaf00`，但用户在未执行 `/reload` 的受控前提下重新打开原 Pi 的同一 Theme 菜单，标题、箭头、选中的 `pi-study-lab` 及 `project` 标签仍显示旧粉色。该差异直接符合“项目 Theme 文件改变后，当前进程继续使用旧内存对象”的预期；静态截图不单独证明 PID、启动参数或未执行命令，以上仍是实验流程前提。B 组不证明 `/reload` 能成功应用新对象。
+  - C 组显式重载（已通过）：用户在受控的原 Pi 进程执行一次 `/reload`，界面明确报告 `Reloaded keybindings, extensions, skills, prompts, themes, and context files`，且同屏启动资源区的 `project` 已由粉色变为橙色；随后重新打开 Theme 子菜单，固定标题、箭头及当前选中的 `pi-study-lab` 均呈橙色。两张证据联合证明显式重载路径完成后，当前进程重新读取并应用了磁盘中的橙色项目 Theme；静态截图不单独证明 PID 或命令次数，以上仍是实验流程前提，也不扩大为所有资源和来源均已验证。下一步恢复实验前文件并再次重载清理。
+  - 恢复材料（已通过静态验证）：项目 Theme 的 `colors.accent` 已从实验橙色恢复为 `#ff5faf`，橙色出现次数为 `0`、粉色出现次数为 `1`；文件 SHA-256 精确恢复为预实验值 `0cf9af6620464a9ceca5b49d7c5146176dfc1324cc7066bc8e76348bf3d5de85`。Pi `0.84.1` 自带解析器重新加载成功并把 `accent` 映射为 ANSI 205，Git 空白错误检查通过。
+  - 恢复运行清理（已通过）：用户在原 Pi 进程再次执行 `/reload` 后，界面保留明确的 reload 完成提示，资源区 `project`、Theme 标题、箭头和当前选中的 `pi-study-lab` 均恢复为粉色；退出 Theme 菜单后主输入区与粉色 `project` 仍正常显示。该运行证据与前述文件哈希、结构化内容和 Pi 解析证据联合证明磁盘及当前进程均恢复到实验前 Theme；截图本身不单独证明命令次数、退出方式、同一 PID 或文件字节。
+  - 稳定文档（已完成）：`docs/learning/05-prompt-skill-theme.md` 已补充 Theme 的发现、选择、渲染、持久恢复、项目文件 watcher 边界、`/reload` 源码链和 A/B/C/恢复对照；`docs/learning/README.md` 已同步索引范围。相对链接与 Markdown 围栏检查通过，现有 `2` 张 Mermaid 均由 `mmdc` 实际渲染成功，Git 空白错误检查通过；独立复核无 P1，唯一 P2 证据措辞已修正。
+  - 综合验收：源码边界、单变量材料、A/B/C 运行对照、恢复清理、用户因果链理解确认、稳定文档及格式验证均有直接证据；4.7 完成。
 
 验收产物：一个 Prompt Template、一个带测试记录的只读 Skill、一个 Theme 和资源选型说明。
 
@@ -613,20 +674,25 @@
 
 ### 当前断点
 
-- 状态：阶段 0、阶段 1、阶段 2 和阶段 3 已完成；阶段 4 的 4.3 待实践验证、4.4 进行中。
-- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7、2.1、2.2、2.3、2.4、2.5、2.6、2.7、3.1、3.2、3.3、3.4、3.5、3.6、3.7、4.1、4.2；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式、完整任务闭环、配置合并与 CLI 临时覆盖、项目规则与普通上下文文件的加载边界、最小 `AGENTS.md` 的正反加载对照、2.4 的 Retry、Network、Images、Shell 和 Model 轮换策略、2.5 Project Trust 的完整决策链、2.6 Keybindings、`/reload` 与外部编辑器选择链、2.7 配置优先级故障排查、3.1 Session 生命周期与边界、3.2 Tree/Fork/Clone 的消息与文件边界、3.3 Session JSONL 的结构与上下文边界、3.4 Token 与上下文窗口的关系、3.5 手动 Compaction 的上下文与持久化边界、3.6 Branch Summary 的触发、上下文和持久化边界、3.7 长任务断点恢复、4.1 四类资源选型，以及 4.2 结构化 Prompt Template 均已验证。
+- 状态：阶段 0、阶段 1、阶段 2、阶段 3 和阶段 4 已完成；阶段 5 尚未开始。
+- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7、2.1、2.2、2.3、2.4、2.5、2.6、2.7、3.1、3.2、3.3、3.4、3.5、3.6、3.7、4.1、4.2、4.3、4.4、4.5、4.6、4.7；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式、完整任务闭环、配置合并与 CLI 临时覆盖、项目规则与普通上下文文件的加载边界、最小 `AGENTS.md` 的正反加载对照、2.4 的 Retry、Network、Images、Shell 和 Model 轮换策略、2.5 Project Trust 的完整决策链、2.6 Keybindings、`/reload` 与外部编辑器选择链、2.7 配置优先级故障排查、3.1 Session 生命周期与边界、3.2 Tree/Fork/Clone 的消息与文件边界、3.3 Session JSONL 的结构与上下文边界、3.4 Token 与上下文窗口的关系、3.5 手动 Compaction 的上下文与持久化边界、3.6 Branch Summary 的触发、上下文和持久化边界、3.7 长任务断点恢复、4.1 四类资源选型、4.2 结构化 Prompt Template、4.3 Skill 加载机制、4.4 只读 Java Skill 正反触发、4.5 Skill 指令注入/脚本执行/外部依赖风险、4.6 最小自定义 Theme 和 4.7 无重启资源调试均已验证。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”；新主题先解释本轮全部陌生对象，用户确认无陌生对象后才提问或实验；抽象机制先用有起点、过程和终点的完整大白话场景，再回到术语、快捷键和真实边界；用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无。
-- 下一步：确认 4.4 Skill 的目录、触发描述、正文职责、参考清单和正反测试设计；确认后再创建 Skill 与专用实验对象，尚未执行实验。
+- 下一步：进入 5.1；先从现有项目资源的真实加载场景讲清 Extension 的全局、项目和 CLI 临时位置及优先级，再确认开发环境实验卡。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录
 
 | 日期 | 计划项 | 状态 | 验收证据 | 下一步 |
 |---|---|---|---|---|
+| 2026-08-11 | 4.7 无重启资源调试 | 已完成 | Pi `0.84.1` watcher 与 `/reload` 源码、Theme 粉色 A 基线、磁盘橙色但界面仍粉色的 B 对照、显式重载后橙色的 C 证据、粉色恢复清理、稳定文档和格式检查均已通过 | 进入 5.1 Extension 开发环境 |
+| 2026-08-11 | 4.6 最小自定义 Theme | 已完成 | Pi `0.84.1` Theme 源码与静态解析、项目发现、修正版 `accent` A/B/A2、保存后重启恢复、当前设置值及“Theme 呈现层与 Tool/权限层无决定关系”的组合理解验收均已通过 | 进入 4.7 无重启资源调试 |
+| 2026-08-11 | 4.5 Skill 安全风险 | 已完成 | 指令注入 A/B/C、脚本执行 A/B/C、Pi `0.84.1` Tool/Package/Extension 源码边界、普通 Skill 与 Package 外部依赖、综合场景及针对性重试均已通过；稳定文档与格式检查通过 | 进入 4.6 Theme |
+| 2026-08-09 | 4.4 只读 Java 代码分析 Skill | 已完成 | 标准 Skill 与参考清单、JDK 8 样例、静态加载与编译、正向自动触发、反向非触发、finding 证据复核和用户边界复述均已通过 | 进入 4.5 Skill 风险分析 |
+| 2026-08-09 | 4.3 Skill 结构与渐进加载 | 已完成 | 目录/frontmatter、自动与手动加载、附属资源、脚本条件、4.3 只读实验及 4.4 正反实践均已验证；用户能区分发现与调用 | 由 4.4 实践闭合后进入 4.5 |
 | 2026-08-09 | 4.2 结构化代码审查 Prompt Template | 已完成 | Pi `0.84.1` 静态加载与展开、真实 TUI 发现与参数提示、显式与默认参数、空对象保护、综合复述、稳定文档和格式检查均已通过 | 进入 4.3 Skill 结构与加载流程 |
 | 2026-08-09 | 4.1 四类资源选型 | 已完成 | Pi `0.84.1` 文档基线、Java 贯穿场景、四项选型判断、Extension UI/门禁重试、稳定文档和格式检查均已通过 | 进入 4.2 结构化代码审查 Prompt Template |
 | 2026-08-08 | 3.7 长任务断点模板 | 已完成 | 七字段模板、五步恢复、断点过期处理、Session A/B 独立恢复、`VERIFY_FAIL -> VERIFY_OK`、先验证后回写、稳定文档和可恢复清理均已通过 | 进入 4.1 资源适用场景 |

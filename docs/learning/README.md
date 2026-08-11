@@ -15,7 +15,7 @@
 | [02-terminal-and-tools.md](02-terminal-and-tools.md) | Pi `0.83.0` 终端实验快照、基础工具、输入类型、退出方式、内置 Tool 与安全边界 |
 | [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
-| [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill，以及命令展开、自动调用、手动调用三条路径 |
+| [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
 | [06-extensions.md](06-extensions.md) | Extension 能力、注册与触发机制、Tool/Shell 门禁，以及 MCP 与 Subagent 的引入顺序 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
