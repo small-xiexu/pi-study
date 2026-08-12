@@ -1,8 +1,9 @@
 # Extension 实验材料
 
-这个目录保存可检查的开发骨架，不实现业务 Tool 或 Handler。5.1 的当前状态、学习验收和下一步只见 [`docs/plans/pi-complete-learning-plan.md`](../../../docs/plans/pi-complete-learning-plan.md)。
+这个目录保存可检查的开发骨架，不实现业务 Tool。学习状态和下一步只见 [`docs/plans/pi-complete-learning-plan.md`](../../../docs/plans/pi-complete-learning-plan.md)。
 
-- `index.ts`：当前项目自动发现的最小 `pi-study-guard`，只注册 `--pi-study-guard`。
+- `index.ts`：当前项目自动发现的最小 `pi-study-guard`；默认只注册 `--pi-study-guard`，设置追踪环境变量后才额外启用 5.2 事件追踪。
+- `lifecycle-trace.ts`：5.2 的可选脱敏事件追踪模式；只有设置 `PI_STUDY_LIFECYCLE_TRACE` 时才注册实验 Command 与事件 Handler。
 - `test/factory.test.ts`：用只实现 `registerFlag` 的 Fake API 验证工厂登记行为。
 - `fixtures/loading/*.ts`：A-F 隔离实验使用的来源探针；它们位于自动发现深度之外，不会被当前项目自动加载。
 - `fixtures/loading/reload.ts`：仅在设置 `PI_STUDY_RELOAD_MARKER` 时，向操作系统临时目录中的固定文件名追加 `V1`；不启动进程、Socket、Watcher 或 Timer。
@@ -27,3 +28,5 @@ npm test
 已保存的类型检查 Green/Red/Green 证据为：正常源码通过；把本项目字符串常量临时赋值为数字后，`tsc` 报告 `TS2322`；把 `registerFlag` 的字符串名称临时改为数字后，Pi 公开签名触发 `TS2345`；两次受控错误恢复后，`npm run check` 通过且 Fake API 测试为 1/1。
 
 这些结果只证明当前 TypeScript 配置和 Fake API 测试覆盖的局部行为，不证明真实 Pi 的来源、Trust、去重、热重载或用户理解。A-F 的运行与验收状态不在本文件维护。
+
+5.2 追踪模式要求 `PI_STUDY_LIFECYCLE_TRACE` 指向操作系统临时目录中的固定文件名 `pi-study-lifecycle.log`。日志只记录序号、事件名和白名单元数据，不记录 Prompt、Command 参数、Shell 命令、Tool 参数/结果、文件路径、Model 标识或 Session 内容。Fake 测试只验证注册与脱敏写入逻辑，不证明真实 Pi 已派发这些事件。

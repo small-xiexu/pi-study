@@ -1,5 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
+import { registerLifecycleTrace } from "./lifecycle-trace.ts";
+
 export const GUARD_FLAG = "pi-study-guard";
 
 export default function registerPiStudyGuard(pi: ExtensionAPI): void {
@@ -8,4 +10,6 @@ export default function registerPiStudyGuard(pi: ExtensionAPI): void {
     type: "boolean",
     default: false,
   });
+
+  registerLifecycleTrace(pi);
 }
