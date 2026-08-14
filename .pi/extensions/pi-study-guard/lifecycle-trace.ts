@@ -2,13 +2,25 @@ import { appendFileSync, existsSync, lstatSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+
+import type { CancelProbeState } from "./cancel-probe.ts";
 
 export const LIFECYCLE_TRACE_ENV = "PI_STUDY_LIFECYCLE_TRACE";
 export const LIFECYCLE_TRACE_FILE_NAME = "pi-study-lifecycle.log";
 export const LIFECYCLE_TRACE_COMMAND = "pi-study-trace";
 
 type TraceDetail = Readonly<Record<string, string>>;
+
+interface TraceOutput {
+  stderr(message: string): void;
+}
+
+const PROCESS_OUTPUT: TraceOutput = {
+  stderr: (message) => {
+    process.stderr.write(message);
+  },
+};
 
 function resolveSafeTracePath(input: string): string {
   const tracePath = resolve(input);
@@ -37,7 +49,37 @@ function messageRole(message: { role: string }): string {
   return safeToken(message.role);
 }
 
-export function registerLifecycleTrace(pi: ExtensionAPI): void {
+function sameWorkingDirectory(cwd: string): boolean {
+  try {
+    return realpathSync(cwd) === realpathSync(process.cwd());
+  } catch {
+    return false;
+  }
+}
+
+function contextSnapshot(ctx: ExtensionCommandContext, route: "ui" | "stderr"): TraceDetail {
+  return {
+    name: LIFECYCLE_TRACE_COMMAND,
+    mode: ctx.mode,
+    hasUI: String(ctx.hasUI),
+    cwdMatchesProcess: String(sameWorkingDirectory(ctx.cwd)),
+    trusted: String(ctx.isProjectTrusted()),
+    sessionFile: ctx.sessionManager.getSessionFile() === undefined ? "none" : "present",
+    model: ctx.model === undefined ? "none" : "present",
+    signal: ctx.signal === undefined ? "none" : "present",
+    route,
+  };
+}
+
+function formatContextSnapshot(snapshot: TraceDetail): string {
+  const fields = Object.entries(snapshot).map(([key, value]) => `${key}=${safeToken(value)}`);
+  return `PI_STUDY_CONTEXT ${fields.join(" ")}`;
+}
+
+export function registerLifecycleTrace(
+  pi: ExtensionAPI,
+  output: TraceOutput = PROCESS_OUTPUT,
+): ((state: CancelProbeState) => void) | undefined {
   const traceInput = process.env[LIFECYCLE_TRACE_ENV];
   if (traceInput === undefined) return;
 
@@ -55,8 +97,16 @@ export function registerLifecycleTrace(pi: ExtensionAPI): void {
   pi.registerCommand(LIFECYCLE_TRACE_COMMAND, {
     description: "Record a lifecycle command marker without logging command arguments",
     handler: async (_args, ctx) => {
-      trace("command", { name: LIFECYCLE_TRACE_COMMAND });
-      if (ctx.hasUI) ctx.ui.notify("Lifecycle command marker recorded", "info");
+      const route = ctx.hasUI ? "ui" : "stderr";
+      const snapshot = contextSnapshot(ctx, route);
+      const message = formatContextSnapshot(snapshot);
+      trace("command", snapshot);
+
+      if (route === "ui") {
+        ctx.ui.notify(message, "info");
+      } else {
+        output.stderr(`${message}\n`);
+      }
     },
   });
 
@@ -75,4 +125,6 @@ export function registerLifecycleTrace(pi: ExtensionAPI): void {
   pi.on("tool_result", (event) => trace(event.type, { tool: event.toolName }));
   pi.on("user_bash", (event) => trace(event.type));
   pi.on("model_select", (event) => trace(event.type, { source: event.source }));
+
+  return (state) => trace("cancel_probe", { state });
 }

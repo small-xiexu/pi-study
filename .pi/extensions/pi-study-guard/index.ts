@@ -1,5 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
+import { registerCancelProbe, registerCancelProbeFlag } from "./cancel-probe.ts";
+import { registerPiStudyInspect } from "./inspect-tool.ts";
 import { registerLifecycleTrace } from "./lifecycle-trace.ts";
 
 export const GUARD_FLAG = "pi-study-guard";
@@ -11,5 +13,11 @@ export default function registerPiStudyGuard(pi: ExtensionAPI): void {
     default: false,
   });
 
-  registerLifecycleTrace(pi);
+  registerCancelProbeFlag(pi);
+  const recordCancelProbe = registerLifecycleTrace(pi);
+  registerCancelProbe(pi, {
+    record: recordCancelProbe ?? (() => {}),
+    stderr: (message) => process.stderr.write(message),
+  });
+  registerPiStudyInspect(pi);
 }

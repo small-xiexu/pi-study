@@ -12,5 +12,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["index.ts", "test/**/*.ts", "fixtures/**/*.ts"]
+  "include": ["*.ts", "test/**/*.ts", "fixtures/**/*.ts"]
 }
