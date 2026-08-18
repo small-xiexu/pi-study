@@ -16,7 +16,7 @@
 | [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
 | [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
-| [06-extensions.md](06-extensions.md) | Pi `0.84.1` Extension 的加载、核心对象、生命周期、Context、模式、取消、错误传播、首个只读 Tool、Trust/去重/重载及依赖边界 |
+| [06-extensions.md](06-extensions.md) | Pi `0.84.1` Extension 的加载、生命周期与 Context、只读 Tool、Slash Command、双入口 Shell 门禁、Branch 状态恢复、通用 Widget 及安全边界 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 

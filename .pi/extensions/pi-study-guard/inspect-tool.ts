@@ -3,19 +3,19 @@ import { stripTerminalSequences, Text } from "@earendil-works/pi-tui";
 import { Type, type Static } from "typebox";
 
 import {
-  analyzeMarkdown,
   INSPECT_FIELD_MAX_CHARS,
   INSPECT_SAMPLE_LIMIT,
   type InspectSample,
-  type InspectTruncationReason,
-  type MarkdownInspection,
 } from "./markdown-inspection.ts";
+import { validateInspectFileName } from "./inspect-path.ts";
 import {
-  readSafeMarkdownFile,
-  throwIfInspectCancelled,
-  validateInspectFileName,
-  type SafeMarkdownReadOptions,
-} from "./inspect-path.ts";
+  formatInspectSummary,
+  inspectMarkdownFile,
+  type InspectDetails,
+  type InspectServiceDependencies,
+} from "./inspect-service.ts";
+
+export type { InspectDetails } from "./inspect-service.ts";
 
 export const INSPECT_TOOL_NAME = "pi_study_inspect";
 
@@ -31,54 +31,12 @@ export const InspectParams = Type.Object(
   { additionalProperties: false },
 );
 
-export interface InspectDetails {
-  file: string;
-  headingCount: number;
-  linkCount: number;
-  shownCount: number;
-  sampleLimit: number;
-  samples: InspectSample[];
-  truncated: boolean;
-  truncationReasons: InspectTruncationReason[];
-}
-
-interface InspectToolDependencies {
-  readMarkdown?: (options: SafeMarkdownReadOptions) => Promise<string>;
-  analyzeMarkdown?: (source: string) => MarkdownInspection;
-}
-
 const RENDER_FILE_MAX_CHARS = 128;
 const RENDER_MESSAGE_MAX_CHARS = 320;
-
-function contractError(code: string, file?: string): Error {
-  return new Error(file ? `${code} file=${file}` : code);
-}
-
-function isContractError(error: unknown): error is Error {
-  return error instanceof Error && error.message.startsWith("PI_STUDY_INSPECT_");
-}
 
 function renderSample(sample: InspectSample): string {
   if (sample.kind === "heading") return `- H${sample.level} ${sample.text}`;
   return `- LINK ${sample.text} -> ${sample.target}`;
-}
-
-function formatContent(details: InspectDetails): string {
-  const totalItems = details.headingCount + details.linkCount;
-  const lines = [
-    `File: ${details.file}`,
-    `Headings: ${details.headingCount}`,
-    `Links: ${details.linkCount}`,
-    `Samples: ${details.shownCount}/${totalItems}`,
-    `Truncated: ${details.truncated}`,
-  ];
-  if (details.truncated) {
-    lines.push(`Truncation reasons: ${details.truncationReasons.join(", ")}`);
-  }
-  if (details.samples.length > 0) {
-    lines.push("Items:", ...details.samples.map(renderSample));
-  }
-  return lines.join("\n");
 }
 
 function firstText(result: { content: Array<{ type: string; text?: string }> }): string {
@@ -163,11 +121,8 @@ function isInspectDetails(value: unknown): value is InspectDetails {
 }
 
 export function createPiStudyInspectTool(
-  dependencies: InspectToolDependencies = {},
+  dependencies: InspectServiceDependencies = {},
 ): ToolDefinition<typeof InspectParams, InspectDetails> {
-  const readMarkdown = dependencies.readMarkdown ?? readSafeMarkdownFile;
-  const inspect = dependencies.analyzeMarkdown ?? analyzeMarkdown;
-
   return {
     name: INSPECT_TOOL_NAME,
     label: "Pi Study Inspect",
@@ -177,30 +132,12 @@ export function createPiStudyInspectTool(
     parameters: InspectParams,
 
     async execute(_toolCallId, params: Static<typeof InspectParams>, signal, _onUpdate, ctx) {
-      const file = validateInspectFileName(params.file);
-      throwIfInspectCancelled(signal);
-
-      let source: string;
-      try {
-        source = await readMarkdown({ cwd: ctx.cwd, file, signal });
-      } catch (error) {
-        if (signal?.aborted) throw contractError("PI_STUDY_INSPECT_CANCELLED");
-        if (isContractError(error)) throw error;
-        throw contractError("PI_STUDY_INSPECT_READ_FAILED", file);
-      }
-      throwIfInspectCancelled(signal);
-
-      let inspection: MarkdownInspection;
-      try {
-        inspection = inspect(source);
-      } catch {
-        throw contractError("PI_STUDY_INSPECT_PARSE_FAILED", file);
-      }
-      throwIfInspectCancelled(signal);
-
-      const details: InspectDetails = { file, ...inspection };
+      const details = await inspectMarkdownFile(
+        { cwd: ctx.cwd, file: params.file, signal },
+        dependencies,
+      );
       return {
-        content: [{ type: "text", text: formatContent(details) }],
+        content: [{ type: "text", text: formatInspectSummary(details) }],
         details,
       };
     },
