@@ -1,10 +1,10 @@
 # Pi Extensions
 
-本文默认描述 Pi `0.84.1`。Extension 是 Pi 的可选可执行插件层，用于注册、监听或拦截能力；它不是内置 Tool 的执行前提，也不是系统级沙箱。学习进度、当前验收状态和下一步只见 [完整学习计划](../plans/pi-complete-learning-plan.md)。
+本文默认描述 Pi `0.84.1`；5.10 的真实 Runtime 切换与 Print 动态矩阵明确使用 Pi `0.84.2`。Extension 是 Pi 的可选可执行插件层，用于注册、监听或拦截能力；它不是内置 Tool 的执行前提，也不是系统级沙箱。学习进度、当前验收状态和下一步只见 [完整学习计划](../plans/pi-complete-learning-plan.md)。
 
 ## 版本范围与证据口径
 
-除非另有说明，本文的 Pi 行为均限定为本机 `0.84.1`。官方 `latest` 文档是动态参考，不作为该版本行为的固定证据。
+除非另有说明，本文的 Pi 行为均限定为本机 `0.84.1`；标明 5.10 动态矩阵的结论限定本机 CLI `0.84.2`。官方 `latest` 文档是动态参考，不作为任一版本行为的固定证据。
 
 | 标签 | 含义 | 不能替代 |
 |---|---|---|
@@ -835,6 +835,10 @@ flowchart LR
 
 首版只把它作为本地 TUI 状态牌：要求 `ctx.mode === "tui" && ctx.hasUI`。Print/JSON 没有可用的本地 Widget 区域，因此跳过 UI；本阶段不把 RPC 的客户端呈现扩展成已验证能力。Widget 是界面辅助，不进入 Model Context，也不产生 Tool Result、Shell 执行或持久化 Entry。
 
+当前最小实现位于 `shell-widget.ts`：Controller 只保存当前 UI Context，使用固定 key 和 `Text` Component 生成两行有界状态；`session_start/session_tree` 在状态重放后显示，Shell Gate 在 `commitDecision()` 成功后更新，`session_shutdown` 清除。Controller 捕获 UI 渲染异常并保持门禁结果不变；即使宿主可能部分挂载后抛错，也会在 Shutdown 保留一次 best-effort 清理机会。
+
+真实 Pi `0.84.1` TUI 已观察到初始 `blocked=0`、未知 Shell 拒绝后的 `blocked=1`、后续 SAFE 允许时计数保持且最近决策原位更新，以及 `/reload` 后从当前 Branch 恢复同一状态牌；退出后启动全新 `--no-session` 进程又回到初始状态。真实 Print 单次请求只输出 Model 指定文本并正常返回 Shell，没有 Widget 文本、UI 异常或挂起。窄终端下可读、未遮挡和无重复状态牌由用户现场确认，但没有新的截图级证据。这些结果不覆盖 JSON/RPC、任意终端宽度/字体/主题、操作系统隔离，也不能用 Widget 显示反推 Shell 未执行或状态一定已持久化；详细过程仍只记录在计划台账。
+
 ## 加载、初始化、注册与运行时派发
 
 ```mermaid
@@ -1098,10 +1102,42 @@ flowchart LR
 | 运行证据（Fake/Runner） | 直接调用工厂与 Handler/Executor，并用真实 `ExtensionRunner` 核对普通事件和 `tool_call` 的异常顺序 | 不证明真实 Pi 发现、Provider 调用、Core 错误 Tool Result或 TUI 呈现 |
 | 用户理解验收 | 只由计划台账记录 | 文档、源码、真实运行、`tsc` 或 Fake 均不能自动替代 |
 
+### 四层测试与手工验收矩阵
+
+同一能力按“局部逻辑、宿主合同、真实加载、最终运行”逐层取证。较高层不会让较低层失效，也不能替代较低层的大量错误输入覆盖。
+
+| 层级 | 当前入口 | 直接证明 | 不能证明 |
+|---|---|---|---|
+| 纯逻辑与真实文件 | 分类器、Markdown Parser、临时文件和可控 Timer | 已列举输入的分类、解析、路径、截断、取消和清理合同 | Pi 已加载模块或派发事件 |
+| Fake API 与真实宿主组件 | 工厂/Handler Fake、`ExtensionRunner`、`SessionManager.inMemory` | 注册内容、Handler 返回形状、异常顺序、Branch 重放和无默认 Executor 等局部宿主合同 | 真实 CLI Loader、Provider、TUI 绘制或磁盘 Session |
+| 隔离真实 Pi CLI | 锁定 Pi `0.84.1` 的 `--help` 对照 | 同一最小环境中，未加载时课程 Flag 为 `0`，唯一增加 `-e index.ts` 后为 `1`；真实 Loader 已导入工厂并完成 Flag 注册 | Handler、Tool、Command、TUI 或 Provider 正确 |
+| 真实运行手工验收 | TUI、Print、真实 Model/Provider或无 Provider Command | 指定模式下真实 Pi 已走过目标链路并产生对应可见结果 | 所有输入、并发、版本、终端或 OS 权限均安全 |
+
+真实运行层按能力和模式保存如下统一索引；每一行的详细命令、顺序、FAIL/PASS 和学习状态仍只在计划台账中维护。
+
+| 能力 | 模式与外部链路 | 已验证的成功/拒绝/异常观察 | 证据边界 |
+|---|---|---|---|
+| 生命周期与 Context | TUI、Print；无需普通 Provider 请求 | `factory -> session_start -> Command -> session_shutdown`；TUI 通知与 Print `stderr` fallback 分流 | 只覆盖实际触发的事件和当前模式，不给出全局事件总顺序 |
+| 协作取消 | TUI + 真实 Model/Provider + 内置 `read` | Handler 已进入后按 Esc，出现 `start -> cancelled` 和 `Operation aborted`，没有 Executor 后事件 | 不证明任意 Executor、子进程终止或副作用回滚 |
+| 错误传播 | TUI + 真实 Model/Provider + 课程 Tool | observer 异常后继续；gate 异常在执行前失败；executor 异常形成错误 Tool Result | 不外推到其他 Tool、Provider、重试或所有错误类型 |
+| 只读 Tool | TUI + 真实 Model/Provider | Model 选择一次 `pi_study_inspect`，界面与后续 Model Turn 获得一致的有界统计 | 单次合法成功不证明非法 Schema、路径、取消和全部文件；这些由自动层覆盖 |
+| Slash Command | TUI、Print；Handler 本身不请求 Provider | 补全、一次有界通知、Print `stdout/stderr` 分离，并确认 0 Tool Call/Tool Result | 不证明 JSON/RPC 客户端或未知 Command |
+| 双入口 Shell Gate | 用户 Shell 无 Provider；Model `bash` 使用真实 Model/Provider；另有 Print | SAFE 放行，未知命令默认拒绝，TUI No/Esc/Yes 与 marker 副作用形成对照，Print 无本机审批时拒绝 | 不是 Shell 语义解析器或 OS 沙箱；未知并发和其他 Extension 组合未证明 |
+| Branch 状态 | TUI；用户 Shell 与只读 Probe 无普通 Provider请求 | 持久 Session 的 Reload/Tree/Fork/Resume 重放，以及 `--no-session` 同进程 Reload 延续、全新进程归零 | 不证明事务持久化、崩溃恢复、安全擦除或系统全局零写 |
+| Widget | TUI、Print | 单一稳定状态牌完成初始、拒绝、允许、Reload和窄终端观察；Print 无 Widget 文本、错误或挂起 | 状态牌只展示快照，不负责门禁，不证明快照已落盘或任意终端兼容 |
+
+### 资源所有权、并发与模式收口
+
+课程 Guard 把一次 Extension 工厂调用视为一个 Runtime 的所有权边界：工厂只创建 Store、Widget Controller 和 Handler 注册，不启动脱离生命周期的后台资源；`session_start` 与 `session_tree` 总是先从当前 Branch 重放状态，再绑定并渲染当前 Context；`session_shutdown` 先清除 Widget，再把 Store 关闭。Reload、New、Fork 和 Resume 都可能替换 Runtime或 Context，因此不能把旧 Context、SessionManager 或 UI 引用当作长期全局对象复用。
+
+并发层只依赖同步的 Store 提交作为最终串行点，不假设同轮 Tool Call 或用户输入天然顺序执行。自动测试把一个等待 TUI 确认的 Model Shell 与另一个用户 Shell 交错，最终两个决定都基于最新快照且阻止计数没有丢失；另一条测试在确认尚未返回时执行 Shutdown，即使随后确认返回允许，提交也因 Store 已关闭而失败，Executor 不启动并形成固定 `state_error` 拒绝。这里证明的是当前单进程事件循环和同步提交合同，不是跨进程锁、分布式事务或任意异步副作用安全。
+
+真实 Pi `0.84.2` 动态矩阵覆盖连续 Reload、New、Tree、Fork、Resume、正常退出和 Print：每次 Runtime 替换都观察到对应 Shutdown、一个新 factory 和新 start；Tree 在同一 Runtime 中按目标 Branch 恢复；全程只显示一个稳定 key 的 Widget且Shell决定没有重复派发。Print模式只输出固定 Model回复，追踪为一次 factory、一次 startup、一次 quit shutdown，并且没有 `user_bash` 或 `shell_gate` 事件。自动类型与 `185/185` 测试仍使用项目锁定的 Pi `0.84.1` 开发依赖，真实 `0.84.2` TUI/Print 证据用于补足公开运行路径；两者不能互相冒充，也不覆盖 JSON/RPC动态呈现、崩溃退出、任意版本、Provider稳定性或所有文件描述符与内存资源绝无泄漏。
+
 当前材料包含受控 Flag、课程诊断、纯内存错误探针、临时 marker，以及只读统计 `docs/learning/` 顶层 Markdown 的首个业务 Tool。主 Tool 不写文件、不执行 Shell、不跟随 Markdown 链接、不主动联网；这仍不是 OS 沙箱。所有动态状态、当前断点与下一步均链接计划，不在本文件重复维护。
 
 ## 后续学习方向
 
-Agent Run、Turn 和停止条件见 [架构与 Model 上下文](01-architecture-and-context.md)。生命周期、自定义 Tool、直接 Command、Shell 双入口门禁和 Branch 状态恢复已经在本章建立；Widget 的通用职责与系统地图也已在上文说明。后续按计划继续完成 Widget 实现与动态验收，并补强自动验收、Reload、Session 切换和资源释放风险。
+Agent Run、Turn 和停止条件见 [架构与 Model 上下文](01-architecture-and-context.md)。生命周期、自定义 Tool、直接 Command、Shell 双入口门禁、Branch 状态恢复、最小 Widget，以及资源、并发和模式边界已经在本章建立；后续按计划进入 Package 与自定义集成，不把本地课程 Guard 的结论扩大成通用沙箱保证。
 
 Pi 不内置 MCP 和 Subagent：MCP 通过 Extension 或 Package 接入；Subagent 通过 Extension、Package、独立 Pi 进程或 tmux 实现。它们会增加网络与凭据边界、模型费用、上下文复杂度和并发写入冲突，应在掌握 Tool、Session、Extension 和 Package 后按真实需求引入。

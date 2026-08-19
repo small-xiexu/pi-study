@@ -6,6 +6,7 @@ import { registerPiStudyInspect } from "./inspect-tool.ts";
 import { LIFECYCLE_TRACE_UNAVAILABLE, registerLifecycleTrace } from "./lifecycle-trace.ts";
 import { registerShellGate } from "./shell-gate.ts";
 import { createShellStateStore, registerShellStateLifecycle } from "./shell-state.ts";
+import { createShellWidgetController } from "./shell-widget.ts";
 
 export const GUARD_FLAG = "pi-study-guard";
 
@@ -32,7 +33,8 @@ export default function registerPiStudyGuard(pi: ExtensionAPI): void {
   const shellState = createShellStateStore((customType, data) => {
     pi.appendEntry(customType, data);
   });
-  registerShellStateLifecycle(pi, shellState);
+  const shellWidget = createShellWidgetController();
+  registerShellStateLifecycle(pi, shellState, shellWidget);
   registerCancelProbe(pi, {
     record: traceRecorders?.cancelProbe ?? missingTraceRecorder,
     stderr: (message) => process.stderr.write(message),
@@ -40,6 +42,7 @@ export default function registerPiStudyGuard(pi: ExtensionAPI): void {
   registerShellGate(pi, {
     state: shellState,
     record: traceRecorders?.shellGate ?? missingTraceRecorder,
+    publish: () => shellWidget.render(shellState.getSnapshot(), shellState.getStatus()),
   });
   registerPiStudyInspect(pi);
   registerStudyInspectCommand(pi);

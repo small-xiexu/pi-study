@@ -13,7 +13,9 @@
 - `shell-policy.ts`：5.6 的纯 Shell 分类器；只逐字识别固定 SAFE 与 MARKER 课程命令，其他输入默认拒绝，不解析也不执行 Shell。
 - `shell-gate.ts`：5.6-5.7 的双入口适配器；把同一策略分别映射为 Model `tool_call` 的 `block` 和用户 `user_bash` 的替代 `BashResult`，只在本机 TUI 对固定 MARKER 请求确认，并在最终返回前提交同一份 Branch 状态。
 - `shell-state.ts`：5.7 的 Branch 状态服务；严格解析 v1 完整快照，从当前 `getBranch()` 根到叶重放，并在 `session_start/session_tree/session_shutdown` 维护当前实例状态。
+- `shell-widget.ts`：5.8 的最小 TUI 状态牌；使用稳定 key 展示脱敏状态，状态提交成功后更新，生命周期切换和 Shutdown 时清除，非 TUI/无 UI 跳过。
 - `test/factory.test.ts`：用 Fake API 验证工厂登记、Tool/Command 唯一注册、事件白名单、Context 脱敏、模式反馈、Shell 门禁真实派发顺序和追踪路径边界。
+- `test/pi-cli-loading.test.ts`：在全新临时 `HOME`、`PI_CODING_AGENT_DIR` 和工作目录中启动锁定的真实 Pi CLI，对照不加载与显式 `-e index.ts` 时课程 Flag 的 `0 -> 1`；不请求 Provider，也不读取临时认证存储内容。
 - `test/inspect-service.test.ts`：用真实临时 Markdown 和注入边界验证共享报告、规范摘要、显式 Context 参数、取消与异常脱敏。
 - `test/inspect-command.test.ts`：验证 Command 注册、固定补全、参数拒绝、TUI/RPC 通知、Print/JSON fallback，以及与 Tool 的真实摘要一致性。
 - `test/inspect-tool.test.ts`：验证严格 Schema、成功/失败合同、取消边界和 renderer 的清洗、截断与 fallback。
@@ -24,6 +26,7 @@
 - `test/shell-gate.test.ts`：验证两个 Shell 入口的模式、确认、取消、异常和返回合同，并用真实 `ExtensionRunner` 对照 `user_bash` 裸异常的 fail-open 与生产适配器的 fail-closed。
 - `test/shell-state.test.ts`：验证快照严格白名单、未知版本、Branch 重放、完整快照提交、append 失败锁存和生命周期恢复。
 - `test/shell-state-gate.test.ts`：验证状态未就绪或提交失败时两个 Shell 入口都显式拒绝，并验证同一 Store 的累计计数。
+- `test/shell-widget.test.ts`：验证稳定 key 原位更新、状态颜色/摘要边界、无 UI 跳过和幂等清除。
 - `test/shell-state-session.test.ts`：用真实 `SessionManager.inMemory` 验证 A/B Branch 切换、当前 `getBranch()` 恢复、Custom Entry 的 Context 排除和 `--no-session` 边界。
 - `fixtures/state-probe/index.ts`：5.7 的显式只读观测入口；只注册 `/pi-study-state-probe`，从当前 Branch 投影自有 Shell 状态，不接入主工厂，不追加 Entry，也不读取普通消息正文、Session 路径或 ID。
 - `test/state-probe.test.ts`：验证 Probe 的当前 Branch 重放、固定有界摘要、路径脱敏、畸形状态拒绝、零追加及 Reload 后不复用旧 Command Context。

@@ -1,7 +1,10 @@
 import type {
   ExtensionAPI,
+  ExtensionContext,
   SessionEntry,
 } from "@earendil-works/pi-coding-agent";
+
+import type { ShellWidgetController } from "./shell-widget.ts";
 
 export const SHELL_STATE_CUSTOM_TYPE = "pi-study-guard.shell-gate-state";
 
@@ -226,9 +229,16 @@ export function createShellStateStore(appendEntry: AppendEntry): ShellStateStore
 export function registerShellStateLifecycle(
   pi: Pick<ExtensionAPI, "on">,
   store: ShellStateStore,
+  widget?: ShellWidgetController,
 ): void {
-  const restore = (ctx: { sessionManager: { getBranch(): readonly SessionEntry[] } }): void => {
+  const restore = (
+    ctx: Pick<ExtensionContext, "mode" | "hasUI" | "ui"> & {
+      sessionManager: { getBranch(): readonly SessionEntry[] };
+    },
+  ): void => {
     store.restoreBranch(() => ctx.sessionManager.getBranch());
+    widget?.bind(ctx);
+    widget?.render(store.getSnapshot(), store.getStatus());
   };
 
   pi.on("session_start", (_event, ctx) => {
@@ -240,6 +250,7 @@ export function registerShellStateLifecycle(
   });
 
   pi.on("session_shutdown", () => {
+    widget?.clear();
     store.shutdown();
   });
 }

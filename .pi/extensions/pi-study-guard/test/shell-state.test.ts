@@ -627,3 +627,40 @@ test("session_shutdown only closes the store and never appends a final snapshot"
   assert.equal(harness.branchReadCount, 1);
   assert.equal(harness.appendCount, 0);
 });
+
+test("Widget lifecycle restores before rendering and clears on shutdown", async () => {
+  const store = createShellStateStore(() => {});
+  const operations: string[] = [];
+  const widget = {
+    bind() {
+      operations.push("bind");
+    },
+    render(_snapshot: ShellStateSnapshot, status: string) {
+      operations.push(`render:${status}`);
+    },
+    clear() {
+      operations.push("clear");
+    },
+  };
+  const handlers = new Map<string, EventHandler>();
+  const api = {
+    on(eventName: string, handler: EventHandler) {
+      handlers.set(eventName, handler);
+    },
+  } as unknown as Pick<ExtensionAPI, "on">;
+  registerShellStateLifecycle(api, store, widget);
+
+  const context = {
+    mode: "tui",
+    hasUI: true,
+    ui: { setWidget() {} },
+    sessionManager: { getBranch: () => [] },
+  };
+  await handlers.get("session_start")!({ type: "session_start", reason: "startup" }, context);
+  assert.deepEqual(operations, ["bind", "render:ready"]);
+  assert.equal(store.getStatus(), "ready");
+
+  await handlers.get("session_shutdown")!({ type: "session_shutdown", reason: "quit" }, context);
+  assert.deepEqual(operations, ["bind", "render:ready", "clear"]);
+  assert.equal(store.getStatus(), "shutdown");
+});

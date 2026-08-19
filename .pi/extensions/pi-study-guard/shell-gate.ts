@@ -26,6 +26,7 @@ export interface ShellGateDependencies {
   state: Pick<ShellStateStore, "getStatus" | "commitDecision">;
   classify?: (command: string) => ShellPolicyDecision;
   record?: (entry: ShellGateTraceEntry) => void;
+  publish?: () => void;
 }
 
 export interface ShellGateTraceEntry {
@@ -122,6 +123,13 @@ export function registerShellGate(
 ): void {
   const classify = dependencies.classify ?? classifyShellCommand;
   const record = dependencies.record ?? (() => {});
+  const publish = (): void => {
+    try {
+      dependencies.publish?.();
+    } catch {
+      // Presentation failures cannot change the already committed gate decision.
+    }
+  };
   const state = dependencies.state;
   const stateIsReady = (): boolean => {
     try {
@@ -152,6 +160,7 @@ export function registerShellGate(
         record({ entry: "tool_call", ...STATE_ERROR_DECISION });
         return blockedToolCall();
       }
+      publish();
       record({ entry: "tool_call", ...result });
       return result.decision === "allow" ? undefined : blockedToolCall();
     } catch {
@@ -179,6 +188,7 @@ export function registerShellGate(
         });
         return blockedUserBash();
       }
+      publish();
       record({
         entry: "user_bash",
         ...result,

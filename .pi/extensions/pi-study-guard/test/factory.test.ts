@@ -301,6 +301,74 @@ test("the main factory wires both shell gate adapters with real rejection behavi
   }
 });
 
+test("the main factory renders the Widget after restore and after a committed decision", async () => {
+  const previousTrace = process.env[LIFECYCLE_TRACE_ENV];
+  delete process.env[LIFECYCLE_TRACE_ENV];
+  const handlers = new Map<string, EventHandler[]>();
+  const widgetCalls: Array<{ key: string; content: unknown; options: unknown }> = [];
+  const fakeApi = {
+    registerFlag() {},
+    getFlag() {
+      return false;
+    },
+    on(eventName: string, handler: EventHandler) {
+      const registered = handlers.get(eventName) ?? [];
+      registered.push(handler);
+      handlers.set(eventName, registered);
+    },
+    registerTool() {},
+    registerCommand() {},
+    appendEntry() {},
+  } as unknown as ExtensionAPI;
+
+  const context = {
+    mode: "tui",
+    hasUI: true,
+    signal: undefined,
+    sessionManager: {
+      getBranch() {
+        return [];
+      },
+    },
+    ui: {
+      confirm() {
+        return true;
+      },
+      setWidget(key: string, content: unknown, options?: unknown) {
+        widgetCalls.push({ key, content, options });
+      },
+    },
+  };
+
+  const dispatch = async (eventName: string, event: unknown): Promise<void> => {
+    for (const handler of handlers.get(eventName) ?? []) {
+      await handler(event, context);
+    }
+  };
+
+  try {
+    registerPiStudyGuard(fakeApi);
+    await dispatch("session_start", { type: "session_start", reason: "startup" });
+    assert.equal(widgetCalls.length, 1);
+    assert.equal(widgetCalls[0]!.key, "pi-study-guard.shell-state");
+
+    await dispatch("user_bash", {
+      type: "user_bash",
+      command: "printf '%s\\n' PI_STUDY_SHELL_SAFE",
+      cwd: "/redacted/course-root",
+      excludeFromContext: false,
+    });
+    assert.equal(widgetCalls.length, 2);
+    assert.equal(widgetCalls[1]!.key, widgetCalls[0]!.key);
+
+    await dispatch("session_shutdown", { type: "session_shutdown", reason: "quit" });
+    assert.equal(widgetCalls.length, 3);
+    assert.equal(widgetCalls[2]!.content, undefined);
+  } finally {
+    restoreEnvironment(previousTrace);
+  }
+});
+
 test("the factory keeps the cancellation gate fail-closed without lifecycle tracing", async () => {
   const previousTrace = process.env[LIFECYCLE_TRACE_ENV];
   delete process.env[LIFECYCLE_TRACE_ENV];

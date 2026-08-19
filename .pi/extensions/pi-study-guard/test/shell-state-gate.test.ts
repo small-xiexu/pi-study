@@ -9,31 +9,15 @@ import {
   registerShellGate,
   type ShellGateTraceEntry,
 } from "../shell-gate.ts";
-import { SHELL_SAFE_COMMAND } from "../shell-policy.ts";
+import { SHELL_MARKER_COMMAND, SHELL_SAFE_COMMAND } from "../shell-policy.ts";
+import {
+  SHELL_STATE_CUSTOM_TYPE,
+  createShellStateStore,
+  type ShellStateDecision,
+  type ShellStateSnapshot,
+} from "../shell-state.ts";
 
 type EventHandler = (event: any, ctx: any) => Promise<unknown> | unknown;
-
-interface ShellStateDecision {
-  entry: "tool_call" | "user_bash";
-  rule: "safe" | "marker" | "other" | "unclassified" | "error";
-  decision: "allow" | "deny";
-  reason:
-    | "safe"
-    | "confirmed"
-    | "policy_denied"
-    | "no_local_tui"
-    | "not_confirmed"
-    | "signal_aborted"
-    | "policy_error"
-    | "ui_error";
-}
-
-interface ShellStateSnapshot {
-  version: 1;
-  mode: "enforce";
-  blockedCount: number;
-  lastDecision: ShellStateDecision | null;
-}
 
 interface ShellStatePort {
   getStatus():
@@ -91,7 +75,43 @@ function createContext() {
   };
 }
 
-function createHarness(state: ShellStatePort, onRecord?: (entry: ShellGateTraceEntry) => void) {
+function createDeferredConfirmContext() {
+  let confirmCount = 0;
+  let markConfirmStarted!: () => void;
+  let resolveConfirmation!: (confirmed: boolean) => void;
+  const confirmStarted = new Promise<void>((resolve) => {
+    markConfirmStarted = resolve;
+  });
+  const confirmation = new Promise<boolean>((resolve) => {
+    resolveConfirmation = resolve;
+  });
+
+  return {
+    context: {
+      mode: "tui",
+      hasUI: true,
+      signal: undefined,
+      ui: {
+        confirm() {
+          confirmCount += 1;
+          markConfirmStarted();
+          return confirmation;
+        },
+      },
+    },
+    get confirmCount() {
+      return confirmCount;
+    },
+    confirmStarted,
+    resolveConfirmation,
+  };
+}
+
+function createHarness(
+  state: ShellStatePort,
+  onRecord?: (entry: ShellGateTraceEntry) => void,
+  onPublish?: () => void,
+) {
   const handlers = new Map<string, EventHandler>();
   const trace: unknown[] = [];
 
@@ -107,6 +127,7 @@ function createHarness(state: ShellStatePort, onRecord?: (entry: ShellGateTraceE
         onRecord?.(entry);
         trace.push(entry);
       },
+      publish: onPublish,
     },
   );
 
@@ -116,6 +137,54 @@ function createHarness(state: ShellStatePort, onRecord?: (entry: ShellGateTraceE
   assert.ok(userHandler);
   return { modelHandler, trace, userHandler };
 }
+
+test("publishes the committed state before recording the final decision", async () => {
+  const operationOrder: string[] = [];
+  const state: ShellStatePort = {
+    getStatus: () => "ready",
+    commitDecision() {
+      operationOrder.push("commit");
+      return true;
+    },
+  };
+  const harness = createHarness(
+    state,
+    () => operationOrder.push("record"),
+    () => operationOrder.push("publish"),
+  );
+
+  const result = await runModel(
+    harness.modelHandler,
+    modelEvent(SHELL_SAFE_COMMAND),
+    createContext().context,
+  );
+  assert.equal(result.result, undefined);
+  assert.deepEqual(operationOrder, ["commit", "publish", "record"]);
+});
+
+test("does not publish a state that failed to commit", async () => {
+  const operationOrder: string[] = [];
+  const state: ShellStatePort = {
+    getStatus: () => "ready",
+    commitDecision() {
+      operationOrder.push("commit");
+      return false;
+    },
+  };
+  const harness = createHarness(
+    state,
+    () => operationOrder.push("record"),
+    () => operationOrder.push("publish"),
+  );
+
+  const result = await runModel(
+    harness.modelHandler,
+    modelEvent(SHELL_SAFE_COMMAND),
+    createContext().context,
+  );
+  assertModelBlocked(result.result);
+  assert.deepEqual(operationOrder, ["commit", "record"]);
+});
 
 function assertModelBlocked(result: unknown): void {
   assert.deepEqual(result, { block: true, reason: SHELL_GATE_BLOCK_REASON });
@@ -331,6 +400,126 @@ test("both shell entrances commit denied decisions through one shared state in o
     blockedCount: 2,
     lastDecision: commits[1],
   });
+});
+
+test("interleaved shell decisions use the latest production state without losing counts", async () => {
+  const appended: Array<{ customType: string; data: unknown }> = [];
+  const state = createShellStateStore((customType, data) => {
+    appended.push({ customType, data });
+  });
+  assert.equal(state.restoreBranch(() => []), true);
+
+  let publishCount = 0;
+  const harness = createHarness(state, undefined, () => {
+    publishCount += 1;
+  });
+  const markerContext = createDeferredConfirmContext();
+  const userContext = createContext();
+
+  const markerPromise = runModel(
+    harness.modelHandler,
+    modelEvent(SHELL_MARKER_COMMAND),
+    markerContext.context,
+  );
+  await markerContext.confirmStarted;
+
+  const user = await runUser(
+    harness.userHandler,
+    userEvent("unknown user command"),
+    userContext.context,
+  );
+  markerContext.resolveConfirmation(true);
+  const marker = await markerPromise;
+
+  assertUserBlocked(user.result);
+  assert.equal(user.defaultExecutorCount, 0);
+  assert.equal(marker.result, undefined);
+  assert.equal(marker.executorCount, 1);
+  assert.equal(markerContext.confirmCount, 1);
+  assert.equal(userContext.confirmCount, 0);
+  assert.equal(publishCount, 2);
+  assert.deepEqual(
+    appended.map((entry) => entry.customType),
+    [SHELL_STATE_CUSTOM_TYPE, SHELL_STATE_CUSTOM_TYPE],
+  );
+  assert.deepEqual(
+    appended.map((entry) => entry.data),
+    [
+      {
+        version: 1,
+        mode: "enforce",
+        blockedCount: 1,
+        lastDecision: {
+          entry: "user_bash",
+          rule: "other",
+          decision: "deny",
+          reason: "policy_denied",
+        },
+      },
+      {
+        version: 1,
+        mode: "enforce",
+        blockedCount: 1,
+        lastDecision: {
+          entry: "tool_call",
+          rule: "marker",
+          decision: "allow",
+          reason: "confirmed",
+        },
+      },
+    ],
+  );
+  assert.deepEqual(state.getSnapshot(), appended[1]?.data);
+  assert.deepEqual(harness.trace, [
+    {
+      entry: "user_bash",
+      rule: "other",
+      decision: "deny",
+      reason: "policy_denied",
+      excludeFromContext: false,
+    },
+    {
+      entry: "tool_call",
+      rule: "marker",
+      decision: "allow",
+      reason: "confirmed",
+    },
+  ]);
+});
+
+test("a shell request awaiting confirmation stays fail-closed after state shutdown", async () => {
+  const appended: Array<{ customType: string; data: unknown }> = [];
+  const state = createShellStateStore((customType, data) => {
+    appended.push({ customType, data });
+  });
+  assert.equal(state.restoreBranch(() => []), true);
+
+  let publishCount = 0;
+  const harness = createHarness(state, undefined, () => {
+    publishCount += 1;
+  });
+  const markerContext = createDeferredConfirmContext();
+  const markerPromise = runModel(
+    harness.modelHandler,
+    modelEvent(SHELL_MARKER_COMMAND),
+    markerContext.context,
+  );
+  await markerContext.confirmStarted;
+
+  state.shutdown();
+  markerContext.resolveConfirmation(true);
+  const marker = await markerPromise;
+
+  assertModelBlocked(marker.result);
+  assert.equal(marker.executorCount, 0);
+  assert.equal(markerContext.confirmCount, 1);
+  assert.equal(state.getStatus(), "shutdown");
+  assert.deepEqual(state.getSnapshot(), DEFAULT_SNAPSHOT);
+  assert.deepEqual(appended, []);
+  assert.equal(publishCount, 0);
+  assert.deepEqual(harness.trace, [
+    { entry: "tool_call", rule: "error", decision: "deny", reason: "state_error" },
+  ]);
 });
 
 test("a non-bash Tool Call bypasses the state service and remains executable", async () => {
