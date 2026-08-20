@@ -9,8 +9,8 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 历史版本基线：`@earendil-works/pi-coding-agent@0.84.0`；当前 CLI 见下方环境快照
 - 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
-- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4 和阶段 5 已完成；阶段 6 尚未开始
-- 下一步：进入 6.1 系统地图，比较 npm、Git、本地路径三种 Package 来源的身份、解析位置、更新语义与固定版本策略；尚不安装或编写 Package。
+- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4 和阶段 5 已完成；阶段 6 的 6.1 进行中
+- 下一步：用户运行 6.1 本地路径实验的 A 基线，在隔离配置、无 Session/Model/外网条件下确认同一课程 Package 路径只显示 `PI_STUDY_PACKAGE_A`；通过后再原地切换到 B。
 - 预计投入：Pi 学习与综合项目 73-103 小时；学习网站另计 8-12 小时；阶段 5-6 作为定制开发核心加深学习，按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
@@ -1011,7 +1011,7 @@
   - 贯穿验证：覆盖 Schema、路径逃逸、截断、取消、Tool 抛错、模式分支、双 Shell 入口、默认拒绝、状态重放、Widget 更新和幂等清理；执行类型检查、完整测试、`git diff --check` 和实际差异审查。
   - 验收与边界：记录实际命令、关键 FAIL/PASS 和手工矩阵。Fake Handler 不能证明 Pi Core 已真实派发，Mock/Fake 不能冒充真实 Provider 链，单次手工成功不能证明所有输入和并发均安全。
 - [x] 5.10 审查资源释放、热重载、Session 切换、并发和模式兼容性风险。
-  - 5.10 系统地图进行中（2026-08-18）：5.9已完成；先只读盘点主工厂创建的对象、各生命周期 Handler 的创建/恢复/清理顺序、Reload 后新旧 Runtime边界、SessionManager/State Store/Widget引用、同轮并发共享状态和TUI/Print/JSON/RPC分支。风险地图与真实实验合同冻结前不修改代码，也不把5.7/5.8单次Reload与退出证据直接当成5.10完整验收。
+  - 5.10 系统地图历史检查点（2026-08-18）：5.9 完成后，先只读盘点主工厂创建的对象、各生命周期 Handler 的创建/恢复/清理顺序、Reload 后新旧 Runtime 边界、SessionManager/State Store/Widget 引用、同轮并发共享状态和 TUI/Print/JSON/RPC 分支；在风险地图与真实实验合同冻结前未修改代码，也未把 5.7/5.8 的单次 Reload 与退出证据当成 5.10 完整验收。
   - 5.10 资源所有权盘点已完成（2026-08-18）：主工厂每个Runtime创建一份Shell State Store和Widget Controller并由Handler闭包持有，不启动常驻子进程、Socket或Watcher；生命周期追踪每次写入都在`finally`关闭文件描述符，只读Tool每次执行结束关闭Markdown句柄，取消探针在完成/取消/异常路径清理Timer与Abort listener。长期内存仅为Store快照和Widget保存的当前UI Context；Shutdown把Store锁定为`shutdown`并清空快照，Widget清理已幂等，但Controller会保留旧Context引用直到旧Runtime被释放或同Runtime下一次bind替换。本结论来自当前源码与既有自动测试，不证明真实进程不存在其他宿主资源或内存泄漏。
   - 5.10 Core Reload与实例边界已核对（2026-08-18）：Pi`0.84.1`源码顺序为旧Runner收到`session_shutdown(reason=reload)`、随后旧Runtime失效并退订EventBus、Settings/资源Reload、创建并绑定新Runner、最后新Runner收到`session_start(reason=reload)`；失效Runtime的公开操作受stale Context门禁。TUI在streaming或compaction期间拒绝`/reload`，但RPC路径是否在所有活动状态下具备同等前置门禁尚未取得直接证据。当前Extension不主动调用`ctx.reload/newSession/fork/switchSession`，只在`session_start/session_tree`绑定宿主传入的新Context；这些源码事实解释预期顺序，不替代真实连续Reload与Session切换实验。
   - 5.10 并发与模式缺口已冻结（2026-08-18）：Shell策略分类大多同步，但MARKER确认会`await`，多个请求可能按完成顺序而非开始顺序提交同一Store；`commitDecision()`本身同步读取最新快照、追加并发布，当前不依赖兄弟Tool Result，理论上不应丢计数，但尚无并发直接测试。等待确认期间若Shutdown，旧Store应因`shutdown`拒绝提交并令请求fail-closed，尚无聚焦证据。最终实验需覆盖连续两次Reload无重复Handler/Widget、New/Resume/Fork/Tree使用新Context且状态不串线、两个交错Shell决策累计正确、等待期间Shutdown拒绝、正常退出无残留，以及TUI和Print最终兼容；JSON/RPC若不做真实客户端实验必须明确保留未验证边界。
@@ -1020,7 +1020,7 @@
   - 5.10 第一组确定性测试实现进行中（2026-08-18）：用户已明确确认实现。仅在现有Shell Gate聚焦测试中复用生产Shell State Store，增加受控确认Promise以固定交错顺序，并覆盖等待期间Shutdown；不修改运行时策略、不启动真实Shell或Provider。下一步先取得聚焦测试结果，再决定是否需要最小修复。
   - 5.10 第一组确定性聚焦测试已通过（2026-08-18）：`test/shell-state-gate.test.ts`新增两条生产Store/Gate组合用例；受控确认Promise先挂起Model MARKER，再让用户未知命令提交拒绝，最后释放确认，实际快照按完成顺序为`blocked=1/user_bash deny`、`blocked=1/tool_call allow`，最终计数未丢且发布两次。另一用例在确认等待期间调用Store Shutdown，释放确认后Model请求仍被阻止、Executor计数`0`、Custom Entry与发布均为`0`并记录`state_error`。聚焦测试`16/16`和严格TypeScript检查通过，生产代码无需修复；证据只覆盖确定性进程内组合，不替代真实Pi并发、Reload或资源泄漏验证。下一步运行全量回归与差异检查。
   - 5.10 第一组自动证据收口（2026-08-18）：全量`npm run check`通过严格TypeScript与`185/185`测试，仓库根`git diff --check`通过；最终差异确认本轮只在现有Shell Gate测试中加入生产Store导入、受控确认Promise和两条用例，未修改生产策略或依赖，其他Widget/状态改动属于此前未提交学习成果并保持不变。该组实现完成但5.10总项不勾选；连续Reload、Session切换、正常退出及TUI/Print最终矩阵仍需真实Pi证据。下一步冻结真实Pi连续Reload与Session切换实验卡。
-  - 5.10 真实Pi连续Reload实验卡已准备（2026-08-18）：固定同一Pi TUI进程、项目自动发现Extension、私有脱敏生命周期追踪、`--no-session`、关闭上下文/Skill/Prompt/Theme与Model Tool且不发送普通Prompt；当前用户截图实际运行版本为Pi`0.84.2`，因此后续结论按该版本记录。唯一推进变量是完成的Reload轮次。序列为初始`blocked=0`，每轮只执行一次固定未知用户Shell使计数依次到`1/2/3`，中间连续执行两次`/reload`，最后正常`/quit`。通过标准是全程只有一个Widget、每个拒绝只加`1`、Reload后保留前值，退出后追踪中恰有三次factory、`startup/reload/reload`三次start、`reload/reload/quit`三次shutdown，并且每次用户Shell只有一个门禁决定；它能证明本次真实TUI中的旧实例关闭、新实例重建、当前内存Branch恢复和未观察到重复派发，不能证明任意内存/文件描述符均无泄漏、崩溃恢复、磁盘Session持久化或JSON/RPC兼容。启动基线和第一次未知用户Shell已由用户执行并通过，下一步执行第一次`/reload`。
+  - 5.10 真实 Pi 连续 Reload 历史初始合同（2026-08-18）：固定同一 Pi TUI 进程、项目自动发现 Extension、私有脱敏生命周期追踪、`--no-session`、关闭上下文/Skill/Prompt/Theme 与 Model Tool 且不发送普通 Prompt；用户截图实际运行版本为 Pi `0.84.2`，因此结论按该版本记录。最初计划以完成的 Reload 轮次为唯一推进变量：初始 `blocked=0`，执行三次固定未知用户 Shell 使计数依次到 `1/2/3`，中间连续执行两次 `/reload`，最后正常 `/quit`。初始通过标准是全程只有一个 Widget、每个拒绝只加 `1`、Reload 后保留前值，退出后追踪中恰有三次 factory、`startup/reload/reload` 三次 start、`reload/reload/quit` 三次 shutdown，并且三次用户 Shell 各只有一个门禁决定。该初始合同原本只能证明本次真实 TUI 中的旧实例关闭、新实例重建、当前内存 Branch 恢复和未观察到重复派发，不能证明任意内存/文件描述符均无泄漏、崩溃恢复、磁盘 Session 持久化或 JSON/RPC 兼容；最终 Green 实际缩减为两次未知用户 Shell，第三次没有执行，见后续生命周期子实验记录。
   - 5.10 第一次未知用户Shell拒绝已验证（2026-08-19）：用户在真实Pi`0.84.2` TUI中输入固定未知命令，界面显示替代结果`PI_STUDY_SHELL_BLOCKED`与`exit 126`，Widget从`blocked=0 | last=none`更新为单一状态牌`blocked=1 | last=user_bash/other/deny/policy_denied`。该证据证明本次用户Shell入口走Extension门禁拒绝分支并更新状态；不单独证明OS层绝无执行、追踪文件中恰有一条记录或其他入口行为。下一步第一次`/reload`后只观察状态恢复，不重复执行Shell。
   - 5.10 第一次真实Pi Reload已验证（2026-08-19）：用户在同一Pi`0.84.2` TUI中执行`/reload`，界面显示`Reloaded keybindings, extensions, skills, prompts, themes, and context files`；Reload后仍显示单一Widget，状态保持`blocked=1 | last=user_bash/other/deny/policy_denied`。该证据证明本次Reload后的新Runtime恢复了当前状态牌，且未观察到重复Widget；不单独证明旧Handler无重复注册、生命周期追踪计数完整或所有旧资源均已释放。下一步第二次固定未知用户Shell。
   - 5.10 第二次未知用户Shell与累计行为已验证（2026-08-19）：用户在第一次Reload后的同一Pi`0.84.2` TUI再次输入固定未知命令，得到第二次`PI_STUDY_SHELL_BLOCKED`与`exit 126`；Widget从`blocked=1`只增加到`blocked=2`，仍为单一状态牌，最近决策保持`user_bash/other/deny/policy_denied`。该证据证明在本次Reload后当前用户Shell只产生一次门禁拒绝并按最新快照累计，没有观察到重复Handler导致的`blocked=3`；仍需第二次Reload和退出后的追踪日志核对。
@@ -1033,7 +1033,7 @@
   - 5.10 修正追踪路径后的第一次Reload已验证（2026-08-19）：用户在新的真实Pi`0.84.2`进程执行第一次`/reload`，看到资源重载提示；Reload后仍只有一个Widget，状态恢复为`blocked=1 | last=user_bash/other/deny/policy_denied`。该证据证明修正条件下新Runtime恢复当前内存Branch状态；追踪事件计数仍待退出后核对。下一步第二次未知用户Shell。
   - 5.10 修正追踪路径后的第二次未知Shell已验证（2026-08-19）：用户在第一次Reload后的同一Pi`0.84.2` TUI再次输入固定未知命令，得到第二次`PI_STUDY_SHELL_BLOCKED`与`exit 126`；Widget从`blocked=1`只增加到`blocked=2`，未出现`blocked=3`或重复Widget。该证据证明修正条件下第二次请求仍按一次门禁决定累计；追踪事件计数仍待退出后核对。下一步第二次`/reload`。
   - 5.10 修正追踪路径后的第二次Reload已验证（2026-08-19）：用户在同一Pi`0.84.2` TUI执行第二次`/reload`，再次看到资源重载提示；Reload后仍只有一个Widget，状态保持`blocked=2 | last=user_bash/other/deny/policy_denied`。修正条件下TUI序列闭合为`0 -> 1 -> reload -> 2 -> reload -> 2`，尚需正常退出和新追踪文件计数核对。
-  - 5.10 连续Reload生命周期子实验已通过（2026-08-19）：修正为`mktemp -d`系统临时目录后，用户完成真实Pi`0.84.2`启动、两次未知用户Shell拒绝、连续两次`/reload`和`/quit`；TUI状态序列为`0 -> 1 -> reload -> 2 -> reload -> 2`，始终只有一个Widget。退出后用户运行脱敏`awk`得到`factory=3 startup=1 reload_start=2 reload_shutdown=2 quit_shutdown=1 denied=2`。该联合证据证明本次版本的旧Runtime按Reload关闭、新工厂和新`session_start`各执行一次，当前状态在两次Reload后延续，用户拒绝没有重复派发；不证明任意资源均无泄漏、崩溃恢复、磁盘Session持久化、其他客户端模式或所有Session切换操作。此前`/tmp`路径实验作为装配Red保留，不与本次Green混淆。下一步设计Session切换实验卡。
+  - 5.10 连续 Reload 生命周期子实验已通过（2026-08-19）：修正为 `mktemp -d` 系统临时目录后，用户完成真实 Pi `0.84.2` 启动、两次未知用户 Shell 拒绝、连续两次 `/reload` 和 `/quit`；实际执行序列从历史初始合同的三次请求缩减为 `0 -> 1 -> reload -> 2 -> reload -> 2`，第二次 Reload 后没有再执行第三次 Shell，始终只有一个 Widget。退出后用户运行脱敏 `awk` 得到 `factory=3 startup=1 reload_start=2 reload_shutdown=2 quit_shutdown=1 denied=2`。该联合证据证明本次版本的旧 Runtime 按 Reload 关闭、新工厂和新 `session_start` 各执行一次，当前状态在两次 Reload 后延续，已执行的两次用户拒绝均未观察到重复派发；它没有动态证明“第二次 Reload 后的下一次拒绝仍只派发一次”，也不证明任意资源均无泄漏、崩溃恢复、磁盘 Session 持久化、其他客户端模式或所有 Session 切换操作。此前 `/tmp` 路径实验作为装配 Red 保留，不与本次 Green 混淆。
   - 5.10 New Session隔离实验卡已冻结并通过（2026-08-19）：本组固定Pi`0.84.2`、新的系统临时Session目录、同一Extension、无Model Tool和一份脱敏生命周期追踪；唯一变量是执行一次`/new`。用户实测序列为启动`blocked=0`、第一次拒绝`blocked=1`、`/new`显示`New session started`并重置为`blocked=0 | last=none`、第二次拒绝再次为`blocked=1`、最后正常退出；脱敏追踪为`factory=2 startup=1 new_start=1 new_shutdown=1 quit_shutdown=1 denied=2`。该证据证明本次真实Pi New的旧Runtime关闭、新Runtime建立、新Context绑定和内存/Session隔离；不证明Fork、Resume、Tree、跨进程恢复或任意资源无泄漏。下一步设计`/tree`同Runtime分支切换实验。
   - 5.10 `/tree` 同Runtime分支切换实验卡待执行（2026-08-19）：固定同一Pi`0.84.2`进程、同一Extension、持久Session目录、无Model Tool和一份脱敏追踪；唯一变量是在已有状态节点后执行一次`/tree`切换到另一条已准备的Branch。预期不出现新的`factory`或`session_start`，只出现`session_tree`并让当前Widget按目标Branch重放；旧Branch状态与目标Branch状态必须形成可观察差异，切换后不得串入旧计数，且退出只出现一次`session_shutdown reason=quit`。该实验只证明当前版本的同Runtime Branch切换与Extension状态重放，不证明磁盘事务、Fork/Resume或任意Tree UI选择器行为；开始前先建立两条无敏感内容的分支状态材料。
   - 5.10 `/tree` 首次目标Branch重放已验证（2026-08-19）：用户在同一真实Pi`0.84.2`进程先连续执行两条未知用户Shell，Widget到达`blocked=2 | last=user_bash/other/deny/policy_denied`；随后打开`/tree`，选择器真实显示`PI_STUDY_TREE_DENY_A`与`A2`两个`[bash]`节点，从`(2/2)`上移选中第一条`(1/2)`，并在`Summarize branch?`中保持`No summary`。返回主界面后出现`Navigated to selected point`，单一Widget恢复为`blocked=1`且最近决策仍对应第一条deny。该`2 -> 1`直接证明本次`session_tree`按选中Branch重放Extension状态，没有沿用切换前的内存`2`；当前还未用追踪排除新factory/start，也未建立状态不同的兄弟叶节点。下一步在当前共同点执行一次固定SAFE用户Shell，形成`blocked=1 + safe/allow`的新路线B，再与旧路线A2双向切换对照。
@@ -1073,6 +1073,11 @@
 统一实验边界：使用课程自建材料、隔离 `PI_CODING_AGENT_DIR`、临时目录和本机回环地址；默认不安装真实第三方 Package、不访问外部模型服务、不读取现有认证文件、不产生模型费用。真实安装、登录、Provider 调用、发布或推送必须另行确认。
 
 - [ ] 6.1 掌握 npm、Git、本地路径三种 Package 来源及其固定版本策略。
+  - 6.1 启动检查点（2026-08-19）：已从唯一计划断点恢复，核对本机 Pi CLI 与 npm 包均为 `0.84.2`，并完整读取该版本随包 `docs/packages.md`；该时点只进入系统地图，尚未安装、编写或运行任何 Package。
+  - 系统地图检查点（2026-08-20）：已用同一 Package 从 A 演进到 B 的完整场景讲清 Source、解析、加载、更新和固定的关系；用户已自然确认理解 Git 分支是可移动指针、Git Commit 是固定快照。稳定结论已写入 `docs/learning/07-packages-models-providers.md`；该检查点未执行三类来源动态 A/B，因此不能作为实验验收证据。
+  - 本地路径实验实现历史检查点（2026-08-20）：用户已明确确认准备实验；当时冻结同一绝对路径、隔离配置、无 Session/Model/外网，仅将 Package 标记从 A 原地切到 B 的单变量合同，并开始新增课程自有无依赖 fixture 和确定性测试。自动验证只作为实现证据，不能替代用户亲自运行真实 Pi；后续 Green 见下一条记录。
+  - 本地路径实验实现 Green、用户实验待执行（2026-08-20）：`labs/6.1-package-sources/` 已加入无依赖 Package、受限 A/B 切换器、实验卡和真实 Pi CLI 测试；自动测试通过 CLI `-e` 传入同一临时绝对路径，分别启动新 Pi 进程取得 A-only -> B-only，`1/1` 通过，三份 JavaScript `node --check`、仓库 `git diff --check` 通过，仓库 fixture 仍为 A。该证据只覆盖 CLI `-e` 本地绝对路径的实验实现，不动态覆盖用户 Settings、项目 Settings、相对路径或同进程热重载，也不替代用户亲自观察。下一步用户运行隔离 A 基线。
+  - 文档整理已验证（2026-08-20）：仅整理计划、学习索引、06/07 正文和 6.1 实验 README；`git diff --check`、Markdown 围栏/标题/表格/相对链接与页内锚点检查、33/33 Mermaid 本地渲染、动态状态与关键证据 `rg` 检查、Git 状态及四个既有实验文件 SHA-256 复核均通过，阻塞：无。6.1 仍进行中；用户本地 A/B、Git A/B、npm A/B、用户/项目 Settings 本地路径和同进程热重载仍未验证。下一步用户运行隔离 A 基线。
   - 核心内容：比较三类 Source 的身份判定、全局/项目位置、临时 `-e` 和更新语义；npm 固定精确版本，Git 比较分支、Tag 与 Commit，本地路径记录 Git Commit、文件清单和 SHA-256。
   - 贯穿实验：用同一课程自建包构造 local、localhost npm fixture 和本机 Git fixture，准备 A/B 两版，对比未固定与固定来源在更新后的实际解析结果，全程禁止外网。
   - 验收与边界：记录 Source、解析位置、版本/Commit、内容哈希和 A/B 结果，并能为个人调试、团队复现和正式分发选择策略。Tag 可被重指向，本地路径内容可原地变化，文档规则不能替代运行证据。
@@ -1180,15 +1185,15 @@
 
 ### 当前断点
 
-- 状态：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4和阶段 5已完成；阶段6尚未开始。
-- 已完成：0.1、0.2、0.2.1、0.2.2、0.2.3、0.2.4、0.2.5、0.2.6、0.2.7、0.2.8、0.3、0.4、0.5、1.1、1.2、1.3、1.4、1.5、1.6、1.7、2.1、2.2、2.3、2.4、2.5、2.6、2.7、3.1、3.2、3.3、3.4、3.5、3.6、3.7、4.1、4.2、4.3、4.4、4.5、4.6、4.7、5.1、5.2、5.3、5.4、5.5、5.6、5.7、5.8、5.9、5.10；模型能力按课程约定视为完整接入，学习费用不设上限；Pi CLI、`fd`、凭据权限、`openai/gpt-5.6-sol` 首次响应、Session 保存、退出状态、安全边界、交互式基础、内置 Tool 行为、Model/Thinking 切换、Footer 上下文用量、Shell 三路径、取消与自动重试、Steering 与 Follow-up 队列边界、Interactive/Print/JSON 三种模式、完整任务闭环、配置合并与 CLI 临时覆盖、项目规则与普通上下文文件的加载边界、最小 `AGENTS.md` 的正反加载对照、2.4 的 Retry、Network、Images、Shell 和 Model 轮换策略、2.5 Project Trust 的完整决策链、2.6 Keybindings、`/reload` 与外部编辑器选择链、2.7 配置优先级故障排查、3.1 Session 生命周期与边界、3.2 Tree/Fork/Clone 的消息与文件边界、3.3 Session JSONL 的结构与上下文边界、3.4 Token 与上下文窗口的关系、3.5 手动 Compaction 的上下文与持久化边界、3.6 Branch Summary 的触发、上下文和持久化边界、3.7 长任务断点恢复、4.1 四类资源选型、4.2 结构化 Prompt Template、4.3 Skill 加载机制、4.4 只读 Java Skill 正反触发、4.5 Skill 指令注入/脚本执行/外部依赖风险、4.6 最小自定义 Theme、4.7 无重启资源调试、5.1 Extension 开发环境、5.2 Extension 生命周期、5.3 Extension Context/模式/取消/错误处理、5.4 自定义只读 Tool、5.5 Extension Slash Command、5.6 双入口危险 Shell 审批门禁、5.7 Extension Entry Branch状态保存与恢复、5.8最小 Widget、5.9 Extension测试策略与手工验收收口和5.10资源释放、热重载、Session切换、并发与模式兼容风险审查均已验证。
+- 状态：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4 和阶段 5 已完成；阶段 6 的 6.1 进行中。
+- 已完成：阶段 0-5；详细验收证据见上方各计划项和“阶段验收记录”，当前只继续 6.1。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”的连续讲解模式；新主题先用有起点、过程和终点的完整大白话场景解释陌生对象，再映射术语并直接进入受控实验，不再逐知识点提问或要求反复复述；用户可随时打断。用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收；无问答时不把教学覆盖扩大为独立背诵证据。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
-- 计划强化：阶段 5-6 已扩展为两个贯穿项目、逐项受控实验、分层证据和独立阶段门禁；5.1-5.10 已完成，6.1-6.8尚未开始。
+- 计划强化：阶段 5-6 已扩展为两个贯穿项目、逐项受控实验、分层证据和独立阶段门禁；5.1-5.10 已完成，6.1 正在学习，6.2-6.8 尚未开始。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无。
-- 下一步：进入6.1系统地图，比较npm、Git、本地路径三种Package来源及其固定版本策略；先讲清来源身份、解析位置、更新语义和适用场景，不立即安装或编写Package。
+- 下一步：用户运行 6.1 本地路径实验的 A 基线，在隔离配置、无 Session/Model/外网条件下确认同一课程 Package 路径只显示 `PI_STUDY_PACKAGE_A`；通过后再原地切换到 B。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录

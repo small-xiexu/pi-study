@@ -77,6 +77,14 @@ Extension 按职责可以覆盖九类能力：
 
 `on`、`registerTool`、`registerCommand`、`registerFlag` 等注册方法在工厂加载期间可用，调用后立即写入当前 Extension 记录。部分发送消息等运行时 Action 此时尚未绑定，因此真实 API 对象不代表整个 Pi Runtime 已经全部可用。
 
+## 阅读导航
+
+本文兼顾机制说明与历史实验记录。初次阅读建议按知识依赖顺序查阅：
+
+1. 基础链路：[加载、初始化、注册与运行时派发](#加载初始化注册与运行时派发) -> [四类加载来源](#四类加载来源与实验探针) -> [Project Trust、顺序、去重与重载](#project-trust顺序去重与重载) -> [TypeScript 加载与类型检查](#typescript-直接加载与独立类型检查) -> [依赖判断](#51-的四条依赖判断)。
+2. 运行时能力：[Context 与安全门禁](#完整场景安全门禁为什么需要运行现场) -> [Command、Tool 与 Handler](#commandtool-与事件-handler) -> [Shell Gate](#危险-shell-命令审批同一套保安规则两扇不同的门) -> [Branch Store](#状态属于哪条-session-branch) -> [Widget](#widget-是通用的-extension-ui-能力)。
+3. 验证边界：[实验材料与证据边界](#实验材料与证据边界) 汇总自动测试、真实 Pi 与用户观察各自能证明的范围；详细动态验收仍只见计划台账。
+
 ## 完整场景：安全门禁为什么需要运行现场
 
 假设用户让 Pi 在一个 Java 项目里“清理构建目录并重新运行测试”。Model 决定调用内置 `bash` Tool，准备先删除 `target/`，再启动测试。安全 Extension 的价值不是替 Model 执行命令，而是在 Executor 真正运行前，根据当前现场决定允许、询问还是拒绝，并让取消和失败都有明确结果。
@@ -101,11 +109,11 @@ Extension 按职责可以覆盖九类能力：
 
 因此，“收到取消后停止 Maven”不是 Pi 自带的 Maven 功能，而是用户 Extension 利用 Pi 官方接口实现的具体能力。如果 Extension 忽略信号，或者 Maven 不是由它启动和控制的，收到信号并不会自动停止 Maven。终止直接子进程也不能扩大为所有后代进程一定退出，更不会回滚 Maven 已经写入的文件、数据库或其他外部副作用。
 
-当前学习项目中的 `pi-study-guard` 是用户自定义 Extension。它注册 Flag、诊断 Command、生命周期 Handler，以及一个默认关闭、只用于取消实验的 `tool_call` Handler；它没有注册 Maven Tool，也没有启动或停止 Maven。这里的 Maven 只是解释协作式取消用途的完整场景。
+当前学习项目中的 `pi-study-guard` 是用户自定义 Extension。它注册 Flag、诊断 Command、生命周期 Handler、只读 `pi_study_inspect` Tool，以及一个默认关闭、只用于取消实验的 `tool_call` Handler；它没有注册 Maven Tool，也没有启动或停止 Maven。这里的 Maven 只是解释协作式取消用途的完整场景。
 
 课程中的第一步取消实验也不直接运行 Maven。它先用一个本地延迟函数模拟长任务：A 组手动驱动受控 Timer 到期，观察 `start -> completed`；B 组在工作已经开始、Timer 与 Abort listener 已登记后触发测试信号，观察 `start -> cancelled`。测试还直接确认 Timer 和 listener 均被清理，并在取消结束后强制执行捕获的旧回调，验证不会迟到补记 `completed`；同步完成、同步取消和 `undefined` Timer handle 也有独立回归。
 
-同一延迟函数随后被接入一个默认关闭的 `tool_call` Handler，供真实 Pi 取消实验复用。它只拦截实验指定的内置 `read` 请求，等待期间响应当前 Run 的 `ctx.signal`；无论取消、超时还是异常都阻止 Tool 执行。它没有注册自定义 Tool，也不会启动 Maven。
+同一延迟函数随后被接入一个默认关闭的 `tool_call` Handler，供真实 Pi 取消实验复用。该取消探针只拦截实验指定的内置 `read` 请求，等待期间响应当前 Run 的 `ctx.signal`；无论取消、超时还是异常都阻止 Tool 执行。取消探针自身不注册自定义 Tool，也不会启动 Maven；主 Extension 另行注册的 `pi_study_inspect` 不属于这条取消链。
 
 Fake 对照仍只证明“这一个本地延迟函数能协作处理测试传入的 `AbortSignal`”，不是“真实 Extension 已收到 Pi 的信号”。接入 Handler 的代码存在，也不等于真实 Pi 已经派发 Tool Call；必须由真实 Model 产生请求、用户看到等待标记后按 `Esc`，再结合 `start -> cancelled` 追踪与 Pi 的错误结果验收。即使这条真实链通过，也不证明 Tool Executor 的显式 signal、`pi.exec`、Maven 进程终止或副作用回滚。
 
@@ -180,7 +188,7 @@ flowchart TD
     C -->|"是：Tool Result 进入后续上下文"| B
 ```
 
-后续课程会反复使用这条分工：5.4 的只读 Tool 把实际统计放进 Executor；5.6 的 Shell 审批把单次调用决策放进 Gate；5.7 的 Session 状态恢复使用 Observer 一类生命周期 Handler。错误传播和副作用恢复始终是两件事：Git 只可能恢复受版本控制的文件状态，数据库和外部请求需要事务、幂等、补偿或备份。
+本章沿用这条分工：只读 Tool 把实际统计放进 Executor；Shell 审批把单次调用决策放进 Gate；Session 状态恢复使用 Observer 一类生命周期 Handler。错误传播和副作用恢复始终是两件事：Git 只可能恢复受版本控制的文件状态，数据库和外部请求需要事务、幂等、补偿或备份。
 
 本次真实 `observer` 实验在同一个界面里展示了三个不同层次：红色的 `PI_STUDY_ERROR_OBSERVER_5301` 是普通观察 Handler 的异常；绿色 Tool 区域里的 `PI_STUDY_ERROR_PROBE_OK` 是课程 Executor 返回的固定成功标记；最后“工具已调用一次并返回……”是 Model 读到该 Tool Result 后生成的自然语言总结。固定标记只证明这个纯内存实验 Executor 已经运行并成功返回，不代表它检查了真实文件或完成了业务任务；Model 的总结也不是第二次 Tool 执行。
 
@@ -276,11 +284,11 @@ Executor 收到取消通知后，即使已经主动停止读取、清理资源�
 
 底层文件读取若支持 `signal`，可能在取消时自己抛出取消异常。Executor 应在完成必要清理后让该异常继续向上传播；如果把它捕获并改成正常返回“已取消”，Pi 仍会得到 `isError=false`。
 
-后续不会要求一次记住阶段 5 的全部细节。5.4 完成时会用本次 Markdown 检查复述一遍完整 Tool 链；5.10 会沿同一场景综合复习加载、生命周期、Context、Observer、Gate、Executor、取消、错误、模式和资源释放；阶段 5 总门禁与最终综合项目还会再次要求脱离答案解释并演示整条链。
+本文用同一个 Markdown 检查场景贯通完整 Tool 链，并在资源所有权、并发与模式章节综合加载、生命周期、Context、Observer、Gate、Executor、取消、错误和资源释放；阶段验收过程只保留在计划台账。
 
-#### `pi_study_inspect` 的首版实现合同
+#### `pi_study_inspect` 的实现合同
 
-系统地图确认后，首版候选实现已落在 [inspect-tool.ts](../../.pi/extensions/pi-study-guard/inspect-tool.ts)、[inspect-path.ts](../../.pi/extensions/pi-study-guard/inspect-path.ts) 和 [markdown-inspection.ts](../../.pi/extensions/pi-study-guard/markdown-inspection.ts)。三个模块分别负责 Pi Tool 合同、真实文件安全和纯 Markdown 统计，避免把 Schema、文件系统与展示逻辑混成一个函数。
+已验证实现位于 [inspect-tool.ts](../../.pi/extensions/pi-study-guard/inspect-tool.ts)、[inspect-path.ts](../../.pi/extensions/pi-study-guard/inspect-path.ts) 和 [markdown-inspection.ts](../../.pi/extensions/pi-study-guard/markdown-inspection.ts)。三个模块分别负责 Pi Tool 合同、真实文件安全和纯 Markdown 统计，避免把 Schema、文件系统与展示逻辑混成一个函数。
 
 | 层次 | 当前合同 | 仍不能证明 |
 |---|---|---|
@@ -294,7 +302,7 @@ Executor 收到取消通知后，即使已经主动停止读取、清理资源�
 
 这里特意同时保留 Schema 与 Executor 的重复约束：Schema 让错误参数尽量在开工前失败，Executor 则对真实文件对象负责。即使未来没有额外 Gate，Executor 也不能把路径安全托付给 Model 或 Schema。
 
-#### 当前证据到哪一层
+#### 证据分层
 
 | 证据 | 已直接证明 | 没有证明 |
 |---|---|---|
@@ -767,9 +775,9 @@ flowchart LR
 | `--no-session` | 使用进程内 SessionManager | 同进程内 Entry、Tree 和 Reload仍有效；退出后没有 JSONL，不能跨进程恢复 |
 | `session_shutdown` | 实例即将失效或进程退出 | 只做幂等清理，不补写状态；每次真实 Gate 决策发生时就应立即保存 |
 
-`appendEntry()` 的公开返回值是 `void`，不能依赖它提供 Entry ID。它会先把 Custom Entry 加入 SessionManager 的内存树并推进 leaf，但不保证调用返回时已经写入磁盘。Pi `0.84.1` 的新 Session 在尚无 Assistant 消息时可能延迟创建和刷新 JSONL；真实持久化实验必须先建立一条无敏感内容的 Assistant 消息，或明确区分“内存树已有 Entry”和“磁盘已有 Session 文件”。如果后续磁盘写入抛错，内存树也可能已经推进，所以 `appendEntry()` 不是数据库事务；首版只能做到调用异常时不发布候选状态并让 Gate 默认拒绝，不能宣称 Entry 已原子回滚，重试也可能形成重复节点。更深入的一致性与恢复策略留到 5.10。单纯 `/tree` 移动 leaf也不会单独保存 leaf 指针；若要验证重启后仍停在新路线，应在该路线追加一个受控状态节点后再退出。
+`appendEntry()` 的公开返回值是 `void`，不能依赖它提供 Entry ID。它会先把 Custom Entry 加入 SessionManager 的内存树并推进 leaf，但不保证调用返回时已经写入磁盘。Pi `0.84.1` 的新 Session 在尚无 Assistant 消息时可能延迟创建和刷新 JSONL；真实持久化实验必须先建立一条无敏感内容的 Assistant 消息，或明确区分“内存树已有 Entry”和“磁盘已有 Session 文件”。如果后续磁盘写入抛错，内存树也可能已经推进，所以 `appendEntry()` 不是数据库事务；首版只能做到调用异常时不发布候选状态并让 Gate 默认拒绝，不能宣称 Entry 已原子回滚，重试也可能形成重复节点。更深入的一致性与恢复结论见“资源所有权、并发与模式收口”，仍受该节证据边界限制。单纯 `/tree` 移动 leaf 也不会单独保存 leaf 指针；若要验证重启后仍停在新路线，应在该路线追加一个受控状态节点后再退出。
 
-### 当前候选实现
+### 已验证实现
 
 当前主工厂已经创建一个共享的 [`shell-state.ts`](../../.pi/extensions/pi-study-guard/shell-state.ts) Store，并按“生命周期观察 -> 状态恢复 -> 取消探针 -> Shell Gate”的顺序接线。状态生命周期只监听 `session_start/session_tree/session_shutdown`，不会改变已有 `tool_call` 的“先追踪、再取消、最后门禁”顺序。Model 与用户 Shell 入口都在得出最终脱敏决定后向同一个 Store 提交完整快照。状态尚未 ready 时会在分类和确认前直接形成 `state_error` 拒绝；首次 MARKER 已经完成确认后才可能遇到提交失败，此时仍不启动 Executor并改为 `state_error`，后续请求在再次恢复前也不再弹确认。
 
@@ -968,7 +976,7 @@ D 组的完整脱敏事件日志如下：
 
 第一 Turn 中，Model 先产生 `read` Tool Call；Pi 在调用内置 `read` Executor 前后派发 `tool_call` 与 `tool_result` Handler，随后把 Tool Result 加入消息上下文。第二 Turn 中，Model 根据这个结果生成最终回答，因此“一个普通 Prompt”不等于“只有一个 Turn”。一次 Turn 也可能包含多个 Tool Call，不能把本次两个 Turn 当成全局固定数量。
 
-这里的 Tool 由 Pi 放进可用工具集合并提供给 Model；Model 只负责选择 Tool 和给出参数。Tool Executor 才负责真正读取文件或执行操作。当前 `pi-study-guard` 没有自定义 Tool，D 组调用的是 Pi 内置 `read`，实验 Extension 只通过 `tool_call` 和 `tool_result` Handler 观察其前后时刻。
+这里的 Tool 由 Pi 放进可用工具集合并提供给 Model；Model 只负责选择 Tool 和给出参数。Tool Executor 才负责真正读取文件或执行操作。D 组采证时的历史版本尚未注册自定义 Tool，因此该组调用的是 Pi 内置 `read`，实验 Extension 只通过 `tool_call` 和 `tool_result` Handler 观察其前后时刻；当前主 Extension 已另行注册 `pi_study_inspect`。
 
 `agent_end` 表示当前这一次底层 Agent Run 已结束；如果 Pi 还要自动重试、压缩后重试或处理 Follow-up，之后仍可能开始新的 Run。`agent_settled` 表示这些自动后续工作也已结束，当前上层任务已经稳定空闲。两者都不等于 Session 已关闭；本次直到 `/quit` 后才出现 `session_shutdown reason=quit`。
 
@@ -1010,7 +1018,7 @@ D 组的完整脱敏事件日志如下：
 
 相对路径从 `<lab>/project/.pi/settings.json` 所在目录解析，所以最终指向 `<lab>/project/project-settings.ts`。文件不在自动发现目录中；删除 Settings 引用后，Pi 不会仅凭文件名找到它。
 
-`--no-extensions` 关闭常规 Extension 发现，但显式 `-e` 仍可加载指定文件。Package 不是这四类本地文件入口，留到阶段 6。
+`--no-extensions` 关闭常规 Extension 发现，但显式 `-e` 仍可加载指定文件。Package 不属于这四类本地文件入口，其 Source 与作用域见 [Packages、Models 与 Providers](07-packages-models-providers.md)。
 
 ## Project Trust、顺序、去重与重载
 
@@ -1085,10 +1093,10 @@ flowchart LR
 |---|---|
 | 运行时第三方库放 `dependencies` | `ms` 提供 Node 实际执行的代码；只放开发依赖可能在生产安装后缺失 |
 | 开发工具和类型声明放 `devDependencies` | TypeScript、测试工具和 `@types/ms` 服务于开发检查；类型声明不能代替真实运行代码 |
-| Pi 核心包由宿主提供 | Extension 运行时的真实 `ExtensionAPI` 对象由 Pi 传入；具体 `peerDependencies` 发布配置留到阶段 6 |
+| Pi 核心包由宿主提供 | Extension 运行时的真实 `ExtensionAPI` 对象由 Pi 传入；具体 `peerDependencies` 发布配置不在本节展开 |
 | 锁文件固定完整解析结果 | `package-lock.json` 记录直接与传递依赖的解析树；`node_modules` 才是当前机器供 Node 加载的代码 |
 
-锁文件只有在安装流程实际使用且与 `package.json` 一致时才帮助复现，也不能证明依赖安全、类型正确或行为正确。`npm ci`、完整性字段、上游 shrinkwrap、多版本树和 Maven 依赖调解等审计细节不属于 5.1 的教学主线；本次实验的具体审计证据保留在计划台账，Package 发布语义留到阶段 6。
+锁文件只有在安装流程实际使用且与 `package.json` 一致时才帮助复现，也不能证明依赖安全、类型正确或行为正确。`npm ci`、完整性字段、上游 shrinkwrap、多版本树和 Maven 依赖调解等审计细节不属于 5.1 的教学主线；本次实验的具体审计证据保留在计划台账，Package 发布语义不在本节展开。
 
 ## 实验材料与证据边界
 
@@ -1136,8 +1144,8 @@ flowchart LR
 
 当前材料包含受控 Flag、课程诊断、纯内存错误探针、临时 marker，以及只读统计 `docs/learning/` 顶层 Markdown 的首个业务 Tool。主 Tool 不写文件、不执行 Shell、不跟随 Markdown 链接、不主动联网；这仍不是 OS 沙箱。所有动态状态、当前断点与下一步均链接计划，不在本文件重复维护。
 
-## 后续学习方向
+## 相关主题与扩展边界
 
-Agent Run、Turn 和停止条件见 [架构与 Model 上下文](01-architecture-and-context.md)。生命周期、自定义 Tool、直接 Command、Shell 双入口门禁、Branch 状态恢复、最小 Widget，以及资源、并发和模式边界已经在本章建立；后续按计划进入 Package 与自定义集成，不把本地课程 Guard 的结论扩大成通用沙箱保证。
+Agent Run、Turn 和停止条件见 [架构与 Model 上下文](01-architecture-and-context.md)，Package 与自定义集成见 [Packages、Models 与 Providers](07-packages-models-providers.md)。生命周期、自定义 Tool、直接 Command、Shell 双入口门禁、Branch 状态恢复、最小 Widget，以及资源、并发和模式边界由本章说明；本地课程 Guard 的结论不能扩大成通用沙箱保证。
 
 Pi 不内置 MCP 和 Subagent：MCP 通过 Extension 或 Package 接入；Subagent 通过 Extension、Package、独立 Pi 进程或 tmux 实现。它们会增加网络与凭据边界、模型费用、上下文复杂度和并发写入冲突，应在掌握 Tool、Session、Extension 和 Package 后按真实需求引入。

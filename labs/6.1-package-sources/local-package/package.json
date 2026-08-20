@@ -1,0 +1,11 @@
+{
+  "name": "@pi-study/package-source-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "pi": {
+    "extensions": [
+      "./extensions/source-marker.js"
+    ]
+  }
+}

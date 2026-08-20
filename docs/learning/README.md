@@ -4,7 +4,7 @@
 
 学习进度、验收结论和下一步只以 [完整学习计划](../plans/pi-complete-learning-plan.md) 为准；主题文档不重复维护完成状态。
 
-本目录也是未来学习网站的唯一内容源。当前先完成 Pi 学习和本地实验，阶段 8 验收后再建设网站，不维护另一套网页专用笔记。
+本目录也是未来学习网站的唯一内容源，不维护另一套网页专用笔记。
 
 ## 当前主题文档
 
@@ -16,13 +16,13 @@
 | [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
 | [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
-| [06-extensions.md](06-extensions.md) | Pi `0.84.1` Extension 的加载、生命周期与 Context、只读 Tool、Slash Command、双入口 Shell 门禁、Branch 状态恢复、通用 Widget 及安全边界 |
+| [06-extensions.md](06-extensions.md) | 默认基于 Pi `0.84.1` 的 Extension 加载、生命周期、Context、Tool、Command、Shell 门禁、Branch 状态与 Widget；5.10 真实动态矩阵使用 Pi `0.84.2` |
+| [07-packages-models-providers.md](07-packages-models-providers.md) | Pi `0.84.2` Package 的来源、身份、作用域与 Git 分支/Tag/Commit 固定边界，以及 CLI `-e` 本地路径的实验证据范围 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 
 | 预留文档 | 对应主题 |
 |---|---|
-| `07-packages-models-providers.md` | Packages、Models 与 Providers |
 | `08-sdk-rpc-json-tui.md` | SDK、RPC、JSON 与 TUI |
 | `09-source-and-capstone.md` | 源码阅读与毕业综合项目 |
 
@@ -32,7 +32,7 @@
 
 ## 阅读顺序
 
-推荐顺序：`00（首次环境搭建时按需） -> 01 -> 02 -> 03 -> 04 -> 05 -> 06`。
+推荐顺序：`00（首次环境搭建时按需） -> 01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07`。
 
 每次继续学习前，先从完整学习计划的“当前断点”恢复进度；主题文档用于按上述顺序学习或查阅，不承担进度恢复。
 
