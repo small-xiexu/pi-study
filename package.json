@@ -1,0 +1,63 @@
+{
+  "name": "pi-study-workbench",
+  "version": "0.1.0",
+  "description": "A local Pi Package containing the verified pi-study Extension, Skill, Prompt Template, and Theme.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "keywords": [
+    "pi-package"
+  ],
+  "files": [
+    ".pi/extensions/pi-study-guard/index.ts",
+    ".pi/extensions/pi-study-guard/cancel-probe.ts",
+    ".pi/extensions/pi-study-guard/inspect-command.ts",
+    ".pi/extensions/pi-study-guard/inspect-path.ts",
+    ".pi/extensions/pi-study-guard/inspect-service.ts",
+    ".pi/extensions/pi-study-guard/inspect-tool.ts",
+    ".pi/extensions/pi-study-guard/lifecycle-trace.ts",
+    ".pi/extensions/pi-study-guard/markdown-inspection.ts",
+    ".pi/extensions/pi-study-guard/shell-gate.ts",
+    ".pi/extensions/pi-study-guard/shell-policy.ts",
+    ".pi/extensions/pi-study-guard/shell-state.ts",
+    ".pi/extensions/pi-study-guard/shell-widget.ts",
+    ".pi/extensions/pi-study-guard/fixtures/cancellation/cooperative-delay.ts",
+    ".agents/skills/java-readonly-analysis/SKILL.md",
+    ".agents/skills/java-readonly-analysis/references/java-review-checklist.md",
+    ".pi/prompts/java-review.md",
+    ".pi/themes/pi-study-lab.json"
+  ],
+  "pi": {
+    "extensions": [
+      "./.pi/extensions/pi-study-guard/index.ts"
+    ],
+    "skills": [
+      "./.agents/skills/java-readonly-analysis"
+    ],
+    "prompts": [
+      "./.pi/prompts/java-review.md"
+    ],
+    "themes": [
+      "./.pi/themes/pi-study-lab.json"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.84.1",
+    "@earendil-works/pi-tui": "0.84.1",
+    "@types/node": "24.12.4",
+    "typebox": "1.3.7",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "typecheck": "npm --prefix .pi/extensions/pi-study-guard run typecheck",
+    "test": "npm --prefix .pi/extensions/pi-study-guard test",
+    "check": "npm run typecheck && npm test"
+  }
+}
