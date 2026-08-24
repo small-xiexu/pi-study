@@ -10,12 +10,12 @@
 | Provider | `openai` |
 | API | `openai-responses` |
 | Model | `gpt-5.6-sol` |
-| Base URL | `https://sub2api.shelfcanvas.top`，不添加 `/v1` |
+| Base URL | `<provider-base-url>`；实验时使用自定义服务入口，真实地址不进入学习文档 |
 | 凭据 | 由 Pi 保存在 `~/.pi/agent/auth.json`，文件权限为 `0600` |
 
 API Key 不写入项目文档、Git 仓库或聊天记录。
 
-本表只保存 Pi `0.83.0` 实验时采用的连接前提。当前费用、阻塞与课程政策只以[完整学习计划](../plans/pi-complete-learning-plan.md)为准；Base URL 仅作为该历史实验的可复现配置保留。
+本表只保存 Pi `0.83.0` 实验时采用的连接前提。当前费用、阻塞与课程政策只以[完整学习计划](../plans/pi-complete-learning-plan.md)为准；Base URL 占位符只说明当时显式配置了非默认服务入口，真实地址不是公开课程复现所需的证据。
 
 ## 基础工具
 

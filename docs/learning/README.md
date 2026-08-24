@@ -6,18 +6,34 @@
 
 本目录也是未来学习网站的唯一内容源，不维护另一套网页专用笔记。
 
+## 继续学习
+
+1. 先打开[完整学习计划的当前断点](../plans/pi-complete-learning-plan.md#当前断点)，确认唯一状态、验收证据和下一步。
+2. 再从下表进入当前主题文档；主题文档只保存稳定知识，不根据文件是否存在推断完成状态。
+3. 需要动手时，从[实验入口](#实验入口)找到对应材料；自动脚本、Fake/Mock、本地 Pi、新进程和真实 Provider 仍是不同证据。
+
 ## 当前主题文档
 
-| 文档 | 内容 |
-|---|---|
-| [00-environment-report.md](00-environment-report.md) | 本机环境、版本、路径和已执行的验证证据 |
-| [01-architecture-and-context.md](01-architecture-and-context.md) | Pi、Provider、Model、Agent Loop、Tool、Session 的职责边界，以及 Model 上下文组装 |
-| [02-terminal-and-tools.md](02-terminal-and-tools.md) | Pi `0.83.0` 终端实验快照、基础工具、输入类型、退出方式、内置 Tool 与安全边界 |
-| [03-project-configuration.md](03-project-configuration.md) | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
-| [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
-| [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
-| [06-extensions.md](06-extensions.md) | 默认基于 Pi `0.84.1` 的 Extension 加载、生命周期、Context、Tool、Command、Shell 门禁、Branch 状态与 Widget；5.10 真实动态矩阵使用 Pi `0.84.2` |
-| [07-packages-models-providers.md](07-packages-models-providers.md) | Pi `0.84.2` Package 管理、模型接入选型、认证/OAuth、Custom Model 请求链，以及 Custom Provider 注册、目录、流事件、注销和测试边界 |
+| 文档 | 对应阶段 | 内容 |
+|---|---:|---|
+| [00-environment-report.md](00-environment-report.md) | 0.1 | 本机环境、版本、路径和已执行的验证证据 |
+| [01-architecture-and-context.md](01-architecture-and-context.md) | 0.2 | Pi、Provider、Model、Agent Loop、Tool、Session 的职责边界，以及 Model 上下文组装 |
+| [02-terminal-and-tools.md](02-terminal-and-tools.md) | 1 | Pi `0.83.0` 终端实验快照、基础工具、输入类型、退出方式、内置 Tool 与安全边界 |
+| [03-project-configuration.md](03-project-configuration.md) | 2 | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
+| [04-session-tree-compaction.md](04-session-tree-compaction.md) | 3 | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
+| [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | 4 | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
+| [06-extensions.md](06-extensions.md) | 5 | 默认基于 Pi `0.84.1` 的 Extension 加载、生命周期、Context、Tool、Command、Shell 门禁、Branch 状态与 Widget；5.10 真实动态矩阵使用 Pi `0.84.2` |
+| [07-packages-models-providers.md](07-packages-models-providers.md) | 6 | Pi `0.84.2` 阶段总入口；从 hub 分别进入 Package、模型选型与认证、Custom Model、Custom Provider 和版本证据子页 |
+
+## 实验入口
+
+| 阶段 | 实验材料 | 直接入口 | 最大证明范围 |
+|---|---|---|---|
+| 1.2 | 基础 Tool 文件闭环 | [`labs/1.2-tools/tool-lab.txt`](../../labs/1.2-tools/tool-lab.txt) | 指定 Session 中的 Tool Call、文件结果与 Git 差异；不证明 Tool 自动安全 |
+| 2.4 | Network 单次请求超时 | [`labs/2.4-network/README.md`](../../labs/2.4-network/README.md) | 回环 Fake Provider 下的一次请求超时；不证明整个 Agent Run 总时限 |
+| 4.4-4.5 | Skill 触发、注入与脚本执行 | [`OrderService.java`](../../labs/4.4-skill/OrderService.java)、[`4.5-skill-security/`](../../labs/4.5-skill-security/)、[`script-execution-lab`](../../.agents/skills/script-execution-lab/SKILL.md) | 受控样例中的 Skill/Tool 行为；读取脚本不等于执行，单次未受注入不等于普遍安全 |
+| 5.1-5.10 | `pi-study-guard` Extension | [Extension 实验材料](../../.pi/extensions/pi-study-guard/README.md) | 静态、Fake/Runner、本地 Pi 和真实模式的分层证据；不是 OS 沙箱 |
+| 6.1-6.4 | Package 来源、安全、制品和管理 | [6.1](../../labs/6.1-package-sources/README.md)、[6.2](../../labs/6.2-package-security/README.md)、[6.3](../../labs/6.3-local-package/README.md)、[6.4](../../labs/6.4-package-management/README.md) | 课程 fixture 与本机固定版本的受控链路；不证明第三方 Package、真实 Registry 或生产可用性 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 
@@ -25,6 +41,8 @@
 |---|---|
 | `08-sdk-rpc-json-tui.md` | SDK、RPC、JSON 与 TUI |
 | `09-source-and-capstone.md` | 源码阅读与毕业综合项目 |
+
+阶段 7 开始前仍从唯一计划的当前断点进入；只有开始学习并产生稳定内容后才创建 `08-sdk-rpc-json-tui.md`。
 
 ## Legacy migration entry
 

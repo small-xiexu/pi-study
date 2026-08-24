@@ -75,4 +75,4 @@ node labs/6.4-package-management/scripts/run-package-management-lab.mjs --config
 - `--config-tui` 的 PASS 只证明本次隔离项目中的真实 TUI 写入与后续资源解析；不证明当前已运行的其他 Pi 进程会立即卸载 Extension。
 - 移除后的 Settings、受管理路径与资源结果在本次实验中分别核对；这不证明共享 npm 缓存、Package 目录外副作用、真实 Registry、认证、其他版本或通用安全性。
 
-稳定原理和证据边界见 [`docs/learning/07-packages-models-providers.md`](../../docs/learning/07-packages-models-providers.md)。
+稳定原理和证据边界见 [Pi Packages](../../docs/learning/07-packages-models-providers/packages.md)。

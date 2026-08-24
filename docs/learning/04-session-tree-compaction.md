@@ -248,6 +248,19 @@ Secret gist 只是不公开列出，不是权限受控的私有存储；获得 U
 
 因此窗口为 `272000`、预留 `16384` 时，阈值约为 `255616`。达到阈值后，Pi 总结较早内容，并尽量保留最近约 `20000` Token 的原文；本节只记录参数关系，实际压缩前后变化见 3.5。
 
+### 四种压缩与恢复入口
+
+下面按 Pi `0.84.2` 当前运行层实现区分四种入口。它们会复用同一套 Compaction 摘要机制，但触发证据、是否保留最后一条 Assistant Message、是否自动重试完全不同；早期手工实验的直接结果仍按各节标注的版本理解。
+
+| 入口 | 判断时点与直接触发 | 压缩后的动作 | 不能混成什么 |
+|---|---|---|---|
+| 手动 `/compact` | 用户明确输入命令；不要求达到阈值或先出现失败响应 | 立即生成 Compaction Summary，后续由用户继续 | 不是自动阈值，也不自动重试上一条请求 |
+| 正常自动阈值 | 一次 Agent Run 结束后，或发送下一条 Prompt 前，估算 `contextTokens > contextWindow - reserveTokens` | 以 `reason=threshold` 压缩，`willRetry=false`；等待用户输入或继续已有队列 | 不要求 Provider 已报 Overflow，也不是失败恢复 |
+| 成功响应后的 Overflow 压缩 | 当前同一 Provider/Model 的最终 `AssistantMessage` 已成功 `stop`，但 Usage 显示上下文超过配置窗口 | 保留成功回答，以 `reason=overflow` 压缩后续上下文，`willRetry=false` | 不能重试已经完成的成功回答，也不证明 Usage 或容量配置正确 |
+| 失败或截断后的 Overflow 恢复 | 当前同一 Provider/Model 命中可恢复 Overflow/`length` 信号，且不是用户 `aborted` | 从当前 Live Context 移除失败或截断的 Assistant Message，压缩后自动重试一次；原消息仍留在 Session 历史 | 不是限流/过载退避；一次恢复失败后不会无限重试 |
+
+因此，Footer 显示 `(auto)` 只表示自动 Compaction 已开启，不能说明本次是否已压缩，更不能说明走的是阈值还是 Overflow 恢复。判断实际入口需要结合 `session_before_compact`/`compaction_end` 的 `reason`、`willRetry` 与最终 Assistant Message；Provider Usage 和四类 Overflow 信号见 [Custom Provider 运行时合同](07-packages-models-providers/custom-provider.md#context-overflow-就是办公桌放不下了)。
+
 ### Footer A/B 实验
 
 实验使用隔离临时目录、`--no-session` 和 `--no-tools`，分别发送 `只回复：TOKEN_A` 与 `只回复：TOKEN_B`。未读取或保存原始 Session。

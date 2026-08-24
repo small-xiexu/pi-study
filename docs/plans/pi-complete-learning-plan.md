@@ -8,7 +8,7 @@
 - 学习对象：Pi Coding Agent
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 历史版本基线：`@earendil-works/pi-coding-agent@0.84.0`；当前 CLI 见下方环境快照
-- 参考会话：`019fa972-6149-7511-85fc-885b2be05368`
+- 参考会话：`<reference-session-id>`；真实标识不进入学习文档
 - 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5 和阶段 6 已完成；阶段 7 尚未开始
 - 下一步：进入阶段 7 的 7.1，先用完整场景理解外部程序如何通过 SDK 创建 Agent Session、加载资源、选择 Model 和订阅事件；开始实现前单独确认代码范围和真实 Model、凭据及费用边界。
 - 预计投入：Pi 学习与综合项目 73-103 小时；学习网站另计 8-12 小时；阶段 5-6 作为定制开发核心加深学习，按验收结果推进
@@ -24,7 +24,7 @@
 | npm | 可用 | `11.6.2` |
 | Git | 可用 | `2.50.1` |
 | Pi | 已安装、更新并启动 | `/opt/homebrew/bin/pi`，历史基线 `0.84.0`；当前 CLI `0.84.2`，5.10 动态矩阵以当前版本实测 |
-| 模型认证 | 已连接 | 中转站 `https://sub2api.shelfcanvas.top`；`openai-responses`；`openai/gpt-5.6-sol` 已实际响应；凭据文件权限 `0600` |
+| 模型认证 | 已连接 | 自定义中转地址 `<provider-base-url>`；`openai-responses`；`openai/gpt-5.6-sol` 已实际响应；凭据文件权限 `0600`；真实地址不进入学习文档 |
 
 ## 2. 学习目标
 
@@ -48,7 +48,7 @@
 - `docs/plans/pi-complete-learning-plan.md`：唯一进度与验收台账。
 - `docs/learning/README.md`：学习资料总索引和主题边界。
 - `docs/learning/00-environment-report.md`：本机环境和验证证据。
-- `docs/learning/*.md`：按主题记录已经讲解的概念、命令、区别和安全边界；不重复维护进度。
+- `docs/learning/` 下的 Markdown（含主题子目录）：按主题记录已经讲解的概念、命令、区别和安全边界；不重复维护进度。
 
 采用“系统地图 + 单一贯穿项目 + 三遍螺旋”推进，阶段覆盖范围不缩减：
 
@@ -75,7 +75,7 @@
 
 学习网站采用“内容先行、最后建站”：
 
-- `docs/learning/*.md` 是网站内容的唯一来源，不另建一套重复笔记。
+- `docs/learning/` 下的 Markdown（含主题子目录）是网站内容的唯一来源，不另建一套重复笔记。
 - 每个模块尽量沉淀四类材料：原理、实验步骤、验证证据、结论与边界。
 - 完成阶段 8 前只积累可发布内容，不让建站工作打断 Pi 主线学习。
 - 阶段 9 默认使用 VitePress 组织现有 Markdown；正式开始前重新核对当时版本和部署方式。
@@ -361,13 +361,13 @@
   - Fork 实现基线（已核对）：本机 Pi `0.84.0` 文档说明 `/fork` 通过用户消息选择器创建新 Session 文件；交互实现调用 runtime `fork(entryId)`，默认 `position="before"`，新 Session 复制到所选用户消息的父节点，把所选提示放回编辑器，并显示 `Forked to new session`。新文件 header 记录原文件为 `parentSession`，不会生成分支摘要，也不会恢复项目文件。
   - Fork 实验设计（历史）：从当时的 `TREE_BRANCH` 路线选择该用户消息；预期新 Session 只包含其之前的 `BASE_A` 问答，编辑器恢复 `只回复：TREE_BRANCH`。验证顺序为先检查新 Session 身份和编辑器状态，再决定是否发送新提示。
   - Fork 创建与截断位置（已验证）：用户执行 `/fork` 并选择 `TREE_BRANCH` 用户消息后，界面显示 `Forked to new session`；历史区只保留 `BASE_A` 问答，所选 `只回复：TREE_BRANCH` 仅回到编辑器，未作为消息发送。磁盘从 1 个 JSONL 增至 2 个：原文件仍为 `3356` 字节，新文件为 `1620` 字节，证明 Fork 创建独立 Session 且未改写原文件。
-  - Fork 身份与历史边界（已验证）：新 Session 的 Name 继承为 `3.2-base`，但 ID 变为 `019fdb0f-81f4-7a24-8fc8-6c0fd9369297`，File 变为第二个 JSONL；`/session` 显示 `Total 2`、`User 1`、`Assistant 1`、Tool `0`，与只复制 `BASE_A` 问答一致。名称继承不代表仍是原 Session。
+  - Fork 身份与历史边界（已验证）：新 Session 的 Name 继承为 `3.2-base`，但 ID 变为 `<fork-session-id>`，File 变为第二个 JSONL；`/session` 显示 `Total 2`、`User 1`、`Assistant 1`、Tool `0`，与只复制 `BASE_A` 问答一致。名称继承不代表仍是原 Session。
   - Fork 独立续写（已验证）：用户在 Fork Session 中发送 `只回复：FORK_BRANCH`，Model 返回 `FORK_BRANCH`；`/session` 显示仍为 Fork 的 ID、File，消息增至 `Total 4`、`User 2`、`Assistant 2`。磁盘对照显示原 Tree Session 保持 `3356` 字节，只有 Fork Session 从 `1620` 增至 `2543` 字节。
   - Fork 隔离实验（已完成）：新文件创建、`position="before"` 截断位置、所选提示返回编辑器、新身份与名称继承、独立续写且不改原文件均取得直接证据。
   - Clone 实现基线（已核对）：本机 Pi `0.84.0` 的 `/clone` 读取当前活动叶节点并调用 runtime `fork(leafId, { position: "at" })`，将完整当前活动路径复制到新 Session，清空编辑器并显示 `Cloned to new session`；与 `/fork` 不同，它不打开历史用户消息选择器，也不把某条旧提示放回编辑器。
   - Clone 实验设计（历史）：以当时含 `BASE_A`、`FORK_BRANCH` 两轮问答的 Fork Session 为源执行 `/clone`；预期出现第三个 JSONL，新 Session 初始消息仍为 `Total 4`，历史完整保留且编辑器为空。
   - Clone 创建与完整复制（已验证）：用户执行 `/clone` 后，界面显示 `Cloned to new session`，历史区完整保留 `BASE_A`、`FORK_BRANCH` 两轮问答，编辑器为空。磁盘从 2 个 JSONL 增至 3 个；第三个 Clone 文件大小为 `2543` 字节，与源 Fork 文件相同，原 Tree 文件仍为 `3356` 字节，两个源文件均未变化。
-  - Clone 身份与历史边界（已验证）：`/session` 显示 Name 继承为 `3.2-base`，但 ID 变为 `019fdb22-6e78-7eb0-9ab2-d8c5a085b6b4`，File 指向第三个 JSONL；消息仍为 `Total 4`、`User 2`、`Assistant 2`、Tool `0`，证明新 Session 完整复制源活动路径，名称继承不代表身份相同。
+  - Clone 身份与历史边界（已验证）：`/session` 显示 Name 继承为 `3.2-base`，但 ID 变为 `<clone-session-id>`，File 指向第三个 JSONL；消息仍为 `Total 4`、`User 2`、`Assistant 2`、Tool `0`，证明新 Session 完整复制源活动路径，名称继承不代表身份相同。
   - Clone 独立续写（已验证）：用户在 Clone Session 中发送 `只回复：CLONE_BRANCH`，Model 返回 `CLONE_BRANCH`；`/session` 显示仍为第三个 ID、File，消息增至 `Total 6`、`User 3`、`Assistant 3`。磁盘对照显示前两个文件保持 `3356/2543` 字节，只有 Clone 文件从 `2543` 增至 `3494` 字节。
   - Clone 隔离实验（已完成）：完整活动路径复制、新身份与名称继承、空编辑器、独立续写且不改两个源文件均取得直接证据。
   - 三项实验状态（历史过程）：Tree、Fork、Clone 的运行与磁盘对照均已完成；当时 3.2 还未验收，剩余稳定文档、用户综合判断和临时实验目录清理。
@@ -653,8 +653,8 @@
       - 热重载 V2 已验证、待退出与清理（2026-08-12）：用户在显式 `/reload` 后读取 marker，实际按顺序输出 `V1`、`V2`；只读复核确认 marker 恰有 `2` 行，隔离副本当前仍声明 `RELOAD_MARKER_VERSION = "V2"`。结合启动后的 `V1`、只保存文件时仍只有 `V1`、显式 `/reload` 后新增 `V2`，可确认本次同一 Pi 进程重新加载了自动发现的项目 Extension 并调用 V2 工厂。该证据不证明保存时自动重载，不覆盖 Settings/CLI 来源，也不证明 Extension 功能正确或安全。F 组核心行为已通过，5.1 仍为进行中；下一步仅退出隔离 Pi，随后恢复实验副本并清理临时目录。
       - 隔离 Pi 退出已验证、待恢复（2026-08-12）：用户确认已退出第二个终端中的 Pi；只读占用检查只发现普通 `zsh` 的工作目录仍位于隔离 `project/`，未发现 Pi 进程，marker 仍完整保留两行 `V1`、`V2`。该证据证明本次隔离 Pi 已停止，但普通终端尚未离开临时目录；下一步仅用仓库中的原始 V1 探针覆盖临时 V2 副本并验证内容恢复，暂不删除实验目录。
       - 临时探针恢复已验证、待清理（2026-08-12）：用户用仓库中的原始探针覆盖临时 V2 副本；只读核对确认两份文件均声明 `RELOAD_MARKER_VERSION = "V1"`，逐字节比较相同，SHA-256 均为 `4793a579d82d41e7f1606815a5e6b5b435235c8252eb1f88b6b7e6f8a1e2146b`。实验文件已恢复，marker 的 `V1`、`V2` 证据仍保留；下一步仅让第二个终端离开临时项目目录，再对整个临时实验目录做可恢复清理。
-      - 清理前占用检查已通过（2026-08-12）：用户已让第二个终端离开临时项目目录；对 `/tmp/pi-study-5-1-f.9jqNB0` 的只读 `lsof` 检查无输出，未发现进程占用，实验目录与两行 `V1`、`V2` marker 仍存在，废纸篓目标 `/Users/sxie/.Trash/pi-study-5-1-f.9jqNB0` 尚不存在。下一步仅把该明确临时目录整体移入废纸篓，并验证原路径消失、废纸篓副本存在。
-      - 可恢复清理已验证（2026-08-12）：用户把 `/tmp/pi-study-5-1-f.9jqNB0` 整体移入废纸篓；只读检查确认原路径不存在、`/Users/sxie/.Trash/pi-study-5-1-f.9jqNB0` 存在，且未发现目录占用。macOS 隐私控制拒绝终端读取废纸篓内部文件，因此不能从移动后状态再次证明内部内容；移动前已经直接验证临时探针恢复为原始 V1、marker 为两行 `V1`、`V2`。F 组实验与可恢复清理完成，下一步核对 5.1 的 A-F 总体验收条件并进行学习者综合复述。
+      - 清理前占用检查已通过（2026-08-12）：用户已让第二个终端离开临时项目目录；对 `/tmp/pi-study-5-1-f.9jqNB0` 的只读 `lsof` 检查无输出，未发现进程占用，实验目录与两行 `V1`、`V2` marker 仍存在，废纸篓目标 `~/.Trash/pi-study-5-1-f.9jqNB0` 尚不存在。下一步仅把该明确临时目录整体移入废纸篓，并验证原路径消失、废纸篓副本存在。
+      - 可恢复清理已验证（2026-08-12）：用户把 `/tmp/pi-study-5-1-f.9jqNB0` 整体移入废纸篓；只读检查确认原路径不存在、`~/.Trash/pi-study-5-1-f.9jqNB0` 存在，且未发现目录占用。macOS 隐私控制拒绝终端读取废纸篓内部文件，因此不能从移动后状态再次证明内部内容；移动前已经直接验证临时探针恢复为原始 V1、marker 为两行 `V1`、`V2`。F 组实验与可恢复清理完成，下一步核对 5.1 的 A-F 总体验收条件并进行学习者综合复述。
       - 5.1 综合复述第一次结果（部分通过，2026-08-12）：用户已准确说明 `--approve` 加载 CLI、全局自动发现、项目自动发现和项目 Settings，`--no-approve` 只保留 CLI 与全局来源；同一真实文件经多个入口出现时保留先出现项；Flag 注册不能证明后续处理已触发。需收紧两点：`tsc` 本轮证明静态类型契约，不是笼统“语法检查”；真实 Pi 只证明本次发现、加载、调用工厂和注册链，不扩大为 Handler/功能均已执行。热重载表述中“未 `/reload` 时文件被刷新到内存”说反，正确边界是磁盘文件已变为 V2，但当前 Runtime 没有重新加载或再次调用工厂，故 marker 仍只有 V1；显式 `/reload` 后才重新加载并调用 V2 工厂。下一步只针对这两点重试。
       - 热重载边界纠正理解已确认（2026-08-12）：经“磁盘文件与当前 Runtime 中已加载实例”完整时间线及 Java/Spring 类比讲解后，用户确认理解：保存 V2 只改变磁盘文件，不会自动更新当前 Pi 已加载的 Extension，也不会再次执行工厂；显式 `/reload` 才重新读取 V2、创建新实例并调用工厂，因此 marker 才从只有 `V1` 变为依次包含 `V1`、`V2`。综合复述第 5 项通过，下一步只重试第 3 项证据分层。
       - 三层证据复述第二次结果（部分通过，2026-08-12）：用户已正确说明 `tsc --noEmit` 检查静态类型契约，Fake 测试比较预期与实际，真实 Pi 实验验证 Extension 是否真实执行。还需把后两项对象收紧为“Fake 比较直接调用工厂时实际登记内容与预期契约”“真实 Pi 证明本次发现、加载并调用工厂”，并补充三层各自不能证明的边界；未完成前不勾选 5.1。
@@ -707,7 +707,7 @@
   - 实验交互节奏已调整（2026-08-12）：应用户要求，从 C 组开始每个实验组一次性提供完整操作步骤、逐段预期和停止条件；用户在各检查点符合预期时连续执行，只有出现偏差才暂停回传。计划仍按真实证据随做随回写，不因批量给出步骤而提前记录未执行结果或勾选 5.2。
   - C 组完整事件链已验证，且记录范围参数偏差（2026-08-12）：用户在新隔离根目录 `/tmp/pi-study-5-2-c.whU17K` 启动 Pi `0.84.1`，启动前固定追踪文件不存在；启动后日志先为 `0001 factory`、`0002 session_start reason=startup`。用户未发送普通 Prompt，只按一次 `⌃P`，界面显示切换到 `GPT-5.6 Terra`，日志新增 `0003 model_select source=cycle`；执行 `/quit` 后最终新增 `0004 session_shutdown reason=quit`，只读复核与截图一致。启动时两条 `Warning: No models match pattern` 表明 `--models "openai/gpt-5.6-sol,openai/gpt-5.6-terra"` 没有形成预期的双模型范围；源码顺序显示 `resolveModelScope()` 先基于当时可用目录解析范围，随后才通过 `setRuntimeApiKey()` 应用本次字面量假 Key，因此范围为空，`cycleModel()` 退回全部可用模型后仍成功切到 Terra。该偏差不推翻核心结论：本次循环切换确实派发并执行 `model_select` Handler，`source=cycle`；但本实验不能证明只在两个模型内循环、Provider 可真实响应、所有网络均不存在或其他模型选择入口也使用相同 `source`。C 组真实行为完成，5.2 仍需 D 组和最终复述验收，暂不勾选。
   - D 组普通 Prompt 与一次只读 Tool 实验卡已准备（2026-08-12）：使用新的空临时项目和隔离 `HOME`，仅为真实 Model 调用复用现有 `PI_CODING_AGENT_DIR` 的 Provider/Model 认证配置，不读取、复制或显示凭据；固定使用 CLI `-e`、`--offline`、`--no-session`、`--tools read`，并关闭其他 Extension、Skill、Prompt Template、Theme 和 Context File。项目预置只含一行固定标记的 `target.txt`，用户只提交一次明确要求“恰好调用一次 `read` 并原样回复”的普通 Prompt。预期界面出现一次 `read` Tool、固定 Tool Result 与最终文本；脱敏日志应覆盖 `input -> before_agent_start -> agent_start -> 两个 turn -> User/Assistant/ToolResult 消息 -> tool_call read -> tool_result read -> agent_end -> agent_settled`，退出后再出现 `session_shutdown reason=quit`。若启动资源、Provider、Tool 次数或事件序列偏离预期，停止并回传，不重复发送 Prompt。该实验可证明当前版本本次真实普通输入和只读 Tool 主链，不能证明所有任务都恰好两个 Turn、Model 业务判断恒真、写操作安全或存在操作系统沙箱；D 组尚未执行。
-  - D 组真实认证文件权限门禁已满足（2026-08-12）：本轮首次只读检查曾显示 `/Users/sxie/.pi/agent/auth.json` 为 `0644`，随后对同一路径执行最终 `stat` 复核得到 `-rw------- 600`；期间未读取、输出或复制文件内容，也不推断权限由谁或通过何种过程改变。D 组开始时仍应先执行一次只显示权限的即时检查；结果为 `600` 即可继续，其他结果立即停止。
+  - D 组真实认证文件权限门禁已满足（2026-08-12）：本轮首次只读检查曾显示 `~/.pi/agent/auth.json` 为 `0644`，随后对同一路径执行最终 `stat` 复核得到 `-rw------- 600`；期间未读取、输出或复制文件内容，也不推断权限由谁或通过何种过程改变。D 组开始时仍应先执行一次只显示权限的即时检查；结果为 `600` 即可继续，其他结果立即停止。
   - D 组完整事件序列已验证，行为结果内容证据缺失（2026-08-12）：用户回传运行中日志 `0001` 至 `0021`，逐行符合 `factory -> session_start -> input(interactive) -> before_agent_start -> agent_start -> 第一 Turn 的 User/Assistant 消息 -> tool_call(read) -> tool_result(read) -> ToolResult 消息 -> turn_end -> 第二 Turn 的 Assistant 消息 -> turn_end -> agent_end -> agent_settled`；正常退出后的第二次日志再追加 `0022 session_shutdown reason=quit`。这直接证明当前 Pi `0.84.1` 的本次普通输入进入 Agent Loop，`read` 名称经过 Tool 前后两个 Extension Handler，结果消息进入上下文后触发第二个 Turn，底层 Agent Run 结束且没有自动后续工作，最后正常关闭 Session。当前只收到脱敏事件日志，未收到界面中的 Tool Result 和最终回答，因此不能仅凭该日志证明 `read` Executor 成功读到目标文件、结果不是错误，或 Model 最终原样输出了固定文本；D 组事件链完成，5.2 只剩模块级综合复述，暂不勾选。
   - 5.2 综合复述第一次未通过（2026-08-12）：用户已正确说明工厂在启动或 `/reload` 时初始化并注册能力、事件 Handler 按事件触发、Command Handler 由用户点名触发，且能解释 Command 与 User Bash 不进入普通 Agent Loop；也正确说明 Turn 数量依任务而定、一个 Turn 可含多个 Tool Call，并用 Spring AOP 类比串联 `tool_call Handler -> Executor -> tool_result Handler`。仍需纠正三点：Tool Executor 不负责把 Tool 喂给 Model，而负责真正执行 Pi 已调度的 Tool；`⌃P` 切换 Model，不是 Thinking Level；`agent_end` 与 `agent_settled` 的边界尚未掌握。日志证据边界由教练补充，不作为本次未答项；下一步只复述上述三项，不重复整套实验或五道题。
   - 5.2 三项针对性重试已通过（2026-08-12）：用户已准确说明 Tool Executor 负责真正读取文件或执行操作；`⌃P` 切换 Model，`⇧Tab` 切换当前 Model 的 Thinking Level；`agent_end` 表示当前底层 Agent Run 结束，`agent_settled` 表示上层任务已无自动后续工作并稳定空闲。结合第一次复述中已通过的工厂、Handler、Command、User Bash、Turn 与 Tool 前后事件边界，5.2 的用户理解门禁通过。
@@ -1382,6 +1382,8 @@
 
 ### 当前断点
 
+- 文档维护 A0（完成，2026-08-24）：已完成敏感标识脱敏、根 README 三入口、学习索引的阶段/实验映射、Provider/API Adapter 术语统一，以及手动、阈值、成功响应后压缩和失败/截断后一次重试四类 Compaction/Overflow 对照。全量验证覆盖 25 个 Markdown、138 个闭合围栏、85 个本地路径/锚点和 66 张 Mermaid，结果分别为链接/锚点通过、标题层级通过、`66/66` 实渲染通过且临时残留为 0；已跟踪 Markdown 敏感标识与明文凭据模式扫描为 0，旧 Provider/Adapter 混用检索为 0，`git diff --check` 通过。计划 checkbox 序列与 `HEAD` 完全一致，阶段 7 文档仍不存在，版本、权限、文件数量、A/B、失败、纠正与历史验收结论均保留。本批只修改 7 个授权文档，未拆分 06/07、未运行认证或 Provider、未调用真实 Model、未产生费用，也未执行暂存或提交。下一步仍按本断点进入 7.1；06/07 后续拆分须另行授权。
+- 文档维护 C（完成，2026-08-24）：原 07 已收口为 46 行稳定 hub，并完成 Package、模型选型与认证、Custom Model、Custom Provider、版本证据五个子页；阶段 6 文档合计 1,227 行。四个直接迁移页按原 435/209/92/15 行稳定正文逐字包含；Custom Provider 按“完整场景 -> 对应精确合同”重排为 406 行，保留注册、目录、Credential、Stream、AssistantMessage、错误/取消、Usage/Cost、Overflow、Reload/注销及五层证据，删除 3 张被更精确图覆盖的入门图、2 段重复 Overflow 说明和失效过渡语。6.1-6.4 动态历史及其中 3 个内容哈希由本计划完整保留，稳定页旧动态副本、失效锚点和跨页精确重复段落均为 0；04、学习索引和四份 Lab 入链已更新，计划与教学 Skill 的网站内容源已明确包含主题子目录，Stage 5 顶层只读 Tool 合同未改变。全量门禁覆盖 30 个 Markdown、135 个闭合围栏、108 个本地路径/锚点和 63 张 Mermaid，围栏、标题层级、链接/锚点、职责/版本关键词、隐私模式、`63/63` 实渲染、临时残留与 `git diff --check` 均通过；计划 checkbox 序列与 `HEAD` 完全一致，阶段 7 文档仍不存在。当前工作区保留已验证 A0；本批未拆 06、未修改代码/Fixture/测试、未运行课程实验、认证或 Provider、未调用真实 Model、未产生费用，也未暂存或提交。下一步仍按当前断点进入 7.1；拆分 06 须另行授权。
 - 状态：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5 和阶段 6 已完成；阶段 7 尚未开始。
 - 已完成：阶段 0-6。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。

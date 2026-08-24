@@ -66,8 +66,8 @@ disable-model-invocation: true
 
 - 在 `docs/plans/pi-complete-learning-plan.md` 写明 `进行中`、`待验证`、`阻塞` 或已完成，并记录最小证据与下一步。
 - 只有满足计划中的验收条件才勾选完成；不得在最后一次性补进度。
-- 稳定的概念、实验方法、脱敏证据和边界结论写入对应的 `docs/learning/*.md`，不要逐字转录聊天。
-- `docs/learning/*.md` 始终是网站正文的唯一来源，不复制第二套正文或教学状态。阶段 0-8 不创建网站或 HTML 课程；阶段 9 只能按计划增加网站构建配置和静态资源。
+- 稳定的概念、实验方法、脱敏证据和边界结论写入 `docs/learning/` 下对应的 Markdown，包含主题子目录，不要逐字转录聊天。
+- `docs/learning/` 下的 Markdown 始终是网站正文的唯一来源，包含主题子目录，不复制第二套正文或教学状态。阶段 0-8 不创建网站或 HTML 课程；阶段 9 只能按计划增加网站构建配置和静态资源。
 - 不采用上游 `teach` 的 `MISSION.md`、`RESOURCES.md`、`NOTES.md`、`learning-records/`、`lessons/`、`reference/` 或 `assets/` 作为另一套教学结构。阶段 9 若确需网站静态资源，必须位于网站工程内且不能承载重复正文。
 - 不自动暂存或提交 Git。提交、推送、创建 PR 和发布都必须分别得到用户明确指示。
 

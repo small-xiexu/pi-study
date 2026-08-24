@@ -46,7 +46,7 @@ flowchart TB
 |---|---|---|
 | 交互与资源层 | 接收用户输入，加载任务规则和可复用资源 | 资源影响模型输入，但不会自行执行任务 |
 | 协调层 | 组装上下文、调用模型、解析响应、调度工具、控制循环和展示结果 | 默认不承担大模型式语义推理 |
-| 模型接入层 | Provider 处理连接与协议；Model 进行推理并生成文本或 Tool Call | Model 只能看到 Pi 传入的上下文 |
+| 模型接入层 | Provider 组织服务身份、目录、配置、认证与路由；API Adapter 处理协议转换；Model 进行推理 | Model 只能看到 Pi 传入的上下文 |
 | 执行与扩展层 | Tool 执行具体操作；Extension 注册或拦截能力 | 运行权限来自 Pi 进程和当前系统用户 |
 | 持久化层 | 保存消息、工具调用、结果、模型信息和会话树 | Session 不是 Git 快照或 Model 永久记忆 |
 
@@ -55,7 +55,8 @@ flowchart TB
 | 对象 | 职责 | 不负责什么 |
 |---|---|---|
 | Coding Harness | 接收输入、组装上下文、连接 Model、调度 Tool、展示结果并保存会话；Pi 就是 Harness | 不等同于 Model 本身 |
-| Provider | 把 Pi 的统一请求转换为特定模型服务的 API 调用，并接收流式响应 | 不决定具体任务目标 |
+| Provider | 提供服务身份、Model 目录、连接与认证配置和请求路由；可以复用内置 API Adapter，也可以由 Custom Provider 提供自定义流入口 | 不等同于具体 Model 或固定报文协议 |
+| API Adapter | 把 Pi 的统一请求编码为特定 API 调用，并把流式响应转换为 Pi 统一事件 | 不选择任务目标、服务身份或具体 Model |
 | Model | 根据上下文推理，生成文字或 Tool Call | 不直接读写本机文件或执行 Shell |
 | Agent Loop | 在“调用 Model”和“执行 Tool”之间循环，直到 Model 给出最终回复或流程终止 | 不是单独安装的组件 |
 | Tool | 执行一次具体操作，并返回 Tool Result | 不自行决定整个任务流程 |
@@ -369,7 +370,7 @@ Pi 能自动规避的是结构和容量问题：隔离兄弟分支、保留近�
 flowchart TD
     A["Pi 的 Tool 注册表"] --> B["筛选当前启用的 Tool"]
     B --> C["Pi 内部 context.tools<br/>契约 + Executor"]
-    C --> D["Provider 转换<br/>name + description + parameters"]
+    C --> D["API Adapter 转换<br/>name + description + parameters"]
     D --> E["Model 可见的 tools"]
     E --> F{"Model 下一步决策"}
     F -->|"直接回答"| G["返回最终文本"]
@@ -453,6 +454,8 @@ Pi 的一次请求可以理解为：先确定要找 `gpt-5.6-sol` 这位厨师�
 Provider 可以理解为 Pi 内部注册的一套“连接和路由容器”。它让 Pi 知道当前 Model 属于哪套服务接入、应关联哪份认证和服务配置，以及后续由哪类 API 实现发送请求。Provider 本身不是负责推理的 Model，也不是 JSON 报文格式。
 
 API 协议适配器是一名“双向翻译员”：发送前，把 Pi 统一的 `systemPrompt`、`messages`、`tools` 和 Model 信息翻译成目标 API 接受的字段；返回时，把该 API 的文本增量、Tool Call、用量和错误事件翻译成 Pi 能继续处理的统一事件。它不选择账号，也不进行推理。
+
+本文统一使用这组职责边界：Provider 回答“这套服务接入是谁、有哪些 Model、怎样认证并路由”，API Adapter 或自定义流入口回答“请求和响应怎样转换”。Pi `0.84.2` 的完整 Custom Provider 可以只处理认证或动态目录并复用内置 Adapter，也可以在协议不受支持时提供 `streamSimple`；实现上可以组合在同一个 Provider 对象中，但两个职责不能混写。具体选型和版本边界见 [Packages、Models 与 Providers](07-packages-models-providers.md#三种模型接入方式怎么选)。
 
 ```mermaid
 flowchart LR

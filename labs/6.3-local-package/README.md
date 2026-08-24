@@ -48,4 +48,4 @@ node labs/6.3-local-package/scripts/run-package-artifact-lab.mjs
 - 实验不读取现有认证文件，不调用 Model，不发布 Registry，不推送 Git，也不安装第三方 Package。
 - PASS 只证明本机 Pi/npm 当前版本与本次制品的受控链路，不重新证明阶段 4-5 全部行为、真实发布、其他环境或安全隔离。
 
-稳定原理和证据边界见 [`docs/learning/07-packages-models-providers.md`](../../docs/learning/07-packages-models-providers.md)。
+稳定原理和证据边界见 [Pi Packages](../../docs/learning/07-packages-models-providers/packages.md)。
