@@ -2,6 +2,8 @@
 
 这个目录保存可检查的 Extension 实现与受控实验材料，现已包含首个只读业务 Tool。学习状态和下一步只见 [`docs/plans/pi-complete-learning-plan.md`](../../../docs/plans/pi-complete-learning-plan.md)。
 
+## 实现与文件地图
+
 - `index.ts`：当前项目自动发现的 `pi-study-guard` 工厂；注册只读检查 Tool、`/study-inspect` Command、默认关闭的实验 Flag、生命周期诊断、Branch 状态、取消门禁和受控 Shell 审批门禁。
 - `inspect-service.ts`：Tool 与 Command 共用、不接触 Extension Context 或 UI 接口的检查服务；接收 `cwd/file/signal`，返回统一检查报告并生成规范摘要。
 - `inspect-tool.ts`：注册 `pi_study_inspect`，定义严格 Schema、Tool 适配、`content/details` 和有界 TUI renderer。
@@ -38,6 +40,8 @@
 - `fixtures/loading/*.ts`：A-F 隔离实验使用的来源探针；它们位于自动发现深度之外，不会被当前项目自动加载。
 - `fixtures/loading/reload.ts`：仅在设置 `PI_STUDY_RELOAD_MARKER` 时，向操作系统临时目录中的固定文件名追加 `V1`；不启动进程、Socket、Watcher 或 Timer。
 
+## 依赖与验证
+
 依赖全部固定为开发依赖：Pi 包提供官方 Extension 类型，`typebox` 定义参数 Schema，`pi-tui` 提供公开的 `Text` 与 `Marked`，TypeScript 负责 `noEmit` 检查，`@types/node` 提供 Node API 类型。真实运行时的 `ExtensionAPI` 仍由 Pi 宿主传入。
 
 依赖清单和锁文件完成审计后，安装证据对应的命令是：
@@ -59,9 +63,13 @@ npm test
 
 这些结果只证明当前 TypeScript 配置和 Fake API 测试覆盖的局部行为，不证明真实 Pi 的来源、Trust、去重、热重载或用户理解。A-F 的运行与验收状态不在本文件维护。
 
+## 生命周期与 Context
+
 5.2 追踪模式要求 `PI_STUDY_LIFECYCLE_TRACE` 指向操作系统临时目录中、当前用户拥有且组/其他用户不可访问的私有目录，并使用固定文件名 `pi-study-lifecycle.log`；目标必须是当前用户拥有、单链接且权限私有的普通文件，符号链接、硬链接、FIFO 和其他特殊对象均拒绝。首次成功写入会固定文件的 `dev/ino`，同路径替换成另一个安全文件也会拒绝；同步写入必须返回完整字节数。日志只记录序号、事件名和白名单元数据，不记录 Prompt、Command 参数、Shell 命令、Tool 参数/结果、文件路径、Model 标识或 Session 内容；Tool 名只保留 Pi `0.84.1` 的七个内置名称和课程 Tool `pi_study_inspect`，消息 Role 只保留当前固定宿主角色，其他任意 Tool 名或 Role 统一写为 `custom`。任一写入失败会把该追踪实例永久标记为不可用，后续门禁记录固定失败而不是恢复放行；对外只抛固定错误码，不扩散底层路径。Fake 测试只验证注册、文件门禁与脱敏写入逻辑，不证明真实 Pi 已派发这些事件。
 
 5.3 的 `/pi-study-trace` Context 快照只记录 `mode`、`hasUI`、规范 cwd 是否与进程 cwd 相同、Trust，以及 Session File、Model、Signal 是否存在。TUI/RPC 使用 UI 通知；Pi `0.84.1` 的 TUI `info` 通知实际呈现为输入框上方聊天记录区中的灰色状态文字，而不是弹窗或 Toast。Print/JSON 将 fallback 写入 `stderr`，避免破坏非交互 stdout 协议。`present` 只表示对象或值存在，不证明文件已落盘、Model/Provider 可用或 Signal 已取消；`trusted` 与 cwd 相等也不是权限或安全判断。追踪先于通知或 fallback 写入，因此 `route` 只证明选择了哪条代码分支，不单独证明用户已经看到反馈或终端完成绘制。
+
+## 取消与错误传播
 
 5.3 的 Fake 协作取消对照只验证课程本地延迟函数：A 组不取消并手动驱动受控 Timer 到期，形成 `start -> completed`；B 组在确认 Timer 与 listener 已登记后取消，形成 `start -> cancelled`。两组都清理 Timer 与 listener；B 组在强制执行已捕获的旧 Timer 回调后仍不会补记 `completed`。回归还覆盖默认系统 Timer、`schedule()` 内同步完成、同步取消、合法的 `undefined` handle，以及清理抛出 `undefined` 时 Promise 仍明确拒绝。
 
@@ -73,9 +81,13 @@ npm test
 
 Fake 中手工送入的 `tool_result`、`tool_execution_end` 或 ToolResult message 事件，只验证探针如何记录宿主提供的字段，不证明 Pi Core 已产生这些事件。真实 `ExtensionRunner` 测试能证明普通 Handler 异常被记录后继续、`tool_call` 异常停止后置 Handler；只有用户实际运行 Provider/Model/TUI 后的固定错误文本和脱敏日志，才能证明本次真实错误 Tool Result 与 Agent 后续行为。
 
+## Tool 与 Command
+
 5.4 的 `pi_study_inspect` 只接受一个顶层 `.md` 文件名，允许根固定为每次执行现场的 `ctx.cwd/docs/learning/`。Executor 不写文件、不执行 Shell、不跟随 Markdown 链接，也不主动联网；它拒绝符号链接、硬链接和非普通文件，输入上限为 128 KiB。成功结果只返回标题/链接总数与合计最多 20 个样本；取消、安全拒绝、读取或解析失败通过抛出异常进入错误 Tool Result。
 
 5.5 的 `/study-inspect` 只接受一个最终校验过的顶层 `.md` 文件名；补全只建议固定示例，不扫描目录，也不替代 Handler 校验。Command 与 Tool 复用 `inspect-service.ts`，但各自保留入口合同：Tool 返回 `content/details`，Command 返回 `void` 并主动反馈同一摘要。`ctx.hasUI=true` 时走一次通知；Print/JSON 等无 UI 模式把同一摘要写入 `stderr`，避免污染 JSON `stdout`。空闲 Command 的 `ctx.signal` 通常不存在，Esc 也不是它的自动取消机制。
+
+## Shell Gate、状态与 Widget
 
 5.6 的 Shell 门禁只是一份受控教学合同。纯分类器逐字放行固定 SAFE 命令，把固定 MARKER 写入命令标为需要审批，其余字符串一律拒绝；MARKER 只有在 `mode=tui`、`hasUI=true`、确认明确为 Yes且 signal 未取消时才放行。Model `bash` 拒绝返回固定 `block`，用户 `!`/`!!` 拒绝返回 `exitCode=126` 的替代 `BashResult`；策略、UI 或追踪写入异常都收敛为拒绝。生命周期追踪只记录入口、规则、决定、原因和 `excludeFromContext` 固定枚举，不记录原始命令。
 
@@ -84,5 +96,7 @@ Fake 中手工送入的 `tool_result`、`tool_execution_end` 或 ToolResult mess
 5.7 的 Shell 状态使用固定 `customType=pi-study-guard.shell-gate-state` 和 v1 完整快照，只保存 `mode/blockedCount/lastDecision` 及固定枚举，不保存原始命令、cwd、路径、Prompt、异常正文或凭据。当前 Branch 中任一同类型未知版本或畸形快照都会让状态保持不可用；恢复不会迁移、修复、跳过坏节点或追加新 Entry。主工厂只创建一个 Store，生命周期 Handler 在 `session_start/session_tree` 先清旧内存再读取当前 `getBranch()`，Model 与用户 Shell Gate 共用该 Store；`session_shutdown` 只清理。
 
 Gate 先提交完整快照，再记录最终脱敏追踪；状态未就绪，或状态提交返回 `false`/抛错时，统一形成 `state_error` 拒绝，追踪可用时再记录该固定结果。状态未就绪会在分类和确认前拒绝；首次 MARKER 已经完成确认后才可能遇到提交失败，后续请求则在下一次明确恢复前继续 fail-closed。`appendEntry()` 正常返回不是磁盘持久化确认，抛错也不代表 SessionManager 内存树已原子回滚；若状态提交成功后追踪失败，Gate 仍拒绝，但已提交快照仍只表示 Gate 评估。自动测试和真实 `SessionManager.inMemory` 已覆盖严格解析、A/B Branch 恢复、双入口累计和 Custom Entry 不进入构建后的 Model Context；这些证据不证明真实 JSONL、跨进程恢复或真实 `/reload`、Tree、Fork、Resume 生命周期，动态验收仍只记录在学习计划中。
+
+## 证据边界
 
 自动测试、类型检查和无 Provider 的 Pi 帮助预检，只能证明当前源码、局部宿主合同与模块加载入口。5.4 的自动证据不证明 Provider 一定选择 Tool、真实 Pi Core 已形成预期 Tool Result 或真实 TUI renderer；5.5 的自动证据也不证明真实 Pi 已命中 Slash Command、TUI 已接入补全/通知、Print 已正确分离 `stdout/stderr`，或真实路径确为 0 次 Provider。5.6 的真实确认与执行证据同样必须单独验收；5.7 的内存 Branch Green也不能冒充真实磁盘 Session 恢复。动态验收仍以唯一学习计划为准。业务逻辑只读和 Extension 门禁都不等于操作系统权限被限制。

@@ -22,7 +22,7 @@
 | [03-project-configuration.md](03-project-configuration.md) | 2 | 全局与项目配置、Project Trust、Settings 合并规则、CLI 临时调整与优先级实验 |
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | 3 | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
 | [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | 4 | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
-| [06-extensions.md](06-extensions.md) | 5 | 默认基于 Pi `0.84.1` 的 Extension 加载、生命周期、Context、Tool、Command、Shell 门禁、Branch 状态与 Widget；5.10 真实动态矩阵使用 Pi `0.84.2` |
+| [06-extensions.md](06-extensions.md) | 5 | Extension 总入口；从 hub 分别进入 Runtime/加载、Context/Tool/Event、Shell Gate/Branch State/Widget 和验证边界子页；默认 Pi `0.84.1`，5.10 动态矩阵为 `0.84.2` |
 | [07-packages-models-providers.md](07-packages-models-providers.md) | 6 | Pi `0.84.2` 阶段总入口；从 hub 分别进入 Package、模型选型与认证、Custom Model、Custom Provider 和版本证据子页 |
 
 ## 实验入口
