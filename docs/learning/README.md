@@ -17,7 +17,7 @@
 | [04-session-tree-compaction.md](04-session-tree-compaction.md) | Session 生命周期、JSONL 结构、Tree/Fork/Clone、Compaction、Branch Summary、长任务断点及其与工作区和 Git 的边界 |
 | [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
 | [06-extensions.md](06-extensions.md) | 默认基于 Pi `0.84.1` 的 Extension 加载、生命周期、Context、Tool、Command、Shell 门禁、Branch 状态与 Widget；5.10 真实动态矩阵使用 Pi `0.84.2` |
-| [07-packages-models-providers.md](07-packages-models-providers.md) | Pi `0.84.2` Package 的来源、固定策略、安全生命周期、本地封装与制品等价，以及安装、筛选、更新、禁用、卸载和三类 Source 的证据边界 |
+| [07-packages-models-providers.md](07-packages-models-providers.md) | Pi `0.84.2` Package 管理、模型接入选型、认证/OAuth、Custom Model 请求链，以及 Custom Provider 注册、目录、流事件、注销和测试边界 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 
