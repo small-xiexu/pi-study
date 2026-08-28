@@ -535,8 +535,98 @@ JSONL 可能包含 Prompt、文件内容、Tool 输出、个人路径和错误�
 
 精确 Retry 失败次数来自本地故障注入，不代表真实 Provider 曾返回 503、限流或服务端错误。一次真实主线也不证明费用、回答质量、长期稳定、崩溃时原子性、未响应取消的 Tool、危险副作用回滚或生产可用性。运行 `npm run check` 不调用真实 Provider；`npm run real` 会调用真实 Model，不能在结果不确定时盲目重跑。
 
+## 7.3 RPC 主流程
+
+RPC 适合 Java、Python、IDE 或其他独立进程接入 Pi。外部程序启动一个长期运行的 `pi --mode rpc` 子进程，经 stdin 发送 Command，并从 stdout 同时读取 Response 与异步 Agent Event；它不是 HTTP，也不是每条命令重新启动一次 Pi。
+
+```mermaid
+sequenceDiagram
+    participant Client as Java 外部程序
+    participant Pi as Pi RPC 子进程
+    participant Model
+
+    Client->>Pi: stdin 写 Prompt Command + LF
+    Pi-->>Client: stdout Response（命令已接收或拒绝）
+    Pi->>Model: 执行 Agent 任务
+    Pi-->>Client: stdout Agent/Turn/Message/Tool Events
+    Pi-->>Client: agent_settled
+    Client->>Pi: 发送下一条 Command
+```
+
+| 记录 | 方向 | 作用 | `id` 边界 |
+|---|---|---|---|
+| Command | Client -> stdin | 要求 Pi 执行 Prompt、Abort、查询状态等操作 | 可选 `id` |
+| Response | stdout -> Client | 说明该 Command 是否被接收或在接收前拒绝 | 回传同一 `id` |
+| Event | stdout -> Client | 流式报告 Message、Tool、Retry、Compaction 和 Agent 生命周期 | 通常没有请求 `id`；直接 RPC Bash 更新例外 |
+
+RPC 使用严格 JSONL framing：一个物理行只包含一个完整 JSON 对象，只以 LF `\n` 分隔记录；输入可去除 LF 前的单个 `\r`。字符串内部换行必须使用 JSON 转义，不能把一个对象跨物理行发送。写完 Command 后还需 flush，避免数据停留在客户端缓冲区。普通按行读取可处理 Pi 正常输出；严格客户端应按 LF 切分，不能把 Unicode 行分隔符或裸 `\r` 当成新记录。
+
+`prompt` Response 的 `success: true` 只表示 Prompt 已接收、排队或立即处理，不表示 Model 回答正确或 Agent 最终成功。接收后的 Provider、Tool 或运行期失败通过 Message/Event 流报告，不会再针对同一请求 `id` 返回第二个失败 Response。调用方应分别判断：
+
+- Command 是否接收：匹配同一 `id` 的 Response。
+- Run 是否收尾：等待 `agent_settled`。
+- 业务是否成功：检查最终 Assistant Message、Tool Result 和错误事件。
+
+Java 可用 `ProcessBuilder` 管理子进程，以输出流写 stdin、输入流读 stdout，并以 `Map<id, PendingRequest>` 关联 Response；Agent Event 则进入独立 Listener/状态机。SDK 是 Node.js 同进程直接调用 `AgentSession`，RPC 是语言无关的子进程边界。当前结论来自 Pi `0.84.2` 协议和学习确认，尚未证明 Java 客户端、真实 RPC 进程或异常退出处理；这些进入 7.4。
+
+## 7.4 Java RPC 客户端受控实验
+
+实验入口为 [`labs/7.4-rpc-java/`](../../labs/7.4-rpc-java/README.md)。它使用 JDK 8 风格 Java、Maven、Jackson 和 JUnit 5，通过 `ProcessBuilder` 管理长期子进程；生产客户端不手工解析 JSON 字段，也不把 stdout 协议记录写入日志。
+
+| 组件 | 职责 | Java 对照 |
+|---|---|---|
+| `StrictJsonlReader` | 只以 LF 分帧，兼容去除 LF 前的单个 CR，保留 U+2028/U+2029 | 有界流式 Decoder |
+| `PiRpcClient` | 写 stdin、读 stdout、按 `id` 完成 Response Future、分发 Event、管理退出 | `ProcessBuilder` + Future Map + Listener |
+| Prompt Tracker | 同时只跟踪一个无请求 ID 的 Agent Event 流，等待 accepted 与 settled | 单活动 Workflow 状态机 |
+| `PromptRunResult` | 区分成功、接收前拒绝、接收后失败和进程提前退出 | 分层 Result/状态枚举 |
+
+普通 Command Response 可按 `id` 并发关联；高层 `runPrompt()` 同时只允许一个活动 Run，因为普通 Agent Event 没有请求 `id`，客户端不能猜测多个并发 Prompt 的事件归属。关闭客户端时先关闭 stdin，让 Pi 按 EOF 正常退出；超过等待上限才升级 `destroy()`/`destroyForcibly()`。
+
+| 证据层 | 结果 | 最大证明范围 |
+|---|---|---|
+| Fake Java 子进程 | JDK 21 以 `release 8` 编译，JUnit `6/6` | LF/CRLF/U+2028、逆序 Response ID 关联、accepted+settled、接收前拒绝、accepted 后 Assistant error、提前退出码 7、正常 EOF 退出 |
+| 两次真实 Pi RPC smoke | 工程验证与学习者复现均使用 `openai/gpt-5.6-sol`；`SUCCESS`、accepted/settled/marker 均 true，16 条 Event，退出码 0，`passed=true` | 两次固定条件下 Java 子进程、真实 RPC/Provider/Model、最终 Message 和正常退出链成功 |
+
+真实 Demo 使用 `--no-session --no-approve`，日志只包含固定状态、事件数、退出码和布尔结果。Fake 失败分支不冒充真实 Pi/Provider 失败；两次真实成功不证明并发 Prompt、费用、回答质量、长期稳定或生产可用性。
+
+## 7.5 JSON Event Stream
+
+JSON 模式是 single-shot 结构化任务：Prompt 随 `pi --mode json` 启动参数一次性提交，Pi 先向 stdout 写 Session Header，再流式写 Agent Event，Run 完成后释放 Runtime 并退出。它没有 RPC Command/Response、请求 `id` 或长期双向循环。
+
+```mermaid
+sequenceDiagram
+    participant Client as Java 或批处理脚本
+    participant Pi as Pi JSON 子进程
+    participant Model
+
+    Client->>Pi: 启动进程并传入一个 Prompt
+    Pi-->>Client: Session Header
+    Pi-->>Client: agent_start / turn_start
+    Pi->>Model: 执行单次任务
+    Pi-->>Client: message_start / message_update...
+    Pi-->>Client: message_end / turn_end
+    Pi-->>Client: agent_end / agent_settled
+    Pi-->>Client: EOF 与进程退出
+```
+
+| 对比 | RPC | JSON Event Stream |
+|---|---|---|
+| 生命周期 | 长期子进程 | 单次任务后退出 |
+| 输入 | stdin 可持续发送 Command | 启动参数或一次性管道输入 |
+| 输出 | Response 与 Event 混合 | Session Header 与 Event |
+| 请求关联 | Response 可带 `id` | 无请求 `id` |
+| 适用场景 | IDE、聊天界面、长期服务 | CI、批处理、一次性分析 |
+
+`message_update` 只包含 delta 与累计 usage，不包含累计 Message；实时 UI 需按 `contentIndex` 组装文字、Thinking 或 Tool Call 参数。`message_end.message` 是最终权威消息，`agent_settled` 表示 Session 不再因 Retry、Compaction 或队列自动续跑。
+
+退出码必须与 Event 分层判断。Pi `0.84.2` 当前 JSON 模式在最终 Assistant `stopReason=error|aborted` 时仍可能正常返回 0，因为该失败已经写入 Event Stream；退出码 0 只证明进程控制流正常结束。业务成功还需检查最终 Assistant Message 的 `stopReason`、错误字段、预期文字或业务 marker。启动/协议异常、外层抛错和信号退出仍由非零退出码或 stderr 辅助定位。
+
+一句话记忆：JSON Event Stream 是一次性任务的结构化录像；`message_end` 判断结果，`agent_settled` 判断收尾，退出码判断进程层。
+
+学习者真实单次实验使用 `openai/gpt-5.6-sol`、`--no-session --no-approve` 和无 Tool 固定 Prompt。stdout 共 `16` 条 JSONL，其中 Session Header `1` 条、Event `15` 条；jq 解析得到 `headerSeen=true`、最终 Assistant `stopReason=["stop"]`、`markerSeen=true`、`settledSeen=true`，Pi 退出码为 `0`。临时 JSONL 已删除。该证据只证明本次真实 single-shot 的 Header、最终 Message、Session 收尾和进程退出链成功，不证明错误分支、Tool Event、长期稳定或生产可用性。
+
 ## 版本依据
 
 - 本机 Pi CLI 与 npm Package：`0.84.2`。
-- 静态依据：随包 `docs/sdk.md`、`dist/core/sdk.d.ts`、`dist/core/agent-session.d.ts`、`dist/core/agent-session.js`、`dist/core/resource-loader.d.ts` 与 `pi-agent-core/dist/agent-loop.js`。
-- 当前动态依据：`labs/7.1-sdk` 的确定性自动检查、工程真实 smoke 和学习者真实复现，以及 `labs/7.2-sdk-controls` 的工程/学习者确定性矩阵与两次真实 Model 主线；精确证据及边界见对应实验节和唯一学习计划。
+- 静态依据：随包 `docs/sdk.md`、`docs/rpc.md`、`docs/json.md`、`dist/core/sdk.d.ts`、`dist/core/agent-session.d.ts`、`dist/core/agent-session.js`、`dist/core/resource-loader.d.ts`、`dist/modes/rpc/rpc-types.d.ts`、`dist/modes/print-mode.js` 与 `pi-agent-core/dist/agent-loop.js`。
+- 当前动态依据：`labs/7.1-sdk` 的确定性自动检查、工程真实 smoke 和学习者真实复现，`labs/7.2-sdk-controls` 的工程/学习者确定性矩阵与两次真实 Model 主线，`labs/7.4-rpc-java` 的工程 Fake 矩阵与工程/学习者两次真实 RPC smoke，以及学习者一次真实 JSON Event Stream single-shot；精确证据及边界见对应实验节和唯一学习计划。

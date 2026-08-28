@@ -37,6 +37,7 @@
 | 6.1-6.4 | Package 来源、安全、制品和管理 | [6.1](../../labs/6.1-package-sources/README.md)、[6.2](../../labs/6.2-package-security/README.md)、[6.3](../../labs/6.3-local-package/README.md)、[6.4](../../labs/6.4-package-management/README.md) | 课程 fixture 与本机固定版本的受控链路；不证明第三方 Package、真实 Registry 或生产可用性 |
 | 7.1 | SDK Agent Session | [SDK 实验材料](../../labs/7.1-sdk/README.md) | Pi SDK `0.84.2` 的内存 Session、资源发现、显式选模、单次 `read`、事件追踪与一次真实 Model smoke；不证明费用、质量、长期稳定或生产可用性 |
 | 7.2 | SDK 高级控制 | [SDK 控制面实验材料](../../labs/7.2-sdk-controls/README.md) | Pi SDK `0.84.2` 的 Tool 限制、取消、两层重试、队列、Compaction 和持久化；区分本地故障注入与一次真实 Model 主线，不证明生产可用性 |
+| 7.4 | Java RPC 客户端 | [Java RPC 实验材料](../../labs/7.4-rpc-java/README.md) | 严格 LF JSONL、Response ID 关联、单活动 Prompt、四类结果、Fake 子进程矩阵与一次真实 RPC smoke；不证明并发 Prompt或生产可用性 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 

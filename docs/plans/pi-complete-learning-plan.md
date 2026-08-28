@@ -9,8 +9,8 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 历史版本基线：`@earendil-works/pi-coding-agent@0.84.0`；当前 CLI 见下方环境快照
 - 参考会话：`<reference-session-id>`；真实标识不进入学习文档
-- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6 和阶段 7 的 7.1-7.2 已完成；下一项为 7.3
-- 下一步：进入 7.3，用一个 Java 外部程序调用 Pi RPC 的完整场景理解 stdin/stdout JSONL framing、请求 ID 关联和异步事件；先讲系统地图，不编写 RPC 客户端代码。
+- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6 和阶段 7 的 7.1-7.5 已完成；下一项为 7.6
+- 下一步：进入 7.6 TUI 系统地图，理解 Component、Container、Input、Overlay、键盘事件与渲染刷新在终端界面中的职责和调用方向；先讲 Java UI 对照，不编写新代码。
 - 预计投入：Pi 学习与综合项目 73-103 小时；学习网站另计 8-12 小时；阶段 5-6 作为定制开发核心加深学习，按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
@@ -1401,9 +1401,30 @@
   - 学习者确定性矩阵运行通过（2026-08-28）：学习者在 `labs/7.2-sdk-controls` 亲自执行 `npm run check` 并提交终端截图。截图显示 `tsc --noEmit` 无错误，取消、队列、Provider Retry、Agent Retry、持久化恢复和 Tool 集合六项均为绿色，汇总为 `tests 6`、`pass 6`、`fail 0`、`cancelled 0`、`skipped 0`，终端正常返回提示符。该证据证明学习者能启动并识别本地确定性矩阵通过，不证明真实 Provider/Model 主线；下一步执行一次 `npm run real`。
   - 学习者真实 Model 主线运行通过（2026-08-28）：学习者在同一 Lab 亲自执行 `npm run real` 并提交终端截图。截图显示 `openai/gpt-5.6-sol`、`openai-responses`；`real_cancel` 为 `signalObserved=true`、`lateCompletion=false`、`settled=true`；`real_queue_compaction_persistence` 的 Steering 顺序、队列归零、Summary 生成、恢复 Context、恢复 marker 和同一 Session 文件六项均为 `true`；最终 `real_controls_result.passed=true`，终端正常返回提示符。该证据证明学习者能启动并识别一次真实主线通过，不证明真实 Provider 失败 Retry、费用、质量、长期稳定或生产可用性。
   - 7.2 完成与验收（2026-08-28）：Tool 限制、协作取消、Provider/Agent Retry、Steering/Follow-up、Compaction 和 Session 持久化已完成系统地图、Java 对照、受控实现、工程门禁和学习者复现。最终工程/学习者确定性矩阵均为 `6/6`，工程/学习者真实主线均为 `passed=true`；学习深度按学习者要求收口为能按问题选择机制、说明关键边界、运行两条命令并判断结果，不要求逐行掌握 TypeScript 测试。7.2 勾选完成；证据边界保持本地故障注入不冒充真实 Provider 故障、两次真实成功不证明长期稳定或生产可用性。
-- [ ] 7.3 理解 RPC 的 stdin/stdout JSONL framing、请求关联和异步事件。
-- [ ] 7.4 编写一个最小 RPC 客户端并处理成功、拒绝、运行期失败和退出。
-- [ ] 7.5 使用 JSON Event Stream 完成一次结构化单次任务并解析关键事件。
+- [x] 7.3 理解 RPC 的 stdin/stdout JSONL framing、请求关联和异步事件。
+  - 进行中（2026-08-28）：已按 Pi `0.84.2` 随包 `docs/rpc.md` 与 `rpc-types.d.ts` 核对系统地图。当前场景固定为 Java `ProcessBuilder` 启动一个长期运行的 `pi --mode rpc` 子进程，stdin 每行发送一个 Command，stdout 混合输出带同一可选 `id` 的 `response` 与通常不带请求 `id` 的异步 Agent Event；严格 framing 只以 LF `\n` 分隔。下一步讲清 Prompt accepted Response 与后续 Message/Tool/终态事件的独立含义，学习确认前不写稳定正文或进入 7.4 代码。
+  - 完成与验收（2026-08-28）：学习者已理解 RPC 是 Java 外部程序管理的长期 Pi 子进程，Command 经 stdin、Response/Event 混合经 stdout；严格 JSONL 只以 LF 分帧，可选请求 `id` 只关联 Response，普通 Agent Event 通常无请求 `id`。学习者也已理解 `success=true` 只表示接收/排队/立即处理，接收后失败进入 Message/Event 流，Run 收尾看 `agent_settled`，业务成功另看最终 Message/Tool/错误。稳定正文已加入系统图、Java 对照与边界；本地链接/围栏、全文 Mermaid `7/7` 实渲染和 `git diff --check` 通过。该证据为 Pi `0.84.2` 静态协议与学习确认，不证明 Java 客户端或真实 RPC 进程；动态实现进入 7.4。
+- [x] 7.4 编写一个最小 RPC 客户端并处理成功、拒绝、运行期失败和退出。
+  - 代码授权与合同冻结（2026-08-28）：学习者明确“开始写代码”。新建独立 `labs/7.4-rpc-java/`，使用 JDK 8 风格 Java、Maven、Jackson 和 JUnit 5；Java `ProcessBuilder` 管理长期 Pi RPC 子进程，stdin 写 Command、stdout 严格按 LF 读取 JSONL，普通 Command Response 通过 `id` 关联，因普通 Agent Event 无请求 `id`，高层 `runPrompt()` 同时只允许一个活动 Run。Fake Java 子进程必须覆盖正常成功、接收前 `success=false`、accepted 后 Assistant/Event 失败、进程提前退出和关闭 stdin 后正常退出；代码遵循类/方法 Javadoc、`@author xiexu`、无 `System.out`、无凭据输出。自动测试通过前不调用真实 Model；之后只执行一次已授权 `openai/gpt-5.6-sol` smoke，不盲目重试。学习者理解并亲自运行前不勾选 7.4。
+  - 首轮 Maven 入口失败（2026-08-28）：工具会话在 Lab 工作目录直接执行 `mvn test` 返回退出码 127、`command not found: mvn`，未进入编译或测试；本机已确认 Maven 位于 `/Users/sxie/maven/apache-maven-3.6.3/bin/mvn`。下一步使用该绝对路径继续建立代码 Red/Green，不能把 PATH 失败归因于实现。
+  - Java 客户端确定性矩阵首轮 Green（2026-08-28）：已新增 Maven/Jackson/JUnit 5 Lab、严格 LF JSONL 读取器、长期 `ProcessBuilder` 客户端、ID Response Map、单活动 Prompt 状态机、分层结果、`@Slf4j` 真实 Demo 和 Fake Java RPC 子进程。绝对 Maven 路径首次进入编译即成功，JDK 21 以 `release 8` 编译主代码 8 个类与测试 3 个类；严格 LF/CRLF/U+2028、逆序 Response ID 关联、正常 accepted+settled、接收前拒绝、accepted 后 Assistant error、Response 前退出码 7 共 `6/6` 通过，`BUILD SUCCESS`。本次只新增 `slf4j-simple 2.0.17` 并由已配置 Maven 镜像获取；该 Green 证明 Fake 子进程与当前实现，不证明真实 Pi RPC、Provider 或 Model。下一步构建可执行 jar 后仅运行一次真实 smoke。
+  - 真实 Java RPC smoke 通过、待最终文档与学习验收（2026-08-28）：`mvn package` 再次通过 `6/6` 并生成可执行 shaded jar；Shade 仅报告依赖 MANIFEST/LICENSE/module-info 重叠警告，构建成功。随后仅执行一次 `java -Dpi.command=/opt/homebrew/bin/pi -jar target/pi-study-rpc-java.jar`，未重试；`openai/gpt-5.6-sol` RPC 结果为 `status=SUCCESS`、`accepted=true`、`settled=true`、`markerSeen=true`、`eventCount=16`、`exitCode=0`、`passed=true`。该证据证明该时间、账号、Model 和固定 Prompt 下 Java 子进程、严格 JSONL、Response/事件状态机、最终文字和 stdin EOF 正常退出链成功；不证明接收前拒绝/接收后失败的真实 Pi 分支、并发 Prompt、费用、质量、长期稳定或生产可用性。下一步补稳定正文和最终回归，学习者理解并亲自运行前不勾选 7.4。
+  - 重复打包制品污染 Red（2026-08-28）：真实 smoke 后不清理 `target` 执行离线 `mvn package`，测试仍为 `6/6`，但 Shade 将上次已替换为 fat jar 的主 artifact 再次合并，报告当前 jar 与 Jackson/SLF4J 存在 787/223/75/57/9 个重复类或资源。该结果不否定客户端运行证据，但说明“替换主 artifact”无法保证重复打包干净。下一步改为保留普通 jar、以 `all` classifier 附加 fat jar，并通过 clean package 与第二次 package 对照验证不再自我重打包。
+  - 重复打包修复 Green（2026-08-28）：Shade 改为保留普通 `pi-study-rpc-java.jar`，另按 Maven 坐标附加可执行 `pi-study-rpc-java-0.0.0-all.jar`；`mvn clean package` 与紧接着不清理 target 的 `mvn -o package` 均通过 `6/6`。第二次打包不再出现当前 jar 与 Jackson/SLF4J 的 787/223/75/57/9 个重复类，自身重打包问题闭合；剩余 MANIFEST/LICENSE/module-info 是不同依赖间的已知合并警告，不影响当前 classpath smoke。
+  - 7.4 工程最终复核通过、待学习验收（2026-08-28）：7.4 离线 Maven 打包 `6/6`，根项目 `185/185`、7.1 `3/3`、7.2 `6/6` 全部通过；README/08/索引共 29 个本地链接与围栏通过，08 Mermaid `7/7` 实渲染，tracked/untracked 空白、高置信凭据、`System.out/System.err`、临时目录和残留 `pi --mode rpc` 进程检查通过，`target/` 正确忽略。稳定正文已加入组件、四态结果、Fake/真实证据和边界。当前代码 8 个主类、3 个测试类均有类/方法 Javadoc 和 `@author xiexu`；工程候选可进入教学，但学习者尚未理解和亲自运行，7.4 保持未勾选。
+  - 7.4 Java 主链教学进行中（2026-08-28）：按学习者“简单了解代码”偏好，只讲 `RpcDemo` 组装命令、`PiRpcClient.start()` 启动子进程、`runPrompt()` 发送 Prompt 并分离 Response/Event、`PromptRunResult` 四态、`close()` 关闭 stdin 并等待退出；`pendingResponses`、线程池和 `StrictJsonlReader` 内部算法不要求掌握。下一步取得主链理解确认，再解释 6 个测试分别保护什么并由学习者亲自运行。
+  - 7.4 Java 主链理解确认（2026-08-28）：学习者已理解 `RpcDemo -> PiRpcClient.start -> runPrompt -> PromptRunResult -> close` 的 Facade 主链，知道 Response 先确认 accepted、Event 推进到 settled、普通 Command 可按 ID 关联而高层同时只跑一个 Prompt，以及 SUCCESS/REJECTED/RUNTIME_FAILURE/PROCESS_EXITED 四态；不要求记忆线程池、Map 或 JSONL Reader 内部实现。
+  - Fake 测试理解缺口（2026-08-28）：学习者追问“Fake 测试是什么”。当前需先说明 `FakeRpcServerMain` 是由测试真正启动的 Java 子进程，客户端仍执行真实 `ProcessBuilder`、stdin/stdout、严格 JSONL、ID Map、Event Tracker 和退出清理；仅把不可控的 Pi/Provider/Model 替换为能稳定返回成功、拒绝、运行错误、逆序 Response 和退出码 7 的协议替身。它类似进程级 MockWebServer，不是伪造断言，也不证明真实 Pi 失败分支；确认前不记 6 项测试理解验收。
+  - 真实 Pi 学习策略确认（2026-08-28）：学习者明确要求使用真实 Pi 学习，费用无需考虑。7.4 后续教学与学习者验收改为真实 Pi/真实 Model 主线，Fake 仅保留为自动化回归的确定性失败夹具，不要求学习其实现，也不冒充真实动态证据。工程已完成一次真实 smoke（16 条 Event、`passed=true`）；下一步由学习者亲自运行 Maven 构建和真实 `-all.jar`。费用授权继续有效，凭据内容仍禁止读取/输出，失败真实请求不盲目重试。
+  - 学习者构建通过、jar 文件名指引 Red（2026-08-28）：学习者亲自执行 Maven package，截图显示 `BUILD SUCCESS`，Shade 只报告依赖 MANIFEST/LICENSE/module-info 合并警告；随后按 README 的错误路径 `target/pi-study-rpc-java-all.jar` 启动，Java 返回 `Unable to access jarfile`。实际制品为 `target/pi-study-rpc-java-0.0.0-all.jar`，因此本次未启动 Pi、未调用 Model、未产生费用，不能记为真实 smoke 失败或成功。README 与计划已改为实际文件名；下一步只执行修正后的真实命令，不重跑 Maven。
+  - 学习者真实 Pi RPC 运行通过（2026-08-28）：学习者使用修正后的 `target/pi-study-rpc-java-0.0.0-all.jar` 亲自启动 Java 客户端并提交截图。结果为 `status=SUCCESS`、`accepted=true`、`settled=true`、`markerSeen=true`、`eventCount=16`、`exitCode=0`、`passed=true`，终端正常返回提示符。该证据证明学习者能启动并判断一次真实 Java -> Pi RPC -> Provider/Model -> Event -> EOF 退出链通过，不证明 Fake 覆盖的真实失败分支、并发 Prompt、费用、质量、长期稳定或生产可用性。
+  - 7.4 完成与验收（2026-08-28）：学习者已按简单 Java 深度理解 `RpcDemo -> PiRpcClient -> runPrompt -> PromptRunResult -> close` Facade 主链和四态结果，Fake 只作为自动化失败夹具、不要求掌握实现；工程 Fake 矩阵 `6/6`、可重复打包、工程/学习者真实 Pi RPC 两次均为 16 条 Event 与 `passed=true`，构建指引 Red 已修正并复现成功。7.4 勾选完成；证据边界保持 Fake 不冒充真实失败、两次真实成功不证明长期稳定或生产可用性。
+- [x] 7.5 使用 JSON Event Stream 完成一次结构化单次任务并解析关键事件。
+  - 系统地图进行中（2026-08-28）：已按 Pi `0.84.2` 随包 `docs/json.md`、`print-mode.js` 与 `json-event.d.ts` 核对。JSON 模式是 finite single-shot：`pi --mode json "prompt"` 启动后先输出 Session Header，再输出 Agent/Turn/Message/Tool/Session Event，Prompt 完成后释放 Runtime 并退出；没有 RPC Command/Response、请求 `id` 或长期双向命令循环。`message_update` 只有 delta/usage，不含累计 Message，实时 UI需按 `contentIndex` 组装；`message_end.message` 才是最终权威消息。源码还确认 JSON 模式不会像 text 模式那样因最终 Assistant `stopReason=error|aborted` 自动把 exitCode 改为 1，因此退出码 0 只证明进程控制流正常结束，业务成功仍需解析最终 Message，并结合 `agent_settled`。下一步完成 RPC/JSON 对照理解确认，再决定真实单次实验；未获代码授权不创建新实现。
+  - 系统地图理解确认与正文验证（2026-08-28）：学习者已理解 JSON Event Stream 是 Prompt 随启动一次性提交、Header/Event 单向输出、任务后进程退出的 single-shot 模式，并能与长期双向 RPC 区分；也理解 `message_update` 是 delta、`message_end.message` 是权威结果、`agent_settled` 表示不再续跑，以及退出码 0 不能单独证明 Assistant 成功。08 正文已加入 RPC/JSON 对照、时序图和退出码边界；本地链接/围栏、全文 Mermaid `8/8` 实渲染和 `git diff --check` 通过。下一步用真实 `openai/gpt-5.6-sol` 完成单次 JSON 任务并通过 jq 解析关键记录，动态证据前保持 7.5 未勾选。
+  - 真实单次实验待学习者执行（2026-08-28）：固定只调用一次 `pi --mode json --no-session --no-approve --provider openai --model gpt-5.6-sol`，Prompt 要求返回 `JSON_STREAM_REAL_OK` 且不调用 Tool；stdout 写入 `mktemp` 专用 JSONL，jq 只汇总 `headerSeen`、最终 Assistant `stopReason`、`markerSeen`、`settledSeen` 和 `eventCount`，Shell 单独记录 `piExitCode`，随后删除临时文件。通过标准为前述布尔值全 true、stopReason 仅 `stop`、exitCode 0；该证据只覆盖本次真实单任务，不证明错误退出码、Tool Event、长期稳定或生产可用性，异常结果不盲目重跑。
+  - 学习者真实 JSON single-shot 通过（2026-08-28）：学习者仅执行一次固定真实命令并提交脱敏 jq 汇总。结果为 `headerSeen=true`、Assistant `stopReason=["stop"]`、`markerSeen=true`、`settledSeen=true`、`recordCount=16`、`eventCount=15`、`piExitCode=0`，终端正常返回；`mktemp` JSONL 已按命令删除。该证据证明本次 `openai/gpt-5.6-sol` single-shot 的 Header、最终 Message、Session settled 和进程退出链成功，不证明错误分支、Tool Event、长期稳定或生产可用性。
+  - 7.5 完成与验收（2026-08-28）：学习者已理解 JSON Event Stream 与 RPC 的生命周期/输入/输出/关联差异，知道 delta-only `message_update`、权威 `message_end.message`、`agent_settled` 和退出码的分层职责；稳定正文、Mermaid `8/8` 与真实单次 jq 解析均闭环，无新增 Java/TypeScript 代码。7.5 勾选完成。
 - [ ] 7.6 理解 TUI 的 Component、Container、Input、Overlay、键盘和渲染机制。
 - [ ] 7.7 构建一个外部小程序：提交任务、展示流式状态、限制工具并保存会话。
 - [ ] 7.8 为外部集成补充协议测试、异常测试和资源清理验证。
@@ -1468,15 +1489,15 @@
 - 文档维护 C（完成，2026-08-24）：原 07 已收口为 46 行稳定 hub，并完成 Package、模型选型与认证、Custom Model、Custom Provider、版本证据五个子页；阶段 6 文档合计 1,227 行。四个直接迁移页按原 435/209/92/15 行稳定正文逐字包含；Custom Provider 按“完整场景 -> 对应精确合同”重排为 406 行，保留注册、目录、Credential、Stream、AssistantMessage、错误/取消、Usage/Cost、Overflow、Reload/注销及五层证据，删除 3 张被更精确图覆盖的入门图、2 段重复 Overflow 说明和失效过渡语。6.1-6.4 动态历史及其中 3 个内容哈希由本计划完整保留，稳定页旧动态副本、失效锚点和跨页精确重复段落均为 0；04、学习索引和四份 Lab 入链已更新，计划与教学 Skill 的网站内容源已明确包含主题子目录，Stage 5 顶层只读 Tool 合同未改变。全量门禁覆盖 30 个 Markdown、135 个闭合围栏、108 个本地路径/锚点和 63 张 Mermaid，围栏、标题层级、链接/锚点、职责/版本关键词、隐私模式、`63/63` 实渲染、临时残留与 `git diff --check` 均通过；计划 checkbox 序列与 `HEAD` 完全一致，阶段 7 文档仍不存在。当前工作区保留已验证 A0；本批未拆 06、未修改代码/Fixture/测试、未运行课程实验、认证或 Provider、未调用真实 Model、未产生费用，也未暂存或提交。下一步仍按当前断点进入 7.1；拆分 06 须另行授权。
 - 文档维护 B（完成，2026-08-24）：顶层 `06-extensions.md` 已收口为 106 行兼容 hub，并完成 Context/Tool/Event、Shell Gate/Branch State/Widget、Runtime/加载、验证边界四个子页及学习索引入链；Extension README 已增加实现、依赖、生命周期、取消/错误、Tool/Command、Shell/State、证据边界标题。原 481/279/250/45 行稳定正文已迁移；生命周期总图拆为 Runtime 所有权和入口派发两图，State/Widget 图改为纵向。拆分前 `40/7`、`43/10` 和 SHA 已明确限定为历史文件快照，自动测试具体历史计数只留本计划。职责关键词、跨页精确重复、路径、版本和动态数字归属检查通过；Extension 源码/Fixture/测试无差异，顶层 `/study-inspect 06-extensions.md` 路径、固定补全和只读顶层 basename 合同不变。E 已补齐严格 TypeScript、`185/185` 自动测试和 64 张图实渲染，因此 B 验收闭合。当前 B 与 E 共 8 个预期文档路径保持未提交，未修改代码、Fixture 或测试，未运行认证/真实 Provider，未调用真实 Model或产生费用。
 - 文档维护 E（完成，PASS，2026-08-24）：以本地提交 `ed71c93b28046a9c647f96a3919f9e2a4154d941` 为 A0+C 基线，对 B 的未提交差异完成全仓最终复核。根 `npm run check` 通过严格 TypeScript 与 `185/185` 自动测试；34 个 Markdown、136 个闭合围栏、113 个本地路径/锚点和 64 张 Mermaid 分别通过标题、围栏、链接/锚点与 `64/64` 实渲染，06 子页图分布为 Context 4、Gate/State/UI 3、Runtime 5，临时残留为 0。06/07 hub 与子页职责、Pi `0.84.1`/`0.84.2` 分界、历史数字限定、稳定正文动态历史归属、跨页精确重复和隐私扫描均通过；计划 checkbox 序列与 A0+C 提交完全一致，阶段 7 文档仍不存在，`git diff --check` 通过，工作区只包含 B/E 的 8 个预期文档路径。该 PASS 不证明真实 TUI、Provider、账单或生产行为；本轮未 push、未提交 B/E。下一步仍按当前断点进入 7.1；如需提交 B/E，必须另行授权。
-- 状态：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6 和阶段 7 的 7.1-7.2 已完成；下一项为 7.3。
-- 已完成：阶段 0-6、7.1-7.2。
+- 状态：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6 和阶段 7 的 7.1-7.5 已完成；下一项为 7.6。
+- 已完成：阶段 0-6、7.1-7.5。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”的连续讲解模式；新主题先用有起点、过程和终点的完整大白话场景解释陌生对象，再映射术语并直接进入受控实验，不再逐知识点提问或要求反复复述；用户可随时打断。用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收；无问答时不把教学覆盖扩大为独立背诵证据。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
 - 计划强化：阶段 5-6 已扩展为两个贯穿项目、逐项受控实验、分层证据和独立阶段门禁；5.1-5.10 和 6.1-6.8 已完成。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无；6.4 guided 运行器已按 `quit` 停止，其追踪的临时残留为 `0`。
-- 下一步：进入 7.3 RPC 系统地图，用 Java `ProcessBuilder`/stdin/stdout 对照 JSONL framing、请求 ID 关联和异步事件；本项先理解协议，不提前编写 7.4 客户端。
+- 下一步：进入 7.6 TUI 系统地图，先用 Java Swing/事件循环对照 Component、Container、Input、Overlay、键盘和渲染；未明确授权前不写代码。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录
