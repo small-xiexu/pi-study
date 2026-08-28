@@ -24,6 +24,7 @@
 | [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | 4 | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
 | [06-extensions.md](06-extensions.md) | 5 | Extension 总入口；从 hub 分别进入 Runtime/加载、Context/Tool/Event、Shell Gate/Branch State/Widget 和验证边界子页；默认 Pi `0.84.1`，5.10 动态矩阵为 `0.84.2` |
 | [07-packages-models-providers.md](07-packages-models-providers.md) | 6 | Pi `0.84.2` 阶段总入口；从 hub 分别进入 Package、模型选型与认证、Custom Model、Custom Provider 和版本证据子页 |
+| [08-sdk-rpc-json-tui.md](08-sdk-rpc-json-tui.md) | 7 | Pi `0.84.2` SDK、Agent Session、事件订阅与高级控制；RPC、JSON Event Stream 和 TUI 后续继续积累 |
 
 ## 实验入口
 
@@ -34,15 +35,16 @@
 | 4.4-4.5 | Skill 触发、注入与脚本执行 | [`OrderService.java`](../../labs/4.4-skill/OrderService.java)、[`4.5-skill-security/`](../../labs/4.5-skill-security/)、[`script-execution-lab`](../../.agents/skills/script-execution-lab/SKILL.md) | 受控样例中的 Skill/Tool 行为；读取脚本不等于执行，单次未受注入不等于普遍安全 |
 | 5.1-5.10 | `pi-study-guard` Extension | [Extension 实验材料](../../.pi/extensions/pi-study-guard/README.md) | 静态、Fake/Runner、本地 Pi 和真实模式的分层证据；不是 OS 沙箱 |
 | 6.1-6.4 | Package 来源、安全、制品和管理 | [6.1](../../labs/6.1-package-sources/README.md)、[6.2](../../labs/6.2-package-security/README.md)、[6.3](../../labs/6.3-local-package/README.md)、[6.4](../../labs/6.4-package-management/README.md) | 课程 fixture 与本机固定版本的受控链路；不证明第三方 Package、真实 Registry 或生产可用性 |
+| 7.1 | SDK Agent Session | [SDK 实验材料](../../labs/7.1-sdk/README.md) | Pi SDK `0.84.2` 的内存 Session、资源发现、显式选模、单次 `read`、事件追踪与一次真实 Model smoke；不证明费用、质量、长期稳定或生产可用性 |
+| 7.2 | SDK 高级控制 | [SDK 控制面实验材料](../../labs/7.2-sdk-controls/README.md) | Pi SDK `0.84.2` 的 Tool 限制、取消、两层重试、队列、Compaction 和持久化；区分本地故障注入与一次真实 Model 主线，不证明生产可用性 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 
 | 预留文档 | 对应主题 |
 |---|---|
-| `08-sdk-rpc-json-tui.md` | SDK、RPC、JSON 与 TUI |
 | `09-source-and-capstone.md` | 源码阅读与毕业综合项目 |
 
-阶段 7 开始前仍从唯一计划的当前断点进入；只有开始学习并产生稳定内容后才创建 `08-sdk-rpc-json-tui.md`。
+阶段 8 开始前仍从唯一计划的当前断点进入；只有开始学习并产生稳定内容后才创建 `09-source-and-capstone.md`。
 
 ## Legacy migration entry
 
@@ -50,7 +52,7 @@
 
 ## 阅读顺序
 
-推荐顺序：`00（首次环境搭建时按需） -> 01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07`。
+推荐顺序：`00（首次环境搭建时按需） -> 01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07 -> 08`。
 
 每次继续学习前，先从完整学习计划的“当前断点”恢复进度；主题文档用于按上述顺序学习或查阅，不承担进度恢复。
 
