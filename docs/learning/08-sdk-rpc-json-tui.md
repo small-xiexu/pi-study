@@ -1,6 +1,6 @@
 # SDK、RPC、JSON 与 TUI
 
-本文按 Pi `0.84.2` 学习如何把 Pi 作为组件接入外部程序。当前先建立 SDK、`AgentSession`、资源加载与事件订阅的基础心智模型；学习状态、实验和验收只见[完整学习计划](../plans/pi-complete-learning-plan.md)。
+本文按 Pi `0.84.2` 记录 SDK、RPC 与 JSON Event Stream，按 Pi `0.84.3` 记录 TUI。学习状态、实验和验收只见[完整学习计划](../plans/pi-complete-learning-plan.md)。
 
 ## SDK 与项目依赖
 
@@ -625,8 +625,54 @@ sequenceDiagram
 
 学习者真实单次实验使用 `openai/gpt-5.6-sol`、`--no-session --no-approve` 和无 Tool 固定 Prompt。stdout 共 `16` 条 JSONL，其中 Session Header `1` 条、Event `15` 条；jq 解析得到 `headerSeen=true`、最终 Assistant `stopReason=["stop"]`、`markerSeen=true`、`settledSeen=true`，Pi 退出码为 `0`。临时 JSONL 已删除。该证据只证明本次真实 single-shot 的 Header、最终 Message、Session 收尾和进程退出链成功，不证明错误分支、Tool Event、长期稳定或生产可用性。
 
+## 7.6 TUI 组件、输入与刷新
+
+Pi TUI 把画面拆成独立 Component，由焦点决定通过全局处理后的按键接收者，再把各 Component 的文字行组合并写入终端。
+
+| 对象 | 职责 | 边界 |
+|---|---|---|
+| Component | 把自身状态描述成一行或多行终端画面；可选处理按键 | 接口本身不定义兄弟顺序，也不直接写终端 |
+| Container | 按顺序保存 Component，并纵向拼接其文字行 | 不自动向子 Component 广播按键 |
+| Input | 保存单行文字与光标，处理编辑按键并通知提交或取消 | Pi 底部主输入区实际使用功能更完整的 Editor |
+| Overlay 显示方式 | 把普通 Component 叠加到基础画面上 | 不是独立窗口，也不等同于焦点 |
+| 焦点 | 指定未被全局处理消费的按键交给哪个 Component | 不等同于文字光标或菜单高亮 |
+
+下面只画会引起界面变化的主线。Agent、Tool 或定时任务也能改变界面状态，不需要经过键盘和焦点。
+
+```mermaid
+flowchart TD
+    userKey[/用户按键/]
+    terminal[终端识别输入]
+    globalInput[Pi 处理全局输入]
+    focused[查找焦点 Component]
+    handler[焦点 Component 处理]
+    runtimeEvent[/Agent 或 Tool 事件/]
+    stateChange[界面状态变化]
+    requestRender[请求刷新]
+    componentRender[Component 生成文字行]
+    containerMerge[Container 纵向拼接]
+    hasOverlay{存在可见 Overlay?}
+    overlayComposite[叠加 Overlay]
+    compareScreen[比较新旧画面]
+    writeChanges[写入变化部分]
+    screenUpdated([终端画面更新])
+
+    userKey --> terminal --> globalInput
+    globalInput -->|"未消费"| focused --> handler --> stateChange
+    runtimeEvent --> stateChange
+    stateChange --> requestRender --> componentRender --> containerMerge --> hasOverlay
+    hasOverlay -->|"有"| overlayComposite --> compareScreen
+    hasOverlay -->|"无"| compareScreen
+    compareScreen --> writeChanges --> screenUpdated
+```
+
+全局输入处理可以消费或改写按键；剩余按键只交给焦点 Component，不沿 Container 自动传播。交互式 Overlay 通常取得焦点，关闭后归还焦点；非捕获 Overlay 可以只显示。状态变化不等于画面已经更新，还需要请求刷新；`invalidate()` 只清除 Component 的渲染缓存，不替代刷新请求。当前实现通常比较新旧文字行并只写变化部分，终端尺寸变化等情况仍可能触发完整重绘。
+
+本节只要求能识别对象职责、解释输入与刷新方向，并在实现时查阅随包 `docs/tui.md`。结论来自 Pi/TUI `0.84.3` 的随包文档、公共类型与本机静态实现核对；没有新增真实 TUI 动态实验，不证明任意终端、IME、键盘协议、性能或完整重绘细节。源码级输入分发与渲染留到阶段 8.5。
+
 ## 版本依据
 
-- 本机 Pi CLI 与 npm Package：`0.84.2`。
-- 静态依据：随包 `docs/sdk.md`、`docs/rpc.md`、`docs/json.md`、`dist/core/sdk.d.ts`、`dist/core/agent-session.d.ts`、`dist/core/agent-session.js`、`dist/core/resource-loader.d.ts`、`dist/modes/rpc/rpc-types.d.ts`、`dist/modes/print-mode.js` 与 `pi-agent-core/dist/agent-loop.js`。
-- 当前动态依据：`labs/7.1-sdk` 的确定性自动检查、工程真实 smoke 和学习者真实复现，`labs/7.2-sdk-controls` 的工程/学习者确定性矩阵与两次真实 Model 主线，`labs/7.4-rpc-java` 的工程 Fake 矩阵与工程/学习者两次真实 RPC smoke，以及学习者一次真实 JSON Event Stream single-shot；精确证据及边界见对应实验节和唯一学习计划。
+- SDK、RPC 与 JSON Event Stream：Pi CLI 与 npm Package `0.84.2`。
+- TUI：全局 Pi 与 `@earendil-works/pi-tui` `0.84.3`；随包 `docs/tui.md` 与课程锁定的 `0.84.2` 文件内容相同。
+- 静态依据：随包 `docs/sdk.md`、`docs/rpc.md`、`docs/json.md`、`docs/tui.md`，Coding Agent 的 SDK/RPC/JSON 类型与实现，以及 `pi-tui` 的 `tui.d.ts`、`tui.js`、`tui-main-screen.js` 和 `components/input.js`。
+- 当前动态依据：`labs/7.1-sdk` 的确定性自动检查、工程真实 smoke 和学习者真实复现，`labs/7.2-sdk-controls` 的工程/学习者确定性矩阵与两次真实 Model 主线，`labs/7.4-rpc-java` 的工程 Fake 矩阵与工程/学习者两次真实 RPC smoke，以及学习者一次真实 JSON Event Stream single-shot；7.6 没有新增动态实验。精确证据及边界见对应实验节和唯一学习计划。
