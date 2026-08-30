@@ -24,7 +24,7 @@
 | [05-prompt-skill-theme.md](05-prompt-skill-theme.md) | 4 | Prompt Template、Skill、Theme，以及资源加载、选择、执行与重载边界 |
 | [06-extensions.md](06-extensions.md) | 5 | Extension 总入口；从 hub 分别进入 Runtime/加载、Context/Tool/Event、Shell Gate/Branch State/Widget 和验证边界子页；默认 Pi `0.84.1`，5.10 动态矩阵为 `0.84.2` |
 | [07-packages-models-providers.md](07-packages-models-providers.md) | 6 | Pi `0.84.2` 阶段总入口；从 hub 分别进入 Package、模型选型与认证、Custom Model、Custom Provider 和版本证据子页 |
-| [08-sdk-rpc-json-tui.md](08-sdk-rpc-json-tui.md) | 7 | Pi `0.84.2` SDK、Agent Session、RPC 与 JSON Event Stream；Pi `0.84.3` TUI Component、焦点、Overlay、输入和刷新主线 |
+| [08-sdk-rpc-json-tui.md](08-sdk-rpc-json-tui.md) | 7 | Pi `0.84.2` SDK/RPC/JSON；Pi `0.84.3` TUI 与 SDK 本地任务台，覆盖焦点、单任务状态、只读 Tool、持久 Session、协议异常、信号和资源清理 |
 
 ## 实验入口
 
@@ -38,6 +38,7 @@
 | 7.1 | SDK Agent Session | [SDK 实验材料](../../labs/7.1-sdk/README.md) | Pi SDK `0.84.2` 的内存 Session、资源发现、显式选模、单次 `read`、事件追踪与一次真实 Model smoke；不证明费用、质量、长期稳定或生产可用性 |
 | 7.2 | SDK 高级控制 | [SDK 控制面实验材料](../../labs/7.2-sdk-controls/README.md) | Pi SDK `0.84.2` 的 Tool 限制、取消、两层重试、队列、Compaction 和持久化；区分本地故障注入与一次真实 Model 主线，不证明生产可用性 |
 | 7.4 | Java RPC 客户端 | [Java RPC 实验材料](../../labs/7.4-rpc-java/README.md) | 严格 LF JSONL、Response ID 关联、单活动 Prompt、四类结果、Fake 子进程矩阵与一次真实 RPC smoke；不证明并发 Prompt或生产可用性 |
+| 7.7-7.8 | SDK 本地任务台 | [任务台实验材料](../../labs/7.7-sdk-task-console/README.md) | SDK `0.84.3` 的单任务、严格 `read`、持久 Session、输入上限、信号/EPIPE、单写租约和资源释放；一次真实 Model SIGTERM 协作取消通过 |
 
 后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
 

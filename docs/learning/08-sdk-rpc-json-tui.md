@@ -1,6 +1,6 @@
 # SDK、RPC、JSON 与 TUI
 
-本文按 Pi `0.84.2` 记录 SDK、RPC 与 JSON Event Stream，按 Pi `0.84.3` 记录 TUI。学习状态、实验和验收只见[完整学习计划](../plans/pi-complete-learning-plan.md)。
+本文按 Pi `0.84.2` 记录 7.1-7.5 的 SDK、RPC 与 JSON Event Stream，按 Pi `0.84.3` 记录 7.6 TUI 和 7.7-7.8 SDK 本地任务台。学习状态、实验和验收只见[完整学习计划](../plans/pi-complete-learning-plan.md)。
 
 ## SDK 与项目依赖
 
@@ -670,9 +670,215 @@ flowchart TD
 
 本节只要求能识别对象职责、解释输入与刷新方向，并在实现时查阅随包 `docs/tui.md`。结论来自 Pi/TUI `0.84.3` 的随包文档、公共类型与本机静态实现核对；没有新增真实 TUI 动态实验，不证明任意终端、IME、键盘协议、性能或完整重绘细节。源码级输入分发与渲染留到阶段 8.5。
 
+## 7.7 SDK 本地终端任务台
+
+实验入口为 [`labs/7.7-sdk-task-console/`](../../labs/7.7-sdk-task-console/README.md)。它使用 SDK `0.84.3` 把 Session 恢复、事件状态、严格只读 Tool 和优雅退出组合成一个单任务终端程序，不建设复杂 TUI 或网页。
+
+| 层 | 职责 |
+|---|---|
+| 终端入口 | 接收普通任务、`/cancel`、`/quit`，输出固定状态与单行 JSON Answer |
+| Controller | 持有唯一活动 Task Promise，拒绝 BUSY，等待任务结束后再释放 Runtime |
+| SDK Runtime | 固定 Model/Thinking/Tool/资源，处理当前 Run 事件、取消、终态和持久化匹配 |
+| 安全输出 | 只保留固定诊断字段，移除 Answer 中的 ANSI、OSC 和危险控制字符 |
+
+这四个文件都是 `pi-study` 课程 Lab 代码，不是 Pi 官方源码。官方边界从 Runtime 调用 `@earendil-works/pi-coding-agent@0.84.3` 开始；官方对象包括 ResourceLoader、ModelRuntime、SessionManager、AgentSession 和内置 Tool。下面按启动、任务、事件返回和退出展示两侧的完整调用方向。
+
+```mermaid
+sequenceDiagram
+    participant Terminal as 终端 / 外部调用方
+    box 课程 Lab 代码（本仓库编写）
+        participant Entry as task-console.ts
+        participant Controller as task-console-controller.ts
+        participant Runtime as task-console-runtime.ts
+        participant Output as safe-output.ts
+    end
+    box Pi 官方 SDK 0.84.3
+        participant SDK as ResourceLoader / ModelRuntime / SessionManager / AgentSession / read Tool
+    end
+    participant Model as Provider / Model
+    participant Storage as 项目文件 / 私有 SessionDir / JSONL
+
+    rect transparent
+        Note over Terminal,Storage: 启动阶段
+        Terminal->>Entry: 启动任务台
+        Entry->>Controller: start()
+        Controller-->>Entry: STARTING
+        Entry->>Output: 格式化固定状态
+        Output-->>Terminal: status=STARTING
+        Controller->>Runtime: initialize()
+        Runtime->>Storage: 校验目录与 Session v3，取得单写租约
+        Runtime->>SDK: 准备唯一根 Context、Model、Session 与 tools=[read]
+        SDK-->>Runtime: ReadyInfo 与 AgentSession
+        Runtime-->>Controller: NEW / RESUMED、Model、Tool
+        Controller-->>Entry: READY
+        Entry->>Output: 格式化固定状态
+        Output-->>Terminal: status=READY
+    end
+
+    rect transparent
+        Note over Terminal,Storage: 正常任务与事件返回
+        Terminal->>Entry: 提交一行任务
+        Entry->>Controller: handleLine(line)
+        alt 空行、BUSY 或输入超限
+            Controller-->>Entry: IGNORED / BUSY / InputTooLong
+            Entry->>Output: 输出允许的固定字段
+            Output-->>Terminal: 保持现有任务或回到 READY
+        else 合法空闲任务
+            Controller->>Runtime: runTask(trimmedText)
+            Runtime->>SDK: AgentSession.prompt()
+            SDK->>Model: 第一次 Model 请求
+            Model-->>SDK: read Tool Call
+            SDK->>Storage: 内置 read Tool 读取课程文件
+            Storage-->>SDK: 文件内容与 Tool Result
+            SDK->>Model: Tool Result 进入下一 Turn
+            Model-->>SDK: 最终 Assistant Message
+            SDK->>Storage: 追加当前 Run 的 Session Entry
+            SDK-->>Runtime: Tool / Message / settled 事件
+            Runtime-->>Controller: COMPLETED / FAILED / CANCELLED
+            Controller-->>Entry: 状态与可选最终 Answer
+            Entry->>Output: 脱敏、控制字符清理、单行编码
+            Output-->>Terminal: 固定状态与安全 Answer
+        end
+    end
+
+    rect transparent
+        Note over Terminal,Storage: 退出阶段
+        Terminal->>Entry: /quit、EOF、信号或 EPIPE
+        Entry->>Controller: 进入唯一 shutdown Promise
+        Controller->>Runtime: cancel()，等待 Task，再 close()
+        Runtime->>SDK: abort、unsubscribe、dispose
+        SDK-->>Runtime: Run 停止并释放官方 Session 对象
+        Runtime->>Storage: 释放课程单写租约，保留 JSONL
+        Runtime-->>Controller: 清理完成或固定 ShutdownFailure
+        Controller-->>Entry: 退出结果
+        Entry-->>Terminal: 退出码 0、1、130 或 143
+    end
+```
+
+主线为 `STARTING -> READY -> RUNNING/READING -> COMPLETED/FAILED/CANCELLED -> READY`。运行中第二个普通任务只返回 BUSY，不覆盖或排队；并行 `read` 尚有任一调用未结束时保持 READING。
+
+COMPLETED 必须同时满足：本次 `prompt()` 成功返回、本次 `agent_settled` 已出现、本次最终 Assistant `stopReason=stop` 且文字非空、Prompt 返回后 SessionManager 中存在匹配时间戳的新 Assistant Message。`message_end` 会先通知 Listener、后持久化，不能单独证明 `saved=true`；恢复 Session 中的旧 Assistant 也不能替代本次结果。
+
+Runtime 禁止 DefaultResourceLoader 自动扫描 Context，以稳定只读快照显式注入唯一仓库根 `AGENTS.md`；全局或祖先 Context 不会先读取后过滤。Extension、Skill、Prompt Template、Theme 以及项目/全局自定义 System/Append Prompt 资源全部禁用；Model 固定为 `openai/gpt-5.6-sol`、Thinking `off`、Tool 严格为 `read`，Agent/Provider Retry 与 Compaction 关闭。`read` 仍以当前用户权限访问文件，不是 OS 沙箱。
+
+Session JSONL 位于仓库外的课程专用目录。7.7 基线以 owner marker 确认目录所有权，在改权限前拒绝未拥有目录，并只允许 marker 与 `nlink=1` 的普通 `.jsonl`；仓库内路径、symlink、hard link、FIFO 和其他条目均 fail closed。目录为 `0700`，但 JSONL 仍明文包含 Prompt、消息和 Tool Result，不应提交或共享。
+
+自动门禁使用纯内存凭据和脚本 ModelRuntime，真实执行 SDK Agent Loop 与内置 `read`，网络和真实 Provider 调用为零。7.7 验收时严格 TypeScript、`29/29` 测试、锁文件离线复现、相关 7.1 `3/3`、7.2 `6/6`、根项目 `185/185` 及最终独立代码复核均通过。
+
+一次获授权的真实 smoke 未重跑：NEW Session、固定 Model、严格 `read`、一次 READING、COMPLETED `saved=true` 和固定 marker 均通过，进程退出 `0`；事后专用目录/marker 权限为 `0700/0600`，普通 JSONL `1`，无链接或残留进程。学习者随后亲自运行 `console`，验证 RESUMED、真实 read Tool Loop、固定 Answer、再次 READY 和 `/quit` 返回 Shell。7.7 已完成；该输出没有直接计数 HTTP 请求或费用，也不证明长期稳定、任意任务安全或生产可用。
+
+## 7.8 协议、异常与资源清理
+
+7.8 不改变任务台的 Model、Tool 或完成判定，只补外部输入、进程退出、Session 拒绝和资源释放合同。
+
+| 边界 | 当前合同 |
+|---|---|
+| 输入 | LF/CRLF 等价；空行忽略；trim 前最多 `8192` UTF-8 字节；空闲超限为 `RUNTIME/InputTooLong` 且不调用 SDK；活动任务的普通输入仍只 BUSY |
+| 正常退出 | `/quit` 与 EOF 取消并等待活动任务，随后 unsubscribe、dispose、释放租约，退出 `0` |
+| 信号 | TTY `Control-C`/SIGINT 退出 `130`，SIGTERM 退出 `143`；首信号启动一次清理，5 秒超时或第二信号硬退出 |
+| 输出关闭 | stdout EPIPE 为 `SHUTDOWN/BrokenPipe` 并非零退出；stderr 仍可用时只写一次固定诊断，双输出关闭时静默 |
+| Session | Model 前只读校验当前 Session v3；未知/错型/旧版、不可读、不可追加、仓库不匹配或目录不可写时拒绝且不改原字节 |
+| 并发 | 原子 `0600` 租约保证同一 SessionDir 单写；任何既有租约都拒绝，程序不自动删除陈旧租约 |
+
+日常操作先分清三类，再按目的选择：
+
+| 类型 | 内容 | 怎么做 |
+|---|---|---|
+| 应用命令 | `/cancel`、`/quit` | 在任务台输入命令，再按 `Return` |
+| 键盘操作 | `Control-D`、`Control-C`、`Esc` | 直接按对应按键，不输入这些文字 |
+| 程序输出 | `STARTING`、`READY`、`CANCELLED`、`SIGINT`、`exit 130` 等 | 只观察和判断结果，不需要输入 |
+
+```mermaid
+flowchart TD
+    start{"你现在想做什么？"}
+    stopTask{"只停止当前任务？"}
+    exitConsole{"正常退出整个任务台？"}
+    endInput{"让终端输入结束？"}
+    interruptProcess{"立即中断整个进程？"}
+    closeLocalUi{"只关闭菜单或弹层？"}
+
+    cancel["输入 /cancel<br/>活动任务变为 CANCELLED<br/>任务台回到 READY，不退出"]
+    quit["输入 /quit<br/>执行清理<br/>正常退出，exit 0"]
+    ctrlD["在空输入行按 Control-D<br/>产生 EOF 并执行同一清理<br/>正常退出，exit 0"]
+    ctrlC["按 Control-C<br/>产生 SIGINT 并执行清理<br/>中断退出，exit 130"]
+    esc["按 Esc<br/>完整 Pi TUI：关闭局部界面<br/>当前任务台：不退出"]
+    keepRunning["都不是：继续输入或等待"]
+
+    start --> stopTask
+    stopTask -->|"是"| cancel
+    stopTask -->|"否"| exitConsole
+    exitConsole -->|"是"| quit
+    exitConsole -->|"否"| endInput
+    endInput -->|"是"| ctrlD
+    endInput -->|"否"| interruptProcess
+    interruptProcess -->|"是"| ctrlC
+    interruptProcess -->|"否"| closeLocalUi
+    closeLocalUi -->|"是"| esc
+    closeLocalUi -->|"否"| keepRunning
+```
+
+最短记法：`/cancel` 管任务，`/quit` 管程序，`Control-D` 结束输入，`Control-C` 中断进程，`Esc` 只管局部界面。当前课程任务台没有把 `Esc` 注册为退出键。
+
+所有退出入口汇入同一个 shutdown Promise，避免 `/quit`、EOF、EPIPE 和信号分别重复取消或释放。
+
+SIGTERM 是 terminate signal：操作系统、进程管理器或部署平台用它请求进程结束。程序可以捕获 SIGTERM，先完成异步清理再退出；它不同于无法捕获、没有清理机会的 SIGKILL。非 Windows 平台通常把 SIGTERM 记为信号 15，因此保留信号语义的退出码为 `128 + 15 = 143`。
+
+```mermaid
+flowchart TD
+    quit["应用命令 /quit"]
+    eof["stdin EOF：输入端结束"]
+    sigint["Control-C 或 SIGINT"]
+    sigterm["SIGTERM：请求进程终止"]
+    epipe["stdout EPIPE：输出端已关闭"]
+
+    normalCode["目标退出码 0"]
+    intCode["目标退出码 130"]
+    termCode["目标退出码 143"]
+    pipeCode["记录 BrokenPipe，目标退出码 1"]
+
+    hasShutdown{"已有 shutdown Promise?"}
+    secondSignal{"这次是第二个信号?"}
+    reuse["复用并等待已有 Promise 的结果"]
+    reusedEnd["不重复清理，沿用第一次退出结果"]
+    create["创建唯一 shutdown Promise 与 5 秒 Timer"]
+
+    stopInput["关闭输入，不再接收新任务"]
+    cancel["协作取消活动 Agent Run"]
+    wait["等待 Task Promise 真正结束"]
+    unsubscribe["取消 Controller 与 SDK 订阅"]
+    dispose["dispose Session，清空 Listener、Read 状态与 Timer"]
+    release["按 owner nonce 释放单写租约"]
+    inTime{"5 秒内完成?"}
+    cleanupError{"任一清理步骤失败?"}
+    fixedFailure["记录 SHUTDOWN / ShutdownFailure；信号保留码，普通退出改为 1"]
+    graceful["按目标退出码结束：0、1、130 或 143"]
+    timeout["记录 ShutdownTimeout"]
+    forcedBySignal["第二信号：立即硬退出，可能留下租约"]
+    forcedByTimeout["清理超时：硬退出，可能留下租约"]
+
+    quit --> normalCode --> hasShutdown
+    eof --> normalCode
+    sigint --> intCode --> hasShutdown
+    sigterm --> termCode --> hasShutdown
+    epipe --> pipeCode --> hasShutdown
+
+    hasShutdown -->|"否"| create
+    hasShutdown -->|"是"| secondSignal
+    secondSignal -->|"否"| reuse --> reusedEnd
+    secondSignal -->|"是"| forcedBySignal
+
+    create --> stopInput --> cancel --> wait --> unsubscribe --> dispose --> release --> inTime
+    inTime -->|"否"| timeout --> forcedByTimeout
+    inTime -->|"是"| cleanupError
+    cleanupError -->|"是"| fixedFailure --> graceful
+    cleanupError -->|"否"| graceful
+```
+
+确定性矩阵使用 Fake Controller、纯内存凭据和脚本 ModelRuntime；进程层实际启动 Node 子进程验证 CRLF/EOF、启动前后 SIGINT/SIGTERM、重复信号、超时、EPIPE、清理失败和同目录 Writer 竞争。本机真实 TTY 已验证 READY 后 `Control-C` 退出 `130`、无残留进程。一次重新授权的真实任务在 Model 产生首个 `READING tool=read` 后收到 SIGTERM，结果为 CANCELLED、无 COMPLETED/Answer/FAILED、退出 `143`、租约释放且私有目录结构有效；Session 正文未读取。现有证据不能证明 `SIGKILL`/断电、远端停止计算或计费、恶意同用户 TOCTOU、完整 Session 树业务语义或 Windows 信号/链接行为。硬退出或崩溃可能留下租约；程序刻意 fail closed，需要人工确认无 Writer 或换用新的专用 SessionDir，不自动删除。
+
 ## 版本依据
 
-- SDK、RPC 与 JSON Event Stream：Pi CLI 与 npm Package `0.84.2`。
-- TUI：全局 Pi 与 `@earendil-works/pi-tui` `0.84.3`；随包 `docs/tui.md` 与课程锁定的 `0.84.2` 文件内容相同。
+- 7.1-7.5 SDK、RPC 与 JSON Event Stream：Pi CLI 与 npm Package `0.84.2`。
+- 7.6-7.8 TUI 与 SDK 任务台：全局 Pi、`@earendil-works/pi-tui` 和新 Lab SDK `0.84.3`；随包 `docs/tui.md` 与课程锁定的 `0.84.2` 文件内容相同。
 - 静态依据：随包 `docs/sdk.md`、`docs/rpc.md`、`docs/json.md`、`docs/tui.md`，Coding Agent 的 SDK/RPC/JSON 类型与实现，以及 `pi-tui` 的 `tui.d.ts`、`tui.js`、`tui-main-screen.js` 和 `components/input.js`。
-- 当前动态依据：`labs/7.1-sdk` 的确定性自动检查、工程真实 smoke 和学习者真实复现，`labs/7.2-sdk-controls` 的工程/学习者确定性矩阵与两次真实 Model 主线，`labs/7.4-rpc-java` 的工程 Fake 矩阵与工程/学习者两次真实 RPC smoke，以及学习者一次真实 JSON Event Stream single-shot；7.6 没有新增动态实验。精确证据及边界见对应实验节和唯一学习计划。
+- 当前动态依据：`labs/7.1-sdk` 的确定性自动检查、工程真实 smoke 和学习者真实复现，`labs/7.2-sdk-controls` 的工程/学习者确定性矩阵与两次真实 Model 主线，`labs/7.4-rpc-java` 的工程 Fake 矩阵与工程/学习者两次真实 RPC smoke，以及学习者一次真实 JSON Event Stream single-shot。7.6 没有新增动态实验；7.7 已有零网络脚本 Agent Loop、确定性自动证据、一次获授权真实 smoke和学习者 RESUMED 交互/退出验收；7.8 已有确定性、本地多进程、独立复核、真实 TTY `Control-C` 和一次真实 Model SIGTERM 取消证据。精确证据及边界见对应实验节和唯一学习计划。
