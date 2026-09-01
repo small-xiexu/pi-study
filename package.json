@@ -58,6 +58,7 @@
   "scripts": {
     "typecheck": "npm --prefix .pi/extensions/pi-study-guard run typecheck",
     "test": "npm --prefix .pi/extensions/pi-study-guard test",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "capstone:check": "node labs/8.8-capstone/run-capstone-check.mjs"
   }
 }

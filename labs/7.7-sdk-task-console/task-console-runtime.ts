@@ -40,6 +40,12 @@ const SESSION_DIRECTORY_ENV = "PI_STUDY_77_SESSION_DIR";
 export const SESSION_OWNER_MARKER_FILE = ".pi-study-7.7-sdk-task-console-owner";
 export const SESSION_OWNER_MARKER_CONTENT = "pi-study-7.7-sdk-task-console:v1\n";
 export const SESSION_LEASE_FILE = ".pi-study-7.7-sdk-task-console-lease";
+export const TASK_READ_RELATIVE_PATH = path.join(
+  "labs",
+  "7.7-sdk-task-console",
+  "fixture.txt",
+);
+export const TASK_READ_PATH_BLOCK_REASON = "Read request blocked by task path policy";
 
 const SESSION_LEASE_VERSION = 1;
 const MAX_SESSION_LEASE_BYTES = 512;
@@ -1087,6 +1093,97 @@ function hasStrictReadTools(tools: readonly string[]): boolean {
   return tools.length === 1 && tools[0] === "read";
 }
 
+type TaskBeforeToolCallHook = NonNullable<
+  Awaited<ReturnType<typeof createAgentSession>>["session"]["agent"]["beforeToolCall"]
+>;
+
+interface TaskReadPathGateAgent {
+  beforeToolCall?: TaskBeforeToolCallHook;
+}
+
+interface TaskReadPathGateSession {
+  readonly agent: TaskReadPathGateAgent;
+}
+
+function blockedTaskRead(): { block: true; reason: string } {
+  return { block: true, reason: TASK_READ_PATH_BLOCK_REASON };
+}
+
+async function isAllowedTaskRead(
+  args: unknown,
+  repositoryRoot: string,
+  signal: AbortSignal | undefined,
+): Promise<boolean> {
+  if (signal?.aborted || !isPlainRecord(args) || typeof args.path !== "string") {
+    return false;
+  }
+
+  const allowedAbsolutePath = path.resolve(repositoryRoot, TASK_READ_RELATIVE_PATH);
+  if (
+    args.path !== TASK_READ_RELATIVE_PATH &&
+    args.path !== allowedAbsolutePath
+  ) {
+    return false;
+  }
+
+  try {
+    const resolvedRepositoryRoot = path.resolve(repositoryRoot);
+    const repositoryEntry = await lstat(resolvedRepositoryRoot);
+    const canonicalRepositoryRoot = await realpath(resolvedRepositoryRoot);
+    if (
+      signal?.aborted ||
+      repositoryEntry.isSymbolicLink() ||
+      !repositoryEntry.isDirectory() ||
+      canonicalRepositoryRoot !== resolvedRepositoryRoot
+    ) {
+      return false;
+    }
+
+    const entry = await lstat(allowedAbsolutePath);
+    const canonicalAllowedPath = await realpath(allowedAbsolutePath);
+    if (signal?.aborted) return false;
+    // The SDK executor accepts only a pathname, so same-user replacement after
+    // this check remains a TOCTOU boundary.
+    return (
+      canonicalAllowedPath ===
+        path.resolve(canonicalRepositoryRoot, TASK_READ_RELATIVE_PATH) &&
+      !entry.isSymbolicLink() &&
+      entry.isFile() &&
+      entry.nlink === 1
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function installTaskReadPathGate(
+  agent: TaskReadPathGateAgent,
+  repositoryRoot: string,
+): void {
+  const existingBeforeToolCall = agent.beforeToolCall;
+  agent.beforeToolCall = async (context, signal) => {
+    const isRead = context.toolCall.name === "read";
+    if (isRead && !(await isAllowedTaskRead(context.args, repositoryRoot, signal))) {
+      return blockedTaskRead();
+    }
+    if (!existingBeforeToolCall) return undefined;
+
+    const existingResult = await existingBeforeToolCall(context, signal);
+    if (existingResult?.block) return existingResult;
+    if (isRead && !(await isAllowedTaskRead(context.args, repositoryRoot, signal))) {
+      return blockedTaskRead();
+    }
+    return existingResult;
+  };
+}
+
+export function installTaskReadPathGateForSession(
+  session: TaskReadPathGateSession,
+  repositoryRoot: string,
+): void {
+  installTaskReadPathGate(session.agent, repositoryRoot);
+}
+
 function assertTaskSettings(settingsManager: SettingsManager): void {
   const providerRetry = settingsManager.getProviderRetrySettings();
   if (
@@ -1146,6 +1243,7 @@ async function createDefaultTaskSdkContext(
       settingsManager,
     });
     createdSession = created.session;
+    installTaskReadPathGateForSession(created.session, input.repositoryRoot);
     if (created.extensionsResult.errors.length > 0 || created.modelFallbackMessage) {
       throw fixedError("ResourceContractViolation", "Task runtime initialization was not exact");
     }
@@ -1505,11 +1603,16 @@ export class SdkTaskConsoleRuntime implements TaskConsoleRuntimePort {
     }
 
     if (event.type === "tool_execution_end") {
-      if (event.toolName !== "read" || typeof event.toolCallId !== "string") {
+      if (
+        event.toolName !== "read" ||
+        typeof event.toolCallId !== "string" ||
+        typeof event.isError !== "boolean"
+      ) {
         this.#markToolContractViolation(run);
         return;
       }
       this.#activeReadCalls.delete(event.toolCallId);
+      if (event.isError && !run.cancelRequested) this.#markToolContractViolation(run);
       this.#emit(
         this.#activeReadCalls.size > 0
           ? { status: "READING", tool: "read" }

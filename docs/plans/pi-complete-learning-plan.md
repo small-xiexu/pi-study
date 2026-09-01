@@ -9,8 +9,8 @@
 - 官方文档基线：`https://pi.dev/docs/latest`
 - npm 历史版本基线：`@earendil-works/pi-coding-agent@0.84.0`；当前 CLI 见下方环境快照
 - 参考会话：`<reference-session-id>`；真实标识不进入学习文档
-- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6 和阶段 7 已完成；阶段 8 尚未开始
-- 下一步：进入 8.1 学习设计，先说明官方 `pi-mono` 的仓库结构、拉取/构建范围、无凭据测试与证据边界；未经新的明确确认不拉取或构建源码。
+- 当前阶段：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6、阶段 7 和阶段 8 的 8.1-8.7 已完成；8.8 进行中
+- 下一步：把冻结提示词交给另一个 Agent，只读梳理从零 Spring Boot + Pi 订单助手技术方案；方案返回当前会话复核并写入本计划前不编码、不推送。
 - 预计投入：Pi 学习与综合项目 73-103 小时；学习网站另计 8-12 小时；阶段 5-6 作为定制开发核心加深学习，按验收结果推进
 - 建议节奏：每次 60-90 分钟，每周 4-5 次；先完成 Pi 主线，再用 1-2 周制作学习网站
 
@@ -23,7 +23,7 @@
 | Node.js | 可用 | `v25.2.1` |
 | npm | 可用 | `11.6.2` |
 | Git | 可用 | `2.50.1` |
-| Pi | 已安装、更新并启动 | `/opt/homebrew/bin/pi`，历史基线 `0.84.0`；当前 CLI `0.84.3`，既有实验仍按各自记录的版本限定 |
+| Pi | 已安装、更新并启动 | `/opt/homebrew/bin/pi`，历史基线 `0.84.0`；当前 CLI `0.84.4`，既有实验仍按各自记录的版本限定 |
 | 模型认证 | 已连接 | 自定义中转地址 `<provider-base-url>`；`openai-responses`；`openai/gpt-5.6-sol` 已实际响应；凭据文件权限 `0600`；真实地址不进入学习文档 |
 
 ## 2. 学习目标
@@ -68,6 +68,7 @@
 - 后续每个新知识点首次出现时，默认先从学习者已经做过的真实操作切入，用一个完整大白话场景讲清“有什么用”和起止流程，再逐个解释陌生对象并映射术语；没有疑问时直接进入实验，不主动追加判断题或复述。
 - 禁止用问题代替首次讲解；学习者按已有规则答对、但明确表示不认识题目中的对象或术语时，不计为新概念的理解验收，必须退回重新教学。
 - 抽象机制先用一个有起点、过程和终点的完整大白话场景讲清“为什么需要、原任务如何开始、中途发生什么、Pi 如何处理、最终如何结束”，再映射到术语、快捷键、源码位置和真实边界；不得从流程中段或孤立定义开始。
+- 阶段 8 的源码教学固定按“完整大白话场景 -> 文件地图 -> 入口收到什么 -> 关键判断与状态变化 -> 交给哪个下游 -> 正常/失败终点 -> 测试证据”推进。构建命令、API 使用和 TypeScript 语法只在阻塞源码理解时最小补充；不逐行翻译，不使用 Java 类比，不要求背命令或框架细节。学习验收看能否沿源码说清职责和运行链，不看是否会操作构建工具。
 - 重点机制在用户理解确认并形成稳定结论后，自动更新到对应主题文档；保留大白话场景、必要图表、版本和证据边界，不逐条转录聊天内容。
 - 每个模块验收后立即回写本计划；Git 提交仍只在用户明确要求时执行。
 - 真实 Pi 实验、最小 Agent Demo、Extension 和 SDK/RPC 程序都在本机运行；学习网站只展示脱敏后的可重复材料和结论。
@@ -1552,16 +1553,87 @@
 
 ### 阶段 8：源码与综合项目
 
-目标：从会用和扩展，进阶到能定位 Pi 内部实现并独立交付完整方案。
+目标：把官方源码作为证据，理解 Pi 整套核心运行逻辑和设计思想；最终能脱离具体代码行，解释一次任务为什么这样分层、如何流转、怎样保存状态、怎样扩展以及怎样失败收尾。
 
-- [ ] 8.1 拉取并构建官方 `pi-mono`，运行无需模型凭据的测试。
-- [ ] 8.2 阅读 `packages/ai`，说明模型、Provider 和流式事件抽象。
-- [ ] 8.3 阅读 `packages/agent`，追踪 Agent Loop、消息和 Tool Call 生命周期。
-- [ ] 8.4 阅读 `packages/coding-agent`，追踪 CLI、资源加载、Session、Compaction 和 Extension。
-- [ ] 8.5 阅读 `packages/tui`，理解终端渲染和输入分发。
-- [ ] 8.6 从用户输入开始，完成一次跨包调用链路追踪并标注关键源码位置。
-- [ ] 8.7 使用调试能力定位一个刻意制造的问题，并提交排查报告。
+- [x] 8.1 拉取并构建官方 `pi-mono`，运行无需模型凭据的测试。
+  - 进行中（2026-08-30）：学习者要求继续开发学习，当前只完成只读系统地图和版本核对，不视为拉取/构建授权。本机 CLI 已由阶段 7 时的 `0.84.3` 更新为 `0.84.4`；官方仓库当前名为 `earendil-works/pi`，旧 `pi-mono` 地址仍可解析到同一仓库。固定标签 `v0.84.3=4e58f324`、`v0.84.4=b79e4cc8` 均存在，两版相差 41 个 Commit并涉及 ai、agent、coding-agent 与 tui；8.1 因此采用与当前 CLI 一致的 `v0.84.4`，阶段 7 的 SDK `0.84.3` 证据保持原版本边界。
+  - 实验合同待确认（2026-08-30）：源码放入学习仓库外的独立目录，固定检出 `v0.84.4` 并先读官方 `AGENTS.md`；使用锁文件执行 `npm ci --ignore-scripts`，避免依赖生命周期脚本，再执行 `npm run build:offline` 和官方 `./test.sh`。后者用临时 HOME、空凭据环境并跳过依赖 Key 的 LLM 测试；不调用真实 Provider或产生 Model 费用。依赖安装仍可能访问 npm，构建/测试会执行官方源码且不是 OS 沙箱；结束时必须核对源码 Git 状态、测试退出状态和残留进程。学习者明确确认前不执行。
+  - 源码教学目标纠偏（2026-08-30）：学习者明确阶段 8 的主要目标是由教练用大白话带读官方源码，而不是继续学习怎么使用 Pi。8.1 的克隆、依赖和构建改为教练负责的准备门禁，只向学习者说明结果和证据边界；正式教学从一条真实请求开始，逐文件解释“收到什么、为什么判断、状态怎么变、调用谁、如何结束”，TypeScript 语法只在挡住理解时补最少内容，不逐行翻译、不使用 Java 举例。待学习者确认准备门禁后执行。
+  - 核心思想学习目标确认（2026-08-30）：学习者进一步明确真正收益应是掌握 Pi 整套核心逻辑，而不是逐行看代码。阶段 8 因此先回答“Pi 解决什么问题、为什么这样分层、谁决策、谁执行、状态保存在哪里、能力如何扩展、失败如何结束”，再进入源码；文件与测试用于证明结论，不充当课程目录。验收以能用自己的话重建职责、主线和关键取舍为准，不要求记忆代码行或工具命令。
+  - 教学方向最终确认（2026-08-30）：学习者明确回复这正是其期望。阶段 8 冻结为“先掌握整套核心思想，再用关键源码和测试验证”的路线；不退回使用教程、逐行翻译、语法课或按文件罗列。该确认只闭合教学目标，不扩大为克隆、安装、构建或执行官方源码的授权。
+  - 源码准备门禁授权（2026-08-30）：学习者明确回复“确认”，允许教练在学习仓库外的独立目录固定检出官方 `v0.84.4`，读取仓库规则，执行 `npm ci --ignore-scripts`、`npm run build:offline` 和官方 `./test.sh`。范围不包含修改官方源码、读取现有凭据、调用真实 Provider、提交或推送；任一步偏离合同即暂停诊断。
+  - 源码检出门禁通过（2026-08-30）：官方仓库已在学习仓库外的独立目录浅检出为 detached `v0.84.4`，HEAD 精确为 `b79e4cc834970cca69daebffab7df1da7d1e52c4`，origin 为 `https://github.com/earendil-works/pi.git`，源码工作区为空且无残留克隆进程。根 `AGENTS.md` 已完整读取；当前只新增 clone 本地对象，尚未安装依赖、构建或测试。下一步执行无生命周期脚本的锁文件安装。
+  - 锁文件依赖门禁通过（2026-08-30）：在固定源码中执行 `npm ci --ignore-scripts` 成功，新增 319 个 Package，审计为 `0 vulnerabilities`；`npm ls --all --json` 退出 0。安装只出现 npm 对 `min-release-age` 和两个上游废弃包的警告，没有生命周期脚本错误；源码 Git 状态仍为空且无残留安装进程。下一步执行 `npm run build:offline`，不刷新在线模型目录。
+  - Git 标签源码离线构建失败、诊断完成（2026-08-30）：`npm run build:offline` 已成功构建 tui 与 telemetry，随后在 ai 的 `check:model-data` 因缺少 `packages/ai/src/providers/data/amazon-bedrock.json` 退出 1，未进入后续包。该目录被官方 `.gitignore` 排除，固定 Tag 的 Git Tree 本身不携带模型数据；未运行会联网刷新的 `npm run build` 或 `hydrate:model-data`。源码 Git 状态仍为空。官方 `v0.84.4` Release 提供带 SHA-256 摘要的 `pi-0.84.4-source.tar.gz`，README 明确该制品包含发布模型数据并支持离线构建；下一步只评估并校验该官方源码制品，不把首轮失败误记为代码编译失败。
+  - 发布模型数据门禁通过（2026-08-30）：官方 `pi-0.84.4-source.tar.gz` 的 SHA-256 为 `ca3958559b60f87ee44c84d94df8c3ee0b7eda575370402abb2d0ad9155cde4a`，与 Release `SHA256SUMS` 和资产摘要一致；1614 个归档条目无绝对路径、`..` 逃逸或链接条目。只将其中 `packages/ai/src/providers/data/` 提取到 Git 已忽略目录，官方 `check:model-data` 输出 `Generated model data is valid.`；未联网刷新 Provider 数据、未改受跟踪源码。下一步重新执行离线构建。
+  - 官方源码离线构建通过（2026-08-30）：补入同版、已验签发布模型数据后，第二次 `npm run build:offline` 退出 0，依次构建 tui、telemetry、ai、agent、sqlite Session backend、protocol、client、server 与 coding-agent；最终 bundle 为 48 个文件、约 7.1 MiB。关键 dist 入口存在，源码 Git 状态仍为空且无残留构建进程。下一步运行官方 `./test.sh` 隔离无 Key 测试；首轮缺数据失败历史保留，不改写为一次通过。
+  - 官方隔离测试首轮未通过、原因分层（2026-08-30）：`./test.sh` 确认使用临时 HOME 与空 Key 环境，最终退出 1。失败集中于 coding-agent：11 项失败、1991 项通过、50 项跳过；其中 10 项由当前 Shell PATH 无 `fd` 且隔离 HOME 自动下载失败引起，另 1 项为 Footer 条件等待 3 秒超时。其余已输出工作区继续通过，测试临时根已删除，源码 Git 状态为空且无残留测试进程。本机 Pi 工具缓存已有可执行 `fd 10.4.2`，无需安装或下载；Footer 单文件按官方命令复跑为 `8/8`。下一步先用现有 fd 定向复跑 find 相关失败，再决定是否完整重跑，不修改源码或断言。
+  - 失败定向复验与最终全量 Green（2026-08-30）：通过 PATH 复用现有 `fd 10.4.2` 后，三个 find 相关文件 `80/80`，Footer 单文件 `8/8`。随后只重跑一次完整 `./test.sh`，最终退出 0：脚本 `5/5`、agent `418 passed/1 skipped`、ai `956 passed/834 skipped`、client `36/36`、coding-agent `2002 passed/50 skipped`、evals `23/23`、protocol `147/147`、server `50/50`、telemetry `15/15`、sqlite Session backend `87/87`，TUI dot reporter 全程通过。跳过项保持无 Key/条件边界，不计作已验证。
+  - 8.1 完成与证据边界（2026-08-30）：官方源码保持 detached `v0.84.4` 与精确 HEAD `b79e4cc834970cca69daebffab7df1da7d1e52c4`，受跟踪 Git 状态为空；同版发布模型数据复验有效，关键构建入口存在，测试临时根和相关进程均无残留。8.1 证明当前 macOS、Node `25.2.1` 环境可用固定源码完成无脚本安装、离线构建和无 Key 测试；不证明被跳过 LLM 测试、真实 Provider、其他 OS/Node 版本或生产行为。首轮缺模型数据和缺 fd/时序失败历史完整保留。下一步进入 8.2 大白话核心逻辑总图，不安排构建工具教学。
+- [x] 8.2 先建立一次真实任务的跨包核心逻辑总图，再以 `packages/ai` 说明为什么统一 Model、Provider 协议和流式事件。
+  - 进行中（2026-08-30）：8.1 源码门禁通过后立即进入本项。固定场景为学习者在交互 Pi 中提交一个普通任务；教练先只读定位“界面接收 -> 应用外壳组装 -> Agent Loop -> AI/Provider Stream -> Tool/消息回流 -> Session/界面收尾”的真实源码锚点，再用一张纵向总图和大白话解释。当前不逐行翻译、不修改源码、不调用真实 Provider；源码证据核对完成前不把既有心智模型冒充为 `v0.84.4` 实现结论。
+  - 跨包源码证据门禁通过、待教学确认（2026-08-30）：三个最高配置只读调查分别定位 coding-agent 输入/AgentSession、agent 反馈循环和 ai Provider/Adapter Stream，主 Agent另行复核 TUI 输入派发、InteractiveMode 主循环、Session 事件持久化及各交付关键行号。`v0.84.4` 的真实主线闭合为“终端输入 -> 焦点 Editor -> InteractiveMode -> AgentSession 前置与 UserMessage -> Agent.prompt/Agent Loop -> Models/Provider/API Adapter 统一流 -> Tool 本地门禁与执行 -> ToolResult 回到下一 Turn -> message_end 持久化并驱动 TUI -> agent_settled”；官方源码 Git 仍为空，未运行 Provider、未读凭据、未修改文件。下一步向学习者讲一张大白话纵向总图；理解确认前不勾选 8.2。
+  - 核心反馈循环理解确认、稳定文档收口开始（2026-08-30）：学习者明确“理解了”，确认“Model 判断 -> Pi 本地门禁与调度 -> Tool 执行 -> Tool Result 回到下一 Turn”的反馈循环，以及 TUI、coding-agent、agent、ai、Model、Tool、Session 的职责边界。当前把纵向总图、五项核心思想和固定源码证据写入新建的 09 主题页并同步学习索引；文档门禁通过前 8.2 保持未完成。
+  - 8.2 文档门禁与完成（2026-08-30）：`docs/learning/09-source-and-capstone.md` 已形成普通任务纵向总图、分层职责、五项核心思想、一套内核多种外壳、`v0.84.4` 固定源码证据和边界；学习索引已入链。Mermaid `1/1` 实渲染，图片检查无节点重叠或交叉歧义；变更文档本地链接 `28/28`、围栏、标题层级、`git diff --check` 和临时渲染清理通过。结合学习者理解确认与跨包源码复核，8.2 完成；不扩大为 8.3 Agent Loop 细节或真实 Provider 动态证据。
+- [x] 8.3 阅读 `packages/agent`，理解为什么把 Model 决策、Tool 执行、消息和 Agent Loop 分开。
+  - 进行中（2026-08-30）：沿用 8.2 的固定 read 场景与已验收 `v0.84.4` 只读证据，只讲低层 Agent Loop。教学主线为“Assistant Tool Call 只是申请 -> 检查截断、Tool 名称、Schema、本地 Hook 与取消 -> 串行/并行执行 -> Executor 结果或异常统一为 Tool Result -> 带相同 ID 回到 Context -> 下一 Turn 或停止”；同时区分 Run、Turn、`agent_end` 和真正 idle。当前不修改源码、不新增 Provider 调用，不把 8.1 全量测试 Green扩大为学习者已理解。
+  - Agent Loop 核心理解确认、文档收口开始（2026-08-30）：学习者明确“理解了，继续学习”，确认 Tool Call 是申请而非执行，Pi 本地检查后才调用 Executor，拒绝/异常形成错误 Tool Result 并通常回到下一 Turn；也确认一个 Run 可含多个 Turn、`agent_end` 不等于 coding-agent 已 settled。当前向 09 补充详细决策图、错误回执、停止/取消与固定源码证据；文档门禁通过前 8.3 保持未完成。
+  - 8.3 文档门禁与完成（2026-08-30）：09 已新增 Run/Turn 定义、Tool 本地检查与串并行执行、正常/错误回执、Call ID、停止/取消和固定 agent 源码证据。全文 Mermaid `2/2` 实渲染，新增图正常/错误分支正确汇入 Context，无 Tool Call 分支进入停止判断；变更文档本地链接 `28/28`、围栏、标题、`git diff --check` 和临时渲染清理通过。结合学习者确认与 8.1 已运行的 agent `418 passed/1 skipped`，8.3 完成；跳过项、真实 Provider 和 OS 沙箱仍不在证明范围。
+- [x] 8.4 阅读 `packages/coding-agent`，理解应用外壳如何组装 CLI、资源、Session、Compaction、Extension 和 Agent 核心。
+  - 进行中（2026-08-30）：沿用普通 read 任务，转向解释“为什么低层 Agent Loop 之外还需要 AgentSession”。固定主线为 Interactive/Print/JSON/RPC/SDK 共用应用语义，AgentSession 在调用低层 Agent 前处理 Extension 输入、Skill/Prompt Template、Model/Auth、Compaction 与 UserMessage，在事件回流后处理 Session 持久化、重试、队列与 `agent_settled`。当前只使用已复核 `v0.84.4` 源码证据，不逐行翻译、不修改源码、不调用 Provider。
+  - 协调器与循环范围纠偏、待确认（2026-08-30）：学习者将 AgentSession 概括为“Pi 总协调器”、Agent Loop 概括为“应用层到模型层的运作模式”，主方向正确但范围略大。精确边界为：AgentSession 是当前任务/会话的产品级总协调器，进程启动、模式选择和 cwd/Session 整体切换还由 `main.ts` 与 AgentSessionRuntime 等外层负责；Agent Loop 是已准备 Context、Model、Tools 之后的低层反馈发动机，不包含 TUI、资源加载、认证、JSONL 持久化、Compaction 或多模式外壳。下一步只确认这两个范围词，不重复整节。
+  - AgentSession 精确边界理解确认、文档收口开始（2026-08-30）：学习者回复“学习了”，按理解确认处理。确认 AgentSession 是当前任务/会话的产品级协调器，Agent Loop 是其内部低层反馈发动机；`main.ts`/AgentSessionRuntime、SessionManager 和各模式外壳仍有独立所有权。当前把精确层级、统一前置/后续语义、多模式复用原因和固定源码坐标写入 09；文档门禁通过前 8.4 保持未完成。
+  - 8.4 文档门禁与完成（2026-08-30）：09 已把“一套内核，多种外壳”扩展为 AgentSession 精确层级，覆盖 main/Runtime、模式外壳、AgentSession 前置/后续语义、低层 Agent、SessionManager、`agent_settled` 与非沙箱边界，并补固定源码坐标。全文 Mermaid `3/3` 实渲染，新图两个外层入口正确汇入 AgentSession、再包住低层 Agent；变更文档本地链接 `28/28`、围栏、标题、`git diff --check` 和临时渲染清理通过。结合学习者边界确认，8.4 完成；不扩大为 8.5 TUI 源码理解。
+- [x] 8.5 阅读 `packages/tui`，理解为什么终端输入与渲染独立于 Agent 核心，以及界面状态如何反映运行状态。
+  - 进行中（2026-08-30）：沿用已验收普通任务，只读核对 `v0.84.4` 的双向链路。输入侧由 TUI 接收终端数据，经过全局 Listener、Overlay/焦点恢复后只交给当前焦点 Component 的 `handleInput()`；输出侧由 InteractiveMode 订阅 AgentSession Event，把 user/assistant/tool/queue/终态更新到对应 Component，再调用 `requestRender()`。教学重点是 TUI 只管理终端状态和视觉投影，AgentSession/Agent 仍拥有任务语义；当前不修改源码、不追加真实 TUI/Provider 实验。
+  - TUI 双向链与三层状态理解确认、文档收口开始（2026-08-30）：学习者明确“理解了”。确认输入经过 Listener、Overlay/焦点和 Component 后才进入 InteractiveMode/AgentSession，输出由 AgentSession Event 更新 Component 再刷新终端；也确认任务事实、界面状态和终端画面互不等价。当前把双向总图、状态表、Overlay/持久化/Context 边界和固定源码证据写入 09；文档门禁通过前 8.5 保持未完成。
+  - 8.5 文档门禁与完成（2026-08-30）：09 已新增 TUI 双向链、任务事实/界面状态/终端画面三层表、Overlay/焦点、Event 到 Component、刷新与非任务所有权边界，并补固定源码坐标。全文 Mermaid `4/4` 实渲染，新图输入、事件映射、Component 状态与终端刷新为单一可读主干；变更文档本地链接 `28/28`、围栏、标题、`git diff --check` 和临时渲染清理通过。结合学习者确认，8.5 完成；没有新增真实 TUI 动态实验，不外推任意终端协议或性能。
+- [x] 8.6 从用户输入开始完成一次跨包调用链追踪，并总结分层职责、显式能力、事件状态、Session/Context 和取消清理五项核心思想。
+  - 进行中（2026-08-30）：沿用“读取 `fixture.txt`，只返回 marker”的固定场景，把 8.2-8.5 的分层结论重新压成一条可从头讲到尾的真实主线。教学将同时标出 TUI 输入、InteractiveMode/AgentSession 前置、Agent Loop、AI Adapter、Model Tool Call、本地门禁与 Executor、Tool Result 回填、Session 持久化、事件输出、重试/Compaction/队列收敛以及取消清理；最后用分层职责、显式能力、消息与事件状态、Session/Context、取消与清理五项思想解释设计取舍。当前只使用固定 `v0.84.4` 源码和 8.1 已取得的测试证据，不调用 Provider、不修改官方源码；学习者确认和稳定文档门禁完成前保持未勾选。
+  - 完整调用链教学材料就绪、待理解确认（2026-08-30）：固定 read 场景已拆成正常跨包主线、运行中取消、退出清理三张内联图。主线精确保留 `User -> Assistant(toolCall) -> ToolResult -> Assistant(final)` 的 Context/Session 顺序、门禁前 `tool_execution_start`、Tool Result 事件/Session/Context/`turn_end` 顺序、固定 `prepareNextTurnWithContext`、`agent_end` 与 post-run `agent_settled` 分界；取消图区分 Model 与 Hook/Tool 的正常、错误、忽略信号及永不 settle；退出图区分普通交互退出和 SIGTERM/SIGHUP 的相反清理顺序，并明确 dispose 不等待 Agent idle。三张 Mermaid `3/3` 实渲染，Agent Core 与 coding-agent 两路独立终审均为 `PASS`，官方源码仍为干净 `v0.84.4/b79e4cc8`。当前只完成教学材料，不替代学习者理解确认，也尚未把稳定结论并入 09 正文。
+  - 五项核心思想理解确认、稳定文档收口开始（2026-08-30）：学习者明确回复“理解了”，确认固定 read 跨包主线，以及分层职责、显式能力、消息与事件、Session/Context、取消与清理五项核心思想。当前把正常主线和两条旁路压缩写入 09，并修正旧总图中过度简化的 Tool 续轮、`agent_end`/`agent_settled` 与持久化措辞；文档门禁通过前 8.6 仍保持未完成。
+  - 8.6 文档门禁与完成（2026-08-30）：09 已沉淀固定 read 的 `User -> Assistant(toolCall) -> ToolResult -> Assistant(final)` 跨包时序、分层职责、显式能力、消息/事件、Session/Context、取消和退出清理，并同步修正总图、通用 Agent Loop 与 AgentSession 的停止、续轮、持久化和 settled 边界。全文 Mermaid `7/7` 实渲染，本地链接 `29/29`、围栏、标题、敏感信息扫描、`git diff --check` 和临时渲染清理通过；Agent Core、coding-agent、AI Adapter 三路最终只读复核均为 `PASS`，官方源码保持干净 `v0.84.4/b79e4cc8`。结合学习者明确理解确认，8.6 完成；未调用真实 Provider、未修改官方源码、未提交或推送。
+- [x] 8.7 使用调试能力定位一个刻意制造的问题，并提交排查报告。
+  - 进行中（2026-08-30）：先冻结一个确定性、可恢复、无真实 Provider 的故障场景和排查报告验收标准。当前只读检查固定 `v0.84.4` 的 Agent Loop、Fake Model/Test 与隔离执行方式，重点选择能同时区分 Tool 执行、事件、Session 和下一 Turn Context 的故障；学习者确认合同前不修改课程或官方源码、不运行故障注入。
+  - 故障方案冻结、待执行确认（2026-08-30）：只在独立本地 clone 中移除 `agent-loop.ts` 将 Tool Result 追加到 `currentContext.messages` 的单行，保留 `newMessages`、Tool 执行、事件、Agent state 与 AgentSession Session entry。固定矩阵为：浅层 `should handle tool calls and results` 在故障态仍 Green；Core `should stop after the current turn...` 稳定 Red 并显示 Context 角色缺少 `toolResult`；coding-agent Faux 测试 `allows extension tool_result handlers to modify tool results` 稳定 Red，表现为 Session 仍有 patched Tool Result、下一 Turn 却读不到。恢复单行后全部 Green，独立 clone 为空且官方 `v0.84.4/b79e4cc8` 的状态与源文件 SHA-256 `0c04dc68a70097a99d81d8b420c810f3e44223e3b40910db19407b0818ea0ca5` 始终不变。调试只观察角色、计数和固定 marker，不展示完整消息或 Session；不调用真实 Provider、不读取凭据、不联网、不提交或推送。排查报告必须包含现象、分层证据、首个分歧点、根因不变量、恢复证据和不能证明的边界。学习者确认前不创建 clone、不应用 mutation。
+  - 浅层 Green 证据边界理解确认（2026-08-31）：学习者明确“理解了”浅层测试只断言 Tool 执行、Tool 事件、`afterToolCall` 与 `newMessages` 中的 Tool Result；第二次 Mock Model 无条件返回 `done`，没有检查 `currentContext`，因此删除 Context 回填后仍可 Green。该确认闭合概念疑问，不扩大为故障执行授权；下一步仍等待学习者单独回复“确认”，再创建独立 clone 并先运行 Baseline。
+  - 故障实验执行授权（2026-08-31）：学习者明确回复“理解了，确认”，授权按冻结合同创建独立本地 clone、复制本机已验证依赖/构建产物、取得 Baseline、应用单行 mutation、运行聚焦诊断、恢复源码并可恢复清理实验目录。Baseline 未全部 Green 或故障签名偏离预期时必须立即停止；范围仍排除官方源码修改、联网安装、真实 Provider/凭据、暂存、提交和推送。
+  - 独立 clone 隔离门禁通过、Baseline 待运行（2026-08-31）：已从本地官方源码创建无 hardlink、无 alternates 的 detached clone `/tmp/pi-stage87.ftP7lw/pi-source-v0.84.4-lab`，仅以 APFS copy-on-write 复制本机已验证的 `node_modules`、`dist` 和同版模型数据，未联网安装。clone 为干净 `v0.84.4/b79e4cc8`；目标源码与官方文件不是同一 inode、SHA-256 相同，clone 的 agent/coding-agent/ai workspace symlink 均解析到 clone 自身。官方源码状态、HEAD 与目标文件哈希未变。下一步只运行三项 Baseline；未全部 Green 时不应用 mutation。
+  - 三项 Baseline Green、允许进入故障态（2026-08-31）：独立 clone 在 `PI_OFFLINE=1`、单 worker 下运行固定聚焦矩阵：浅层 Tool 测试 `1/1`、Core Context 测试 `1/1`、coding-agent Faux 测试 `1/1` 均通过，各自只跳过同文件非目标用例。Baseline 只证明当前隔离环境和三个目标合同在原始源码下成立，不证明完整套件或 Provider。下一步按授权仅删除 clone 中 `currentContext.messages.push(result)`，审查一文件一行删除后运行故障矩阵。
+  - 单行 mutation 门禁通过、故障矩阵待运行（2026-08-31）：独立 clone 的实际 diff 仅为 `packages/agent/src/agent-loop.ts` 一行删除、零新增，删除内容精确为 `currentContext.messages.push(result)`，相邻 `newMessages.push(result)` 保留；`git diff --check` 通过，故障文件 SHA-256 变为 `305de1d9ea015f5a25f2bfef6ea940f787242e66776f80dd5b8c5594c5221497`。官方源码仍为空状态且原文件哈希保持 `0c04dc68...8ea0ca5`。下一步运行固定三项故障矩阵；任一结果偏离“浅层 Green、Core Red、coding-agent Red”即暂停。
+  - 故障矩阵命中冻结签名、待断点观察（2026-08-31）：单行 mutation 下，浅层 Tool 测试仍为 `1/1 Green`；Core Context 测试按预期退出 1，`callbackToolResultIds=["tool-1"]` 的前置断言已通过，但 `callbackContextRoles` 实际为 `user, assistant`，缺少预期 `toolResult`；coding-agent Faux 测试按预期退出 1，最终 Assistant 文本为两个空字符串而不包含 `patched result`。三项结果共同把首个动态分歧缩到 Tool Result 已形成、但未进入当前 Run Context；下一步只用 loopback Node inspector 观察 Session 角色/计数，不输出完整消息，再恢复 mutation。
+  - Node inspector 断点观察闭合、待恢复（2026-08-31）：聚焦产品测试以 `--inspectBrk 127.0.0.1:9237` 在失败断言前暂停，只求值脱敏的角色与 `patched` 布尔值；`AgentSession.messages` getter 对应的 Agent state 为 `user -> assistant -> toolResult(patched=true) -> assistant`，与 Core 回调中的 `user -> assistant` 构成直接分歧。由此排除 Tool Executor、`tool_result` Hook、事件与 Agent state；SessionManager append 只有未变源码路径证据，本次未动态读取 entry。首个缺失状态面精确为当前 Run 的 `currentContext.messages`。未输出消息正文或 Session 文件；调试客户端、Vitest 进程和 loopback 监听已关闭。下一步恢复唯一删除行并复跑三项测试。
+  - 单行恢复与三项 Recovery Green（2026-08-31）：已用精确反向编辑恢复 `currentContext.messages.push(result)`；独立 clone 的 diff 与状态重新为空，目标文件 SHA-256 回到 `0c04dc68...8ea0ca5`。相同三项聚焦测试全部退出 0：浅层 Tool `1/1`、Core Context `1/1`、coding-agent Faux `1/1`；故障 Red 随唯一 mutation 消失，形成 Baseline Green -> 受控 Green/Red/Red -> Recovery Green 的因果闭环。下一步复核官方源码零变化、生成排查报告并可恢复清理独立 clone；8.7 在学习者确认报告前保持未完成。
+  - 排查报告已写入 09、文档门禁与清理待完成（2026-08-31）：稳定正文已记录矛盾现象、证据漏斗、Green/Red/Recovery 矩阵、断点角色观察、三个状态容器职责、根因不变量、恢复证据和证明边界；临时路径、逐步命令和动态历史仍只保留在本计划。下一步渲染全文 Mermaid、检查链接/围栏/敏感信息和差异，复核 clone/官方源码与残留进程后再可恢复清理实验目录；学习者确认报告前不勾选 8.7。
+  - 8.7 工程与报告门禁通过、待学习者确认（2026-08-31）：09 的受控排查报告已通过全文 Mermaid `8/8` 实渲染、本地链接 `29/29`、围栏、标题、敏感信息和 `git diff --check`；Agent Core、coding-agent、AI 三路最终只读复核均为 `PASS`。独立 clone 恢复为空状态后，在无进程/端口/文件占用下整体移入废纸篓 `pi-stage87.ftP7lw`，原临时路径与渲染目录均消失；官方源码保持干净 `v0.84.4/b79e4cc8` 和原文件 SHA-256。未联网、调用 Provider、读取凭据、暂存、提交或推送。工程闭环已完成，但学习者尚未确认排查报告，8.7 保持未勾选。
+  - 8.7 学习验收与完成（2026-08-31）：学习者明确回复“理解了，继续学习”，确认浅层 Green 证据边界、首个分歧点定位、Agent state 与 currentContext 的职责差异，以及 Baseline -> mutation -> Recovery 的因果闭环。结合工程、报告、清理和三路终审证据，8.7 完成；不扩大为真实 Provider、JSONL 或生产故障证据。
 - [ ] 8.8 完成 Pi 毕业综合项目并通过核心验收；展示网站在阶段 9 单独验收。
+  - 进行中（2026-08-31）：先只读盘点阶段 2-8 已交付的项目规则、Prompt Template、Skill、Extension、Package、SDK/RPC 客户端、测试/安全文档和源码导读，逐项区分可直接复用、需要补缺和只待总验收。当前不因文件存在而判定毕业项目完成；学习者确认综合项目合同前不新增或修改实现、不运行真实 Provider。
+  - 八项资产盘点完成、双入口合同待理解确认（2026-08-31）：建议把毕业项目冻结为同一仓库中的两种工作面，而不是强行合并 Runtime：A 为根 `pi-study-workbench` 的交互 Package 模式，复用 AGENTS、Prompt、Skill、Theme、只读 Tool/Command 和 Shell Gate；B 为 7.7 SDK 任务台的默认安全入口，复用严格状态流、取消、持久 Session、错误和清理，7.4 RPC 只作对比。Prompt、Skill、Extension、Package、SDK 和 09 源码导读均已有实现；明确补缺为：SDK `read` 需要 fixture/仓库路径级强制门禁，根入口需要毕业运行手册、版本矩阵、统一无 Provider 总验收和手工清单。Package 模式仍拥有 Pi 进程权限，Shell Gate 不覆盖内置 `edit/write`；因此它是显式 opt-in 的完整能力入口，不能冒充默认沙箱。历史测试数字和真实 smoke 只作候选证据，最终冻结快照仍需重跑。学习者确认该架构前不写代码。
+  - 双入口理解确认与实施分工冻结（2026-08-31）：学习者明确“理解了”，并询问后续是否由教练完成。确认毕业项目是一套仓库中的 Package 交互入口和安全 SDK 默认入口，不要求塞入同一 Runtime；教练负责实现、自动测试、差异审查和文档收口，学习者保留开始写代码、真实 Provider、最终学习验收及 Git 提交/推送门禁。当前问题只确认分工，不视为代码授权；下一步等待学习者明确“确认，开始写代码”。
+  - 8.8 实施、真实 Provider 与 Git 授权（2026-08-31）：学习者明确授权开始写代码，允许在全部离线门禁通过后执行额外真实 Provider 验收且费用不设限制，并允许最终验收通过后提交和推送。授权不改变顺序：先实现与离线 Green，再独立审查，再一次有界真实 Smoke，最后敏感信息/差异/Git 门禁；任何失败先停在对应层。实现按不重叠边界并行：7.7 path gate、8.8 离线总验收器、毕业文档；主 Agent 独占本计划、根 `package.json`、跨模块验证、Provider 和 Git 操作。
+  - SDK read Path Gate 主验收通过（2026-08-31）：7.7 默认 Session 在既有 `beforeToolCall` 前后执行同一门禁，只允许规范相对 `labs/7.7-sdk-task-console/fixture.txt` 或同一规范绝对路径；拒绝其他/外部/别名/链接/硬链接/目录/缺失/非字符串/取消态，固定错误且 Executor 为 `0`。Tool error 会锁存 `ToolContractViolation` 并 abort，后续正常且已保存的 Assistant 不能覆盖失败。实现保留门禁终检到 SDK pathname 打开之间的同用户 TOCTOU 边界。Red 先暴露参数改写、父目录 symlink 和错误后伪完成，最终主 Agent复跑严格类型与全量 `73/73` Green，`git diff --check` 通过；未调用 Provider。
+  - 统一验收器与毕业文档候选通过主验证（2026-08-31）：新增离线 Runner 固定编排 Extension、Package 制品、SDK 三条既有门禁，再检查必需结构、有限敏感模式和仓库残留；命令白名单排除 install、smoke、Provider、7.1/7.2/RPC，失败只输出固定 stage/errorKind。主 Agent复跑 Runner `8/8`、两文件语法、根 `capstone:check` alias 与 `git diff --check` 均通过；双入口 README Mermaid `1/1` 实渲染无重叠。候选文档已包含版本矩阵、新环境步骤、六阶段门禁、手工清单、真实 Smoke/Git边界与5-10分钟讲解路线。下一步执行实现者分离的安全/集成审查和真实完整离线 Runner。
+  - 统一离线总门禁真实通过（2026-08-31）：主 Agent以仓库锁定的 Pi CLI `0.84.2` 路径执行根 `npm run capstone:check`，依次得到 `extension`、`package-artifact`、`sdk-task-console`、`required-structure`、`sensitive-patterns`、`residuals` 六阶段 `PASS` 和最终 `result=PASS`，退出 0。该链设置 npm/Pi offline、剥离常见敏感环境变量，不安装依赖、不运行 smoke、不调用 Provider；PASS 只覆盖冻结命令和有限静态扫描，不替代独立审查、真实 Provider或Git门禁。
+  - 首轮独立安全/集成审查未通过、修正进行中（2026-08-31）：Path Gate 审查发现取消先发生时 read abort error 会被误记为 `ToolContractViolation`，并可放行 repositoryRoot 自身/祖先 symlink；Runner/文档审查发现缺三份 lockfile 与根 alias 门禁、Theme/lockfile 敏感漏扫、执行控制环境变量未收紧、target 内残留漏检、Package 手工步骤只证明项目自动发现、新环境无法按两份安装得到 Pi `0.84.2`，以及计划断点过期。另确认 Git `diff --check` 在暂存前不覆盖未跟踪候选。当前按 Red -> Green 修正；首次六阶段 PASS 保留为候选历史，不计最终验收。
+  - 首轮审查修正完成、二次集成审查中（2026-08-31）：Path Gate 已按事件先后区分取消与 Tool error，拒绝 repositoryRoot 自身/祖先 symlink，并让默认 factory 与真实 SDK 集成共用受测安装 helper；独立复审 `PASS`，主 Agent复跑全量 `79/79`。Runner 已要求三 lockfile 与根 alias，扫描整个 `.pi`、7.1 与 lockfile，使用严格环境白名单和 devNull npm userconfig，并在 residual 阶段扫描 target；Red 后最终单测 `15/15`。文档改为三 lockfile和精确 0.84.2 `PI_BIN`，Package 手工项显式 `-e` 且收紧同根去重证据，补隔离 HOME、超时后代和未跟踪 Git 边界。主 Agent第二次执行完整六阶段仍为 `PASS`，文档 Mermaid `1+8`、本地链接 `54/54`、围栏/隐私/差异通过；当前等待实现者分离的二次集成复审，不调用 Provider。
+  - 二次集成复审仍未通过、Runner 第三轮修正中（2026-08-31）：首轮 4 个 P1/4 个 P2 已确认闭合，但复审发现 `required-structure` 仍未强制交付 7.1 Manifest、Path Gate 测试和 Runner 自测文件；三份 lockfile 也只检查普通文件存在，损坏 JSON 或 Pi `0.84.1/0.84.2/0.84.3` 漂移可在已有 node_modules 下误报 PASS。当前增加必需测试/Manifest、lockfile v3解析与精确根依赖版本合同及对应负例；第二次六阶段 PASS 继续保留为候选历史，第三轮修正和复审通过前不调用 Provider。
+  - Runner 第三轮修正与无 Provider 手工验收通过、最终复审中（2026-08-31）：`required-structure` 已要求 7.1 Manifest、Path Gate 测试与 Runner 自测，并解析三份 lockfile JSON，固定检查 `lockfileVersion=3`、根包 name/version 和 Pi 依赖精确版本；主 Agent复跑 Runner 单测 `19/19`、7.7 严格类型与 `79/79`、第三次六阶段总门禁均为 `PASS`。随后以隔离 HOME/AgentDir、`PI_OFFLINE=1` 和显式 `-e` 启动 Package Source，`/study-inspect 09-source-and-capstone.md` 返回固定文档摘要后 `/quit` 退出 0；再以隔离 HOME/AgentDir/SessionDir 启动 SDK，得到 `STARTING -> READY session=NEW tools=read` 后只输入 `/quit`，退出 0且租约不存在。两项均未发送普通 Prompt、未访问 Provider；临时目录仅检查名称/类型后已可恢复移入废纸篓。当前等待第三次独立集成复审；通过前仍不调用 Provider。
+  - 第三次独立集成复审仍未通过、锁图实际版本修正中（2026-08-31）：复审独立重跑 Runner `19/19`、六阶段 `PASS` 与 `git diff --check`，此前必需文件、无效 JSON、根依赖漂移、alias、敏感扫描、严格子环境和残留问题均已闭合；但将 `packages["node_modules/<Pi 包>"].version` 改为 `9.9.9` 的负向探针仍让 `required-structure` 通过，证明当前只检查“根包声明想要的版本”，没有检查“锁图实际解析版本”。另一个计划断点滞后问题已在本条与顶部/当前断点修正。下一步只补三份 lockfile 的实际解析版本合同及 Red/Green，再执行第四次独立复审；通过前不调用 Provider。
+  - 锁图实际版本 Red/Green 与第四次离线总门禁通过、独立复审中（2026-08-31）：Runner fixture 和合同现同时检查根包精确依赖声明与每个冻结 Pi 包的 `packages["node_modules/<name>"].version`；只把实际解析版本改为 `9.9.9` 的负例已从错误通过变为固定 `LockfileContractViolation`，且不回显漂移值。主 Agent独立复跑 Runner `20/20`、两文件 `node --check`、`git diff --check`，再以锁定 Pi CLI `0.84.2` 执行第四次完整离线总门禁，六阶段与最终结果均为 `PASS`。当前进行第四次实现者分离复审；通过前仍不调用 Provider。
+  - 第四次独立集成复审 PASS、允许进入真实 Smoke（2026-08-31）：同一实现者分离复核 Agent在冻结候选上独立取得 Runner `20/20`、7.7 `79/79`、根 alias 六阶段 `PASS`、两文件语法与两层 `git diff --check` 通过，确认 resolved lock 漂移、计划同步及前三轮问题均闭合，最终无 P0-P2；未编辑文件、安装依赖或调用 Provider。残余边界仍包括有限敏感扫描、子命令超时不证明任意后代退出，以及未跟踪候选尚未进入 Git 冻结。下一步按既有授权只执行一次固定 fixture 的真实 Provider Smoke，不自动重试不确定结果。
+  - 单次真实 Provider Smoke 功能与清理通过（2026-08-31）：在第四次独立复审 PASS 后，主 Agent保留现有 HOME/AgentDir 认证，仅为本轮创建独立 `0700` Session 根并执行一次 `npm --prefix labs/7.7-sdk-task-console run smoke`，未重试。真实 `openai/gpt-5.6-sol` 链路按 `STARTING -> READY/NEW -> RUNNING -> READING(read) -> RUNNING -> COMPLETED saved=true -> READY` 收敛，`READING` 精确一次、答案精确为固定课程 marker、无 FAILED/CANCELLED、退出 0。退出后无相关进程与 lease；SessionDir 为 `0700`，仅有 `0600` 单链接 owner marker 和一份 `0644` 单链接普通 JSONL、无 symlink。JSONL 因父目录不可被其他用户遍历而处于当前私有边界，但不能表述为文件自身 `0600`；本轮未读取 JSONL 或凭据正文。临时根已可恢复移入废纸篓。该证据只证明本次账号、Model、固定 Prompt、read Path Gate、fixture、持久化与本地清理链，不证明费用准确、远端停止、任意路径、长期稳定或生产可用性。
+  - 真实 Smoke 后最终主门禁通过、全差异终审中（2026-08-31）：Smoke 后再次执行根 `capstone:check`，Extension、Package 制品、SDK、结构/锁图、有限敏感模式和残留六阶段均 `PASS`；09 与 8.8 README 的 Mermaid `9/9` 实渲染，本次五份入口/稳定文档本地链接 `54/54`、Markdown 围栏、`git diff --check` 与 `git diff --cached --check` 通过。仓库内 Session JSONL/tarball/.env/运行时 lease/owner 和本轮 `/tmp` 前缀残留均为 0；渲染目录已可恢复移入废纸篓。官方源码仍为干净 `v0.84.4/b79e4cc8`。下一步由未参与 Runner/文档实现的 Agent审查整个 tracked/untracked 候选及权限/证据措辞，再做 NUL-safe Git 冻结；独立结论前不暂存或提交。
+  - NUL-safe Git 候选冻结通过、全差异终审已恢复（2026-08-31）：中断恢复后先按计划重新校验当前快照；`git status --porcelain=v1 -z --untracked-files=all` 与 `git ls-files --others --exclude-standard -z` 解析结果精确为 13 个候选、5 个未跟踪文件，均属于 8.8 冻结范围且为普通单链接文件。`git diff --check`、`git diff --cached --check` 通过，HEAD 与上游 ahead/behind 仍为 `0/0`，未暂存。此前被中断的独立全差异审查已从当前快照恢复；结论前不勾选 8.8、不提交或推送。
+  - 最终全差异独立审查 PASS、工程门禁闭合（2026-08-31）：新的只读审查 Agent逐差异核对全部 13 个候选，确认 Path Gate 生产安装路径、允许/拒绝/改参终检、Executor 前拒绝、取消与 Tool error 顺序均有负例；Runner 的必需文件、三锁根声明与实际解析版本、严格子环境、有限敏感/残留边界和文档一致，未见测试自证型 PASS。真实 Smoke 只被表述为一次固定任务成功；JSONL 明确为自身 `0644`、位于 `0700` SessionDir，没有误称文件自身 `0600`。最终 P0/P1/P2=`0/0/0`，暂存区为空。残余边界仍为 Path Gate 同用户 TOCTOU、有限敏感扫描、超时只约束直接子进程和五个未跟踪文件尚未进入提交。工程与证据门禁已闭合；8.8 继续保持未勾选，只等待学习者能用大白话解释双入口、Path Gate、离线 Runner 与证据边界。
+  - 最终教学方式按学习者要求调整（2026-08-31）：学习者明确不希望用填空、背诵或逐项复述完成验收，要求多用完整流程图帮助理解。后续按“系统总图 -> 正常任务 -> 拒绝旁路 -> 三层验证 -> 证据边界”连续讲解，以学习者自然确认作为学习门禁；不因工程全绿或图已展示而自动勾选 8.8。
+  - SDK Tool 时序图文档增强进行中（2026-09-01）：学习者要求流程图在聊天界面真实展示，并同步进入稳定文档。当前范围冻结为在 09 新增两张横向时序图：通用 `customTools` 订单查询和本项目 `tools=[read]` + Path Gate；先以本机 Mermaid CLI 真正渲染并检查图片，再运行 09 全图、链接、围栏和差异门禁。完成前不勾选 8.8，不重新调用 Provider。
+  - SDK Tool 时序图主门禁通过、独立复核待完成（2026-09-01）：09 已新增“SDK 程序如何获得 Tool 能力”，用表格区分内置 `tools` 与业务 `customTools`，并加入通用订单 Tool、当前 read + Path Gate 两张横向时序图；同源 PNG 已真实渲染并在聊天界面检查可读。09 全文 Mermaid `10/10`、五份稳定文档本地链接 `54/54`、Markdown 围栏、`git diff --check`、`git diff --cached --check` 和六阶段 `capstone:check` 均通过。下一步只读复核新增图的 SDK/Core 语义和文档边界；复核前不把图文主门禁冒充 8.8 学习完成。
+  - SDK Tool 时序图首次独立复核未通过、修正中（2026-09-01）：复核发现 P1：`customTools` 只新增 Tool 定义，省略 `tools` 时默认内置 `read/bash/edit/write` 仍可能激活；若订单助手只允许 `query_order`，必须同时使用 `tools=["query_order"]`。P2：Assistant Tool Call 在其 `message_end` 时先单独追加 Session，门禁后的正常或错误 Tool Result 再在各自 `message_end` 追加；原图错误画成读取完成后批量保存，并遗漏拒绝分支错误 Tool Result 的持久化。当前只修正文档与同源图片，不修改生产代码或重跑 Provider；修正后必须重新渲染和独立复核。
+  - SDK Tool 时序图修正复验 PASS、文档增强完成（2026-09-01）：订单图现明确 `customTools` 注册定义、`tools` 是全部可用 Tool 的激活白名单，严格示例使用 `tools=["query_order"]` + `customTools=[queryOrder]`；read 图按 `message_end` 分开追加 Assistant Tool Call、blocked 错误 Tool Result、allowed 正常 Tool Result和最终 Assistant。两张同源 PNG 已真实渲染并检查可读，09 全文 Mermaid `10/10`、本地链接 `54/54`、围栏、两层差异和六阶段 Runner 均通过；同一独立审查者复验无 P0-P2。残余边界为图未展开全部微观事件，SDK 动态合同锁定 `0.84.3`、Agent Loop 源码锁定 `v0.84.4`，真实 Smoke 仍只证明本次允许分支。8.8 保持进行中，继续按流程图教学等待自然确认。
+  - Spring Boot + Pi 订单助手从零实现需求已澄清、待编码确认（2026-09-01）：学习者明确要求假设没有任何现成代码，新 Demo 不依赖、不复制、不引用 `labs/7.4-rpc-java`。候选范围为独立目录，自行实现 Spring Boot 内存订单域、Pi RPC 子进程生命周期、严格 LF JSONL、Command ID Response Map、单活动 Prompt Event 状态机、四态结果、`query_order` Extension Tool、loopback/随机 Token Bridge、确定性失败矩阵、一次真实 Provider Smoke、流程图和文档。当前只冻结需求，不创建代码；收到“确认，开始写代码”后才进入环境/版本门禁与第一批 Red。
+  - 当前成果提交与外部方案梳理授权（2026-09-01）：学习者要求先完整提交现有代码，再提供一份交给另一个 Agent 的技术方案提示词。当前只允许审计并本地提交已完成的 8.8 候选，不自动推送；提交后外部 Agent 仅做从空目录 Spring Boot + Pi 订单助手的只读方案研究，不写代码、不修改本仓库、不复用旧 7.4 实现。其方案必须回到当前会话复核并写入唯一计划，学习者另行“确认，开始写代码”前仍不实施。
+  - 当前 8.8 候选本地提交完成、未推送（2026-09-01）：提交前 NUL-safe 文件集精确为 13 个候选、5 个新增文件，全部为单链接文本文件；高置信凭据、Session/.env/日志/临时文件/大文件为 0，暂存集精确且未暂存/未跟踪为 0。最后一次六阶段 `capstone:check`、两层 `diff --check` 均通过；本批以 `feat(capstone): 完成毕业项目与读取门禁` 本地提交，未 push。下一步只向外部 Agent 发送冻结方案提示词，返回后由当前会话复核，不直接接受其代码或进度结论。
 
 ### 阶段 9：学习网站与面试作品集
 
@@ -1583,14 +1655,14 @@
 
 必须包含：
 
-- [ ] 项目级规则与最小权限配置。
-- [ ] 一个结构化 Prompt Template。
-- [ ] 一个只读分析 Skill。
-- [ ] 一个包含自定义 Tool、Command 和危险操作审批的 Extension。
-- [ ] 一个可安装的本地 Pi Package。
-- [ ] 一个 SDK 或 RPC 外部客户端，支持流式事件、取消、错误处理和会话保存。
-- [ ] 自动化测试、手工验收清单、安全说明和使用文档。
-- [ ] 一份 Pi 核心调用链源码导读。
+- [x] 项目级规则与最小权限配置。
+- [x] 一个结构化 Prompt Template。
+- [x] 一个只读分析 Skill。
+- [x] 一个包含自定义 Tool、Command 和危险操作审批的 Extension。
+- [x] 一个可安装的本地 Pi Package。
+- [x] 一个 SDK 或 RPC 外部客户端，支持流式事件、取消、错误处理和会话保存。
+- [x] 自动化测试、手工验收清单、安全说明和使用文档。
+- [x] 一份 Pi 核心调用链源码导读。
 
 最终验收标准：
 
@@ -1608,21 +1680,28 @@
 - 文档维护 C（完成，2026-08-24）：原 07 已收口为 46 行稳定 hub，并完成 Package、模型选型与认证、Custom Model、Custom Provider、版本证据五个子页；阶段 6 文档合计 1,227 行。四个直接迁移页按原 435/209/92/15 行稳定正文逐字包含；Custom Provider 按“完整场景 -> 对应精确合同”重排为 406 行，保留注册、目录、Credential、Stream、AssistantMessage、错误/取消、Usage/Cost、Overflow、Reload/注销及五层证据，删除 3 张被更精确图覆盖的入门图、2 段重复 Overflow 说明和失效过渡语。6.1-6.4 动态历史及其中 3 个内容哈希由本计划完整保留，稳定页旧动态副本、失效锚点和跨页精确重复段落均为 0；04、学习索引和四份 Lab 入链已更新，计划与教学 Skill 的网站内容源已明确包含主题子目录，Stage 5 顶层只读 Tool 合同未改变。全量门禁覆盖 30 个 Markdown、135 个闭合围栏、108 个本地路径/锚点和 63 张 Mermaid，围栏、标题层级、链接/锚点、职责/版本关键词、隐私模式、`63/63` 实渲染、临时残留与 `git diff --check` 均通过；计划 checkbox 序列与 `HEAD` 完全一致，阶段 7 文档仍不存在。当前工作区保留已验证 A0；本批未拆 06、未修改代码/Fixture/测试、未运行课程实验、认证或 Provider、未调用真实 Model、未产生费用，也未暂存或提交。下一步仍按当前断点进入 7.1；拆分 06 须另行授权。
 - 文档维护 B（完成，2026-08-24）：顶层 `06-extensions.md` 已收口为 106 行兼容 hub，并完成 Context/Tool/Event、Shell Gate/Branch State/Widget、Runtime/加载、验证边界四个子页及学习索引入链；Extension README 已增加实现、依赖、生命周期、取消/错误、Tool/Command、Shell/State、证据边界标题。原 481/279/250/45 行稳定正文已迁移；生命周期总图拆为 Runtime 所有权和入口派发两图，State/Widget 图改为纵向。拆分前 `40/7`、`43/10` 和 SHA 已明确限定为历史文件快照，自动测试具体历史计数只留本计划。职责关键词、跨页精确重复、路径、版本和动态数字归属检查通过；Extension 源码/Fixture/测试无差异，顶层 `/study-inspect 06-extensions.md` 路径、固定补全和只读顶层 basename 合同不变。E 已补齐严格 TypeScript、`185/185` 自动测试和 64 张图实渲染，因此 B 验收闭合。当前 B 与 E 共 8 个预期文档路径保持未提交，未修改代码、Fixture 或测试，未运行认证/真实 Provider，未调用真实 Model或产生费用。
 - 文档维护 E（完成，PASS，2026-08-24）：以本地提交 `ed71c93b28046a9c647f96a3919f9e2a4154d941` 为 A0+C 基线，对 B 的未提交差异完成全仓最终复核。根 `npm run check` 通过严格 TypeScript 与 `185/185` 自动测试；34 个 Markdown、136 个闭合围栏、113 个本地路径/锚点和 64 张 Mermaid 分别通过标题、围栏、链接/锚点与 `64/64` 实渲染，06 子页图分布为 Context 4、Gate/State/UI 3、Runtime 5，临时残留为 0。06/07 hub 与子页职责、Pi `0.84.1`/`0.84.2` 分界、历史数字限定、稳定正文动态历史归属、跨页精确重复和隐私扫描均通过；计划 checkbox 序列与 A0+C 提交完全一致，阶段 7 文档仍不存在，`git diff --check` 通过，工作区只包含 B/E 的 8 个预期文档路径。该 PASS 不证明真实 TUI、Provider、账单或生产行为；本轮未 push、未提交 B/E。下一步仍按当前断点进入 7.1；如需提交 B/E，必须另行授权。
-- 状态：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6 和阶段 7 已完成；下一项为 8.1。
-- 已完成：阶段 0-7。
+- 状态：阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6、阶段 7 和阶段 8 的 8.1-8.7 已完成；8.8 进行中。
+- 已完成：阶段 0-7、8.1-8.7。
 - 文档结构：学习笔记已按主题拆分，入口为 `docs/learning/README.md`；学习进度仍只在本文件维护。
 - 教学方式：采用“系统地图 + 单一贯穿项目 + 三遍螺旋”的连续讲解模式；新主题先用有起点、过程和终点的完整大白话场景解释陌生对象，再映射术语并直接进入受控实验，不再逐知识点提问或要求反复复述；自 7.6 起默认不使用 Java 类比，除非学习者重新要求。用户可随时打断。用户运行本地 Pi 实验，我负责实验设计、证据分析、纠错和模块验收；无问答时不把教学覆盖扩大为独立背诵证据。
 - 教学 Skill：`.agents/skills/pi-learning-coach/SKILL.md` 已创建并通过静态验证；由 Codex 使用它编排教学与读取唯一计划，Pi 只作为实验对象；不另建进度台账，也不自动提交。
 - 计划强化：阶段 5-6 已扩展为两个贯穿项目、逐项受控实验、分层证据和独立阶段门禁；5.1-5.10 和 6.1-6.8 已完成。
 - 网站策略：当前只积累网站可复用的 Markdown、流程图和脱敏证据；阶段 8 完成后进入阶段 9，不提前开发网站界面。
 - 阻塞：无；6.4 guided 运行器已按 `quit` 停止，其追踪的临时残留为 `0`。
-- 下一步：进入 8.1 学习设计，先说明官方 `pi-mono` 的仓库结构、拉取/构建范围、无凭据测试和证据边界；未取得新的明确确认前不拉取或构建源码。
+- 下一步：把冻结提示词交给另一个 Agent，只读梳理从零 Spring Boot + Pi 订单助手技术方案；方案返回当前会话复核并写入本计划前不编码、不推送。
 - 新会话恢复：先读本文件，再从上述“下一步”继续；不得重新从安装或 0.2 开始，也不得提前进入网站开发。
 
 ### 阶段验收记录
 
 | 日期 | 计划项 | 状态 | 验收证据 | 下一步 |
 |---|---|---|---|---|
+| 2026-08-31 | 8.7 受控故障定位与排查报告 | 已完成 | 学习者理解浅层 Green 与端到端 Context 证据边界；独立 `v0.84.4` clone 完成 Baseline `G/G/G`、单行 mutation `G/R/R`、Recovery `G/G/G`，Node inspector 脱敏角色观察定位首个分歧点。09 报告 Mermaid `8/8`、本地链接 `29/29`、隐私/差异和三路终审通过；clone 可恢复清理，官方源码零变化，未调用 Provider | 进入 8.8，只读盘点毕业项目已有实现、缺口与总验收合同 |
+| 2026-08-30 | 8.6 完整跨包调用链与五项核心思想 | 已完成 | 学习者明确理解固定 read 的四消息顺序，以及分层职责、显式能力、消息/事件、Session/Context、取消/清理。09 新增正常时序与取消/退出旁路并修正旧简图；Mermaid `7/7`、本地链接 `29/29`、围栏、标题、敏感信息与差异检查通过，Agent Core/coding-agent/AI 三路终审 `PASS`，官方源码保持干净 `v0.84.4/b79e4cc8`；未调用 Provider | 进入 8.7，设计确定性可恢复故障与排查报告合同，确认前不制造故障 |
+| 2026-08-30 | 8.5 TUI 输入、焦点、事件与渲染边界 | 已完成 | 学习者理解输入经 Listener/Overlay/焦点/Component 到 AgentSession，输出由 AgentSession Event 更新 Component 再刷新终端，并区分任务事实、界面状态和终端画面。09 双向图、状态表与源码坐标完成，Mermaid `4/4`、本地链接 `28/28`、围栏、标题、差异和临时残留检查通过；无新增真实 TUI 动态实验 | 进入 8.6，重新串联跨包主线并总结五项核心思想 |
+| 2026-08-30 | 8.4 AgentSession 应用外壳与多模式复用 | 已完成 | 学习者确认 AgentSession 是当前任务/会话协调器、Agent Loop 是内部反馈发动机，并区分 main/Runtime、SessionManager 与模式外壳。09 精确层级图、前置/后续语义、多模式复用原因和源码坐标完成，Mermaid `3/3`、本地链接 `28/28`、围栏、标题、差异和临时残留检查通过；未证明 8.5 TUI 细节 | 进入 8.5，讲 TUI 如何把输入与 AgentSession 事件映射为界面状态和刷新 |
+| 2026-08-30 | 8.3 Agent Loop 决策与执行分离 | 已完成 | 学习者理解 Tool Call 申请、本地检查、Executor、正常/错误 Tool Result、Call ID、Run/Turn、停止与取消；09 详细决策图和固定源码证据完成，Mermaid `2/2`、本地链接 `28/28`、围栏、标题、差异和临时残留检查通过。8.1 已运行 agent `418 passed/1 skipped`；跳过项、真实 Provider 与 OS 沙箱未验证 | 进入 8.4，解释 AgentSession 为什么承担编码产品的应用外壳职责 |
+| 2026-08-30 | 8.2 跨包核心逻辑总图与 AI 统一层 | 已完成 | `v0.84.4` 的 TUI、coding-agent、agent、ai 三条独立只读追踪经主 Agent复核；学习者理解普通任务的 Model 判断、Pi 门禁调度、Tool 执行、Tool Result 回流、Session/UI 收尾主线。09 稳定页与学习索引完成，Mermaid `1/1` 实渲染、本地链接 `28/28`、围栏、标题、差异和临时残留检查通过；未调用真实 Provider，未证明 8.3 细节 | 进入 8.3，用同一 read 场景讲低层 Agent Loop 的核心设计 |
+| 2026-08-30 | 8.1 官方源码与无 Key 构建测试基线 | 已完成 | 官方 `v0.84.4`/`b79e4cc8` 独立 detached 源码、完整规则读取、`npm ci --ignore-scripts` 与 `0 vulnerabilities`、验签发布模型数据、离线全包构建和第二次隔离 `./test.sh` 退出 0；源码 Git 空、临时根与进程无残留。首轮缺模型数据构建失败及缺 fd/一次 Footer 超时测试失败均保留并经定向复验闭合；跳过 LLM 条件、其他 OS/Node 与真实 Provider 未验证 | 进入 8.2 大白话跨包核心逻辑总图；源码和测试只作证据坐标 |
 | 2026-08-30 | 7.8 协议、异常与资源清理 | 已完成 | 输入/异常/信号/Session/单写租约与 exact-once 清理合同通过严格类型、`59/59`、跨模块回归和独立复核；学习者亲自完成 `59/59` 与真实 TTY SIGINT `130`，一次真实 Model SIGTERM 得到 CANCELLED、无 COMPLETED/FAILED、退出 `143` 且租约释放；稳定正文包含完整清理图、常用操作速记图和命令/按键/输出分类，学习者自然确认。证据不外推 SIGKILL/断电、远端停止计费、Windows、恶意同用户 TOCTOU 或生产可用性 | 阶段 7 完成，进入 8.1 学习设计；未确认前不拉取或构建官方源码 |
 | 2026-08-29 | 7.7 SDK 本地终端任务台 | 已完成 | SDK `0.84.3` 单任务/BUSY、严格 read、持久 Session、当前 Run 终态、取消/退出和安全输出闭环；严格类型与 `29/29`、相关 `3/3`、`6/6`、`185/185`、离线依赖/文档门禁及最终独立复验 PASS；一次真实 smoke、学习者 RESUMED 交互和 `/quit` 通过，无残留进程；信号/EPIPE、损坏/并发 Session 与完整资源矩阵留给 7.8 | 进入 7.8 协议、异常与资源清理系统地图，未授权前不写代码 |
 | 2026-08-28 | 7.6 TUI Component、焦点、Overlay、输入与刷新 | 已完成 | Pi/TUI `0.84.3` 静态合同、逐层学习确认、08 职责表与纵向总图闭环；独立 P2 修复后复核 `PASS`，Mermaid `9/9`、本地链接/锚点 `31/31`、围栏、标题、敏感模式、差异和临时残留检查通过；无新增真实 TUI 动态实验，源码细节延后到 8.5 | 进入 7.7 外部小程序系统地图，未授权前不写代码 |

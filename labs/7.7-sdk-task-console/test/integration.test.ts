@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -24,7 +24,9 @@ import { TaskConsoleController } from "../task-console-controller.ts";
 import {
   createTaskResourceLoader,
   ensurePrivateSessionDirectory,
+  installTaskReadPathGateForSession,
   SdkTaskConsoleRuntime,
+  TASK_READ_RELATIVE_PATH,
 } from "../task-console-runtime.ts";
 import type { ConsoleRecord } from "../safe-output.ts";
 
@@ -60,7 +62,7 @@ function readToolStream(model: Model<Api>): AssistantMessageEventStream {
     type: "toolCall",
     id: "task-console-read-1",
     name: "read",
-    arguments: { path: "fixture.txt" },
+    arguments: { path: TASK_READ_RELATIVE_PATH },
   };
   const pending = assistantMessage(model, [toolCall], "pending");
   const complete = assistantMessage(model, [toolCall], "toolUse");
@@ -85,8 +87,10 @@ function textStream(model: Model<Api>, text: string): AssistantMessageEventStrea
   return stream;
 }
 
-test("runs a persisted two-turn read loop with the real SDK and no network", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "pi-study-7.7-integration-"));
+test("allows the fixture through the production gate in a real SDK two-turn read loop", async () => {
+  const root = await mkdtemp(
+    path.join(await realpath(os.tmpdir()), "pi-study-7.7-integration-"),
+  );
   const cwd = path.join(root, "project");
   const agentDirectory = path.join(root, "agent");
   const sessionDirectory = path.join(root, "private-sessions");
@@ -98,7 +102,9 @@ test("runs a persisted two-turn read loop with the real SDK and no network", asy
     await mkdir(cwd, { recursive: true });
     await mkdir(agentDirectory, { recursive: true });
     await writeFile(path.join(cwd, "AGENTS.md"), "Use only the read tool.\n");
-    await writeFile(path.join(cwd, "fixture.txt"), "TASK_CONSOLE_INTEGRATION_7701\n");
+    const fixturePath = path.join(cwd, TASK_READ_RELATIVE_PATH);
+    await mkdir(path.dirname(fixturePath), { recursive: true });
+    await writeFile(fixturePath, "TASK_CONSOLE_INTEGRATION_7701\n");
     await ensurePrivateSessionDirectory(sessionDirectory, { repositoryRoot: cwd });
 
     const settingsManager = SettingsManager.inMemory({
@@ -153,6 +159,7 @@ test("runs a persisted two-turn read loop with the real SDK and no network", asy
       sessionManager,
       settingsManager,
     });
+    installTaskReadPathGateForSession(created.session, cwd);
     const runtime = new SdkTaskConsoleRuntime({
       repositoryRoot: cwd,
       sessionDirectory,
@@ -184,10 +191,19 @@ test("runs a persisted two-turn read loop with the real SDK and no network", asy
       records.some((record) => record.status === "COMPLETED" && record.saved),
       true,
     );
+    const toolResults = sessionManager
+      .getEntries()
+      .flatMap((entry) =>
+        entry.type === "message" && entry.message.role === "toolResult"
+          ? [entry.message]
+          : [],
+      );
+    assert.equal(toolResults.length, 1);
+    assert.equal(toolResults[0]?.isError, false);
     assert.equal(
-      sessionManager
-        .getEntries()
-        .some((entry) => entry.type === "message" && entry.message.role === "toolResult"),
+      toolResults[0]?.content.some(
+        (part) => part.type === "text" && part.text.includes("TASK_CONSOLE_INTEGRATION_7701"),
+      ),
       true,
     );
   } finally {

@@ -1,6 +1,6 @@
 # 7.7 SDK 本地终端任务台
 
-本 Lab 使用 Pi SDK `0.84.3` 构建单任务终端入口。运行时固定为 `openai/gpt-5.6-sol`、Thinking `off`、仓库根工作目录和严格 `tools=[read]`。它不是复杂 TUI，也不提供写文件或 Shell Tool。
+本 Lab 使用 Pi SDK `0.84.3` 构建单任务终端入口。运行时固定为 `openai/gpt-5.6-sol`、Thinking `off`、仓库根工作目录、严格 `tools=[read]` 和专用 fixture 路径门禁。它不是复杂 TUI，也不提供写文件或 Shell Tool。
 
 ## 自动门禁
 
@@ -10,7 +10,7 @@ npm ci --ignore-scripts --omit=optional
 npm run check
 ```
 
-`check` 执行严格 TypeScript 与确定性测试，不访问真实认证或 Provider。其中一项集成测试运行真实 SDK Agent Loop 与内置 `read`，但使用纯内存凭据和脚本 ModelRuntime，网络请求为零。矩阵还覆盖输入边界、信号/EOF、EPIPE、退出码、Session 文件拒绝、双进程租约、安全输出和资源释放。
+`check` 执行严格 TypeScript 与确定性测试，不访问真实认证或 Provider。真实 SDK Agent Loop 使用纯内存凭据和脚本 ModelRuntime，在零网络下分别验证允许 fixture 的两 Turn `read`，以及拒绝路径在 Executor 前形成错误 Tool Result。矩阵还覆盖 Path Gate 的输入集合、已有 Hook 改参后的终检、Tool 错误锁存、输入边界、信号/EOF、EPIPE、退出码、Session 文件拒绝、双进程租约、安全输出和资源释放。
 
 ## 交互入口
 
@@ -33,11 +33,25 @@ Runtime 在加载 Model 前取得原子单写者租约并校验已有 JSONL。�
 - `/cancel` 请求协作取消；任务真正结束前仍由原任务 Promise 持有运行资源。
 - `/quit` 会先取消并等待活动任务结束，再取消订阅并释放 Session。
 
+需要读取文件时，受支持输入必须明确要求 `read` 下述唯一 fixture。其他路径请求不在任务台支持合同内；自然语言 Prompt 不是门禁本身，Assistant 声称“已读取”或“已拒绝”也不能替代 Tool Result 与 Executor 证据。
+
+### `read` 路径门禁
+
+| 分支 | 合同 |
+|---|---|
+| 允许 | `path` 精确等于规范相对路径 `labs/7.7-sdk-task-console/fixture.txt`，或精确等于 `path.resolve(repositoryRoot, 该相对路径)` 得到的规范绝对路径 |
+| 拒绝 | 其他仓库内路径、仓库外路径、`./`、`..`、重复分隔符等别名、硬链接、目录、缺失目标、非字符串参数、已取消请求，以及最终项、任一父目录、仓库根本身或其任一祖先为符号链接 |
+| Hook 组合 | 初检通过后才调用已有 `beforeToolCall`；已有 Hook 的 block 原样保留，若它改写参数则再次执行同一终检 |
+
+拒绝原因固定为 `Read request blocked by task path policy`。Pi Core 把它形成 `isError=true` 的 Tool Result，真实 `read.execute` 调用次数保持为零。Runtime 只接受带布尔 `isError` 的 `read` 结束事件，终态优先级取决于先发生的事实：若取消请求已先锁存，随后由取消产生的 Tool error 保持 `CANCELLED`；若 Tool error 先到，则锁存 `ToolContractViolation` 并请求协作取消，后续取消、正常且已保存的 Assistant final 都不能覆盖，本轮只能输出 `status=FAILED stage=RUNTIME errorKind=ToolContractViolation`，不能输出 Answer 或 `COMPLETED`。
+
+门禁会核对目标是单链接普通文件，并用 `realpath` 确认其仍是规范仓库根下的唯一 fixture。终检完成到 SDK Executor 实际打开 pathname 之间仍存在同用户替换文件的 TOCTOU 窗口；这是进程内能力门禁，不是 OS 沙箱。
+
 状态通道只输出固定字段：`STARTING`、`READY`、`RUNNING`、`READING`、`COMPLETED`、`FAILED`、`CANCELLED` 和 `BUSY`。并行 `read` 尚有任一调用未结束时保持 `READING`。错误诊断不包含原始 Error message、Prompt、Tool 参数/正文、Session 标识、路径、URL、Key 或原始事件。
 
 Context File 不使用 DefaultResourceLoader 的自动扫描。入口以稳定只读快照显式注入仓库根 `AGENTS.md`，全局或祖先 Context 不进入最终集合；根文件缺失、替换或读取期间变化时启动失败。Extension、Skill、Prompt Template、Theme、System Prompt 和 Append Prompt 继续全部禁用。
 
-严格 `tools=[read]` 只排除写文件与 Shell Tool，不是 OS 沙箱。内置 `read` 仍以当前用户权限读取可访问路径，交互任务不得要求读取凭据或其他敏感文件。
+严格 `tools=[read]` 与 Path Gate 只约束当前 Agent Tool 面，不降低 Pi 进程的操作系统权限。内置 `read` 仍以当前用户权限打开门禁放行的 pathname；交互任务不得要求读取凭据或其他敏感文件，也不能把支持集合外的 Prompt 当成安全测试。
 
 ## 退出与清理
 
@@ -57,6 +71,6 @@ stdout `EPIPE` 会停止继续写 stdout，向仍可用的 stderr 最多输出�
 npm run smoke
 ```
 
-`smoke` 是唯一预置真实 Agent Run：最多提交一个固定任务，要求只读专用 fixture。成功必须同时满足最终回答精确等于 fixture marker、只出现一次 `read` 开始状态、`COMPLETED saved=true`，且没有 `FAILED` 或 `CANCELLED`。60 秒到期后先请求协作取消；再经过 5 秒 grace 仍未结束时，进程以非零状态硬退出，不会无限等待。
+`smoke` 是唯一预置真实 Agent Run：最多提交一个固定任务，要求只读规范相对路径 `labs/7.7-sdk-task-console/fixture.txt`。成功必须同时满足最终回答精确等于 fixture marker、只出现一次 `read` 开始状态、`COMPLETED saved=true`，且没有 `FAILED` 或 `CANCELLED`。60 秒到期后先请求协作取消；再经过 5 秒 grace 仍未结束时，进程以非零状态硬退出，不会无限等待。
 
 Retry 已关闭，但一次 Agent Run 仍可能因 Tool Loop 产生多次 Provider 请求。Smoke 会使用本机现有 Pi 认证解析，因此只能在自动门禁通过并取得单独真实调用授权后执行。不要把一次成功外推为费用准确、长期稳定、任意任务安全或生产可用。

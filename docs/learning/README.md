@@ -25,6 +25,7 @@
 | [06-extensions.md](06-extensions.md) | 5 | Extension 总入口；从 hub 分别进入 Runtime/加载、Context/Tool/Event、Shell Gate/Branch State/Widget 和验证边界子页；默认 Pi `0.84.1`，5.10 动态矩阵为 `0.84.2` |
 | [07-packages-models-providers.md](07-packages-models-providers.md) | 6 | Pi `0.84.2` 阶段总入口；从 hub 分别进入 Package、模型选型与认证、Custom Model、Custom Provider 和版本证据子页 |
 | [08-sdk-rpc-json-tui.md](08-sdk-rpc-json-tui.md) | 7 | Pi `0.84.2` SDK/RPC/JSON；Pi `0.84.3` TUI 与 SDK 本地任务台，覆盖焦点、单任务状态、只读 Tool、持久 Session、协议异常、信号和资源清理 |
+| [09-source-and-capstone.md](09-source-and-capstone.md) | 8 | Pi `v0.84.4` 官方源码核心逻辑、受控排查报告，以及双入口毕业项目的讲解路径和证据边界 |
 
 ## 实验入口
 
@@ -39,14 +40,9 @@
 | 7.2 | SDK 高级控制 | [SDK 控制面实验材料](../../labs/7.2-sdk-controls/README.md) | Pi SDK `0.84.2` 的 Tool 限制、取消、两层重试、队列、Compaction 和持久化；区分本地故障注入与一次真实 Model 主线，不证明生产可用性 |
 | 7.4 | Java RPC 客户端 | [Java RPC 实验材料](../../labs/7.4-rpc-java/README.md) | 严格 LF JSONL、Response ID 关联、单活动 Prompt、四类结果、Fake 子进程矩阵与一次真实 RPC smoke；不证明并发 Prompt或生产可用性 |
 | 7.7-7.8 | SDK 本地任务台 | [任务台实验材料](../../labs/7.7-sdk-task-console/README.md) | SDK `0.84.3` 的单任务、严格 `read`、持久 Session、输入上限、信号/EPIPE、单写租约和资源释放；一次真实 Model SIGTERM 协作取消通过 |
+| 8.8 | Pi 毕业综合项目 | [毕业项目运行手册](../../labs/8.8-capstone/README.md) | Package 显式 opt-in 与 SDK 默认安全入口、精确 fixture Path Gate、统一无 Provider 门禁、手工清单和 Git 完成边界 |
 
-后续编号预留给尚未开始的主题。只有开始学习并产生实质内容后，才创建对应文档：
-
-| 预留文档 | 对应主题 |
-|---|---|
-| `09-source-and-capstone.md` | 源码阅读与毕业综合项目 |
-
-阶段 8 开始前仍从唯一计划的当前断点进入；只有开始学习并产生稳定内容后才创建 `09-source-and-capstone.md`。
+阶段 8 的稳定核心思想、源码证据与毕业项目讲解路径沉淀到 `09-source-and-capstone.md`；实际完成状态、失败历史和验收数字仍只保存在唯一计划。
 
 ## Legacy migration entry
 
@@ -54,7 +50,7 @@
 
 ## 阅读顺序
 
-推荐顺序：`00（首次环境搭建时按需） -> 01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07 -> 08`。
+推荐顺序：`00（首次环境搭建时按需） -> 01 -> 02 -> 03 -> 04 -> 05 -> 06 -> 07 -> 08 -> 09`。
 
 每次继续学习前，先从完整学习计划的“当前断点”恢复进度；主题文档用于按上述顺序学习或查阅，不承担进度恢复。
 

@@ -939,6 +939,128 @@ test("fails closed when cancellation throws even if an aborted message follows",
   await runtime.close();
 });
 
+test("fails closed and aborts when a read Tool error is followed by a saved normal answer", async () => {
+  const entries: Array<Record<string, unknown>> = [];
+  const session = new FakeSdkSession();
+  const assistant = {
+    role: "assistant",
+    content: [{ type: "text", text: "must not complete after a Tool error" }],
+    stopReason: "stop",
+    timestamp: 1_770_000_000_015,
+  };
+  session.promptScript = async () => {
+    session.emit({ type: "tool_execution_start", toolName: "read", toolCallId: "read-error" });
+    session.emit({
+      type: "tool_execution_end",
+      toolName: "read",
+      toolCallId: "read-error",
+      result: { content: [{ type: "text", text: "private Tool error detail" }] },
+      isError: true,
+    });
+    session.emit({ type: "message_end", message: assistant });
+    entries.push({ type: "message", message: assistant });
+    session.emit({ type: "agent_settled" });
+  };
+  const { runtime } = injectedRuntime(session, entries);
+  await runtime.initialize();
+
+  const result = await runtime.runTask("read failure must stay authoritative");
+
+  assert.deepEqual(result, {
+    outcome: "failed",
+    stage: "RUNTIME",
+    errorKind: "ToolContractViolation",
+  });
+  assert.equal(session.abortCount, 1);
+  await runtime.close();
+});
+
+test("preserves cancellation when abort causes the read Tool error", async () => {
+  const session = new FakeSdkSession();
+  const promptEntered = deferred<void>();
+  const abortReleased = deferred<void>();
+  session.abortScript = async () => {
+    abortReleased.resolve();
+  };
+  session.promptScript = async () => {
+    session.emit({ type: "tool_execution_start", toolName: "read", toolCallId: "cancel-read" });
+    promptEntered.resolve();
+    await abortReleased.promise;
+    session.emit({
+      type: "tool_execution_end",
+      toolName: "read",
+      toolCallId: "cancel-read",
+      result: { content: [{ type: "text", text: "Operation aborted" }] },
+      isError: true,
+    });
+    session.emit({
+      type: "message_end",
+      message: {
+        role: "assistant",
+        content: [],
+        stopReason: "aborted",
+        timestamp: 1_770_000_000_016,
+      },
+    });
+    session.emit({ type: "agent_settled" });
+  };
+  const { runtime } = injectedRuntime(session);
+  await runtime.initialize();
+
+  const task = runtime.runTask("cancel the active read");
+  await promptEntered.promise;
+  assert.equal(await runtime.cancel(), true);
+  const result = await task;
+
+  assert.deepEqual(result, { outcome: "cancelled", saved: false });
+  assert.equal(session.abortCount, 1);
+  await runtime.close();
+});
+
+test("keeps a read Tool error authoritative when cancellation is requested later", async () => {
+  const session = new FakeSdkSession();
+  const toolErrorEmitted = deferred<void>();
+  const finishPrompt = deferred<void>();
+  session.promptScript = async () => {
+    session.emit({ type: "tool_execution_start", toolName: "read", toolCallId: "error-first" });
+    session.emit({
+      type: "tool_execution_end",
+      toolName: "read",
+      toolCallId: "error-first",
+      result: { content: [{ type: "text", text: "read failed" }] },
+      isError: true,
+    });
+    toolErrorEmitted.resolve();
+    await finishPrompt.promise;
+    session.emit({
+      type: "message_end",
+      message: {
+        role: "assistant",
+        content: [],
+        stopReason: "aborted",
+        timestamp: 1_770_000_000_017,
+      },
+    });
+    session.emit({ type: "agent_settled" });
+  };
+  const { runtime } = injectedRuntime(session);
+  await runtime.initialize();
+
+  const task = runtime.runTask("read error happens first");
+  await toolErrorEmitted.promise;
+  assert.equal(await runtime.cancel(), true);
+  finishPrompt.resolve();
+  const result = await task;
+
+  assert.deepEqual(result, {
+    outcome: "failed",
+    stage: "RUNTIME",
+    errorKind: "ToolContractViolation",
+  });
+  assert.equal(session.abortCount, 2);
+  await runtime.close();
+});
+
 test("keeps READING until every parallel read call has ended", async () => {
   const entries: Array<Record<string, unknown>> = [];
   const records: ConsoleRecord[] = [];
@@ -952,8 +1074,18 @@ test("keeps READING until every parallel read call has ended", async () => {
   session.promptScript = async () => {
     session.emit({ type: "tool_execution_start", toolName: "read", toolCallId: "read-1" });
     session.emit({ type: "tool_execution_start", toolName: "read", toolCallId: "read-2" });
-    session.emit({ type: "tool_execution_end", toolName: "read", toolCallId: "read-1" });
-    session.emit({ type: "tool_execution_end", toolName: "read", toolCallId: "read-2" });
+    session.emit({
+      type: "tool_execution_end",
+      toolName: "read",
+      toolCallId: "read-1",
+      isError: false,
+    });
+    session.emit({
+      type: "tool_execution_end",
+      toolName: "read",
+      toolCallId: "read-2",
+      isError: false,
+    });
     session.emit({ type: "message_end", message: assistant });
     entries.push({ type: "message", message: assistant });
     session.emit({ type: "agent_settled" });
