@@ -1633,7 +1633,7 @@
   - SDK Tool 时序图修正复验 PASS、文档增强完成（2026-09-01）：订单图现明确 `customTools` 注册定义、`tools` 是全部可用 Tool 的激活白名单，严格示例使用 `tools=["query_order"]` + `customTools=[queryOrder]`；read 图按 `message_end` 分开追加 Assistant Tool Call、blocked 错误 Tool Result、allowed 正常 Tool Result和最终 Assistant。两张同源 PNG 已真实渲染并检查可读，09 全文 Mermaid `10/10`、本地链接 `54/54`、围栏、两层差异和六阶段 Runner 均通过；同一独立审查者复验无 P0-P2。残余边界为图未展开全部微观事件，SDK 动态合同锁定 `0.84.3`、Agent Loop 源码锁定 `v0.84.4`，真实 Smoke 仍只证明本次允许分支。8.8 保持进行中，继续按流程图教学等待自然确认。
   - Spring Boot + Pi 订单助手从零实现需求已澄清、待编码确认（2026-09-01）：学习者明确要求假设没有任何现成代码，新 Demo 不依赖、不复制、不引用 `labs/7.4-rpc-java`。候选范围为独立目录，自行实现 Spring Boot 内存订单域、Pi RPC 子进程生命周期、严格 LF JSONL、Command ID Response Map、单活动 Prompt Event 状态机、四态结果、`query_order` Extension Tool、loopback/随机 Token Bridge、确定性失败矩阵、一次真实 Provider Smoke、流程图和文档。当前只冻结需求，不创建代码；收到“确认，开始写代码”后才进入环境/版本门禁与第一批 Red。
   - 当前成果提交与外部方案梳理授权（2026-09-01）：学习者要求先完整提交现有代码，再提供一份交给另一个 Agent 的技术方案提示词。当前只允许审计并本地提交已完成的 8.8 候选，不自动推送；提交后外部 Agent 仅做从空目录 Spring Boot + Pi 订单助手的只读方案研究，不写代码、不修改本仓库、不复用旧 7.4 实现。其方案必须回到当前会话复核并写入唯一计划，学习者另行“确认，开始写代码”前仍不实施。
-  - 当前 8.8 候选本地提交完成、未推送（2026-09-01）：提交前 NUL-safe 文件集精确为 13 个候选、5 个新增文件，全部为单链接文本文件；高置信凭据、Session/.env/日志/临时文件/大文件为 0，暂存集精确且未暂存/未跟踪为 0。最后一次六阶段 `capstone:check`、两层 `diff --check` 均通过；本批以 `feat(capstone): 完成毕业项目与读取门禁` 本地提交，未 push。下一步只向外部 Agent 发送冻结方案提示词，返回后由当前会话复核，不直接接受其代码或进度结论。
+  - 当前 8.8 候选提交完成、远端已同步（2026-09-01）：提交前 NUL-safe 文件集精确为 13 个候选、5 个新增文件，全部为单链接文本文件；高置信凭据、Session/.env/日志/临时文件/大文件为 0，暂存集精确且未暂存/未跟踪为 0。最后一次六阶段 `capstone:check`、两层 `diff --check` 均通过；本批以 `feat(capstone): 完成毕业项目与读取门禁` 提交。主 Agent 未执行 `git push`，但提交后只读复核发现 `origin/main` 已由一次外部 push 更新到同一 Commit，`git ls-remote` 与本地远端跟踪引用一致，ahead/behind 为 `0/0`；不猜测或回退该外部变化。下一步只向外部 Agent 发送冻结方案提示词，返回后由当前会话复核，不直接接受其代码或进度结论。
 
 ### 阶段 9：学习网站与面试作品集
 
