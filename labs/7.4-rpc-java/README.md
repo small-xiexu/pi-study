@@ -1,5 +1,9 @@
 # 7.4 Java RPC 客户端
 
+原理：[23 RPC 协议与 Java 客户端](../../docs/tutorials/23-RPC协议与Java客户端.md)。返回[实验总入口](../README.md)。
+
+运行边界：Maven `test` 使用 Java 假子进程，不启动 Pi；可执行 jar 是使用现有认证的真实模型入口，可能产生费用，须单独确认。测试优先采用教程中的 `-o` 离线命令，缺缓存先停止；Java 工程未锁定 Pi 子进程版本，真实运行前另行核对 `pi.command` 指向的 CLI。
+
 本 Lab 使用 Java `ProcessBuilder` 启动长期 Pi RPC 子进程，通过严格 LF JSONL 发送 Command、关联 Response，并把异步 Agent Event 汇总为 Prompt 结果。
 
 ## 文件职责

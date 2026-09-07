@@ -1,5 +1,9 @@
 # 7.1 SDK Agent Session 实验
 
+原理：[22 使用 SDK 提交与控制任务](../../docs/tutorials/22-使用SDK提交与控制任务.md)。返回[实验总入口](../README.md)。
+
+运行边界：`check` 不调用 Provider；`demo` 是使用现有认证的真实模型入口，可能产生费用，须单独确认。安装依赖与运行测试是两个动作，依赖已准备时直接运行 `check`。
+
 本实验用 Pi SDK `0.84.2` 创建内存 `AgentSession`，通过 `DefaultResourceLoader` 发现当前仓库资源，显式选择 `openai/gpt-5.6-sol`，只开放 `read`，并订阅脱敏事件。真实 Model 读取专用 fixture 后返回固定 marker。
 
 ## Java 对照

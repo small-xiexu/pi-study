@@ -1,5 +1,6 @@
 import {
   createAssistantMessageEventStream,
+  InMemoryCredentialStore,
   type Api,
   type AssistantMessage,
   type AssistantMessageEventStream,
@@ -98,7 +99,11 @@ export async function createScriptedRuntime(script: ScriptedStream): Promise<{
   model: Model<Api>;
   getAttemptCount: () => number;
 }> {
-  const modelRuntime = await ModelRuntime.create({ modelsPath: null, refreshOnCreate: false });
+  const modelRuntime = await ModelRuntime.create({
+    credentials: new InMemoryCredentialStore(),
+    modelsPath: null,
+    refreshOnCreate: false,
+  });
   let attemptCount = 0;
   modelRuntime.registerProvider(TEST_PROVIDER, {
     name: "Pi Study Control Provider",

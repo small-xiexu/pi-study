@@ -1,5 +1,7 @@
 # 6.4 Package 管理实验
 
+返回[实验总入口](../README.md)。本实验使用 Pi CLI `0.84.2`；自动入口、`--guided` 和 `--config-tui` 都涉及隔离环境中的安装或设置变更，后两者还需要人工操作，不是只读检查。
+
 本实验在隔离环境中管理 6.3 的 `pi-study-workbench` Package，分别观察 Settings、Pi 受管理安装内容和新一轮资源发现。它使用只监听 `127.0.0.1` 的临时 npm Registry，不读取真实用户 Settings 或认证，不请求 Model，不访问外网，也不发布 Package。
 
 ## 逐步手工教学
@@ -75,4 +77,4 @@ node labs/6.4-package-management/scripts/run-package-management-lab.mjs --config
 - `--config-tui` 的 PASS 只证明本次隔离项目中的真实 TUI 写入与后续资源解析；不证明当前已运行的其他 Pi 进程会立即卸载 Extension。
 - 移除后的 Settings、受管理路径与资源结果在本次实验中分别核对；这不证明共享 npm 缓存、Package 目录外副作用、真实 Registry、认证、其他版本或通用安全性。
 
-稳定原理和证据边界见 [Pi Packages](../../docs/learning/07-packages-models-providers/packages.md)。
+原理见[18 打包安装与资源管理](../../docs/tutorials/18-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。

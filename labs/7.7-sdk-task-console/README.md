@@ -1,5 +1,9 @@
 # 7.7 SDK 本地终端任务台
 
+原理：[25 构建任务台与异常测试](../../docs/tutorials/25-构建任务台与异常测试.md)。返回[实验总入口](../README.md)。
+
+运行边界：`check` 不调用真实 Provider；`console` 会解析现有认证，普通任务会调用模型并保存记录；`smoke` 直接发起固定真实任务。后两类入口须单独确认，不能代替离线检查；依赖已准备时无需重新安装。
+
 本 Lab 使用 Pi SDK `0.84.3` 构建单任务终端入口。运行时固定为 `openai/gpt-5.6-sol`、Thinking `off`、仓库根工作目录、严格 `tools=[read]` 和专用 fixture 路径门禁。它不是复杂 TUI，也不提供写文件或 Shell Tool。
 
 ## 自动门禁

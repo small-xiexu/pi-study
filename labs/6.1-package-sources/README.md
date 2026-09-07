@@ -1,5 +1,7 @@
 # 6.1 Package 来源实验
 
+返回[实验总入口](../README.md)。本实验使用 Pi CLI `0.84.2`；CLI 选择方法见总入口的版本说明，不直接使用其他版本的全局 Pi。
+
 本实验卡覆盖 CLI `-e` 本地绝对路径 A/B、Git Branch/temporary 缓存/完整 Commit，以及 npm 精确版本/版本范围的对照行为。实验只使用课程自建、无依赖且无生命周期脚本的 Pi Package、隔离配置、本机文件和仅监听 `127.0.0.1` 的临时 Git/npm 服务；不读取现有认证文件，不请求 Model，不访问外网，也不安装第三方 Package。
 
 ## 第一组：本地路径 A/B
@@ -86,4 +88,4 @@ node --test labs/6.1-package-sources/test/npm-source.test.mjs
 
 本卡不覆盖本地 Source 的用户/项目 Settings、本地相对路径、Git Settings/Tag/外部认证、npm Tag/无版本 Source/项目 Settings/公共 Registry、同进程热重载和缓存清理；这些范围需要各自独立的合同与动态证据。
 
-稳定原理和证据边界见 [Pi Packages](../../docs/learning/07-packages-models-providers/packages.md)。
+原理见[18 打包安装与资源管理](../../docs/tutorials/18-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。

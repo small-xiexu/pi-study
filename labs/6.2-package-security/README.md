@@ -1,5 +1,7 @@
 # 6.2 Package 安全审查实验
 
+返回[实验总入口](../README.md)。本实验使用 Pi CLI `0.84.2`；虽无真实模型请求，仍会在临时目录执行课程 Package 的安装脚本和扩展代码。
+
 本实验使用课程自建 npm Package，对照安装期 lifecycle scripts、加载期 Extension、定向 rebuild 和资源过滤。运行器只使用系统临时目录、隔离 Pi/npm 配置和监听 `127.0.0.1` 的临时 Registry；不读取现有认证文件，不请求 Model，不访问外网，也不安装第三方 Package。
 
 ## 静态清单
@@ -59,4 +61,4 @@ node --test labs/6.2-package-security/test/package-security.test.mjs
 
 本实验只能证明本机 Pi `0.84.2`、npm `11.6.2` 和课程 fixture 的四条受控路径。自动测试只证明实现链可运行，不能替代学习者亲自观察。实验不证明第三方 Package 安全、任意脚本可用或可回滚，也不覆盖真实 Registry/认证/外网、传递依赖、卸载、缓存删除、同进程外部改配置后的 `/reload` 或操作系统级隔离。
 
-稳定原理和证据边界见 [Pi Packages](../../docs/learning/07-packages-models-providers/packages.md)。
+原理见[18 打包安装与资源管理](../../docs/tutorials/18-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。

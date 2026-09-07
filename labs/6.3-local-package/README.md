@@ -1,5 +1,7 @@
 # 6.3 本地 Package 源码与归档等价实验
 
+返回[实验总入口](../README.md)。本实验要求 Pi CLI `0.84.2`；自动检查会生成临时归档并执行资源加载，但不请求真实模型，也不实际发布。
+
 本实验验证仓库根源码与同一次生成的 npm tarball 解包目录能否发现同一组课程资源，并核对实际发布清单。它不测试 Package 安装、更新、禁用或卸载。
 
 ## 实验卡
@@ -48,4 +50,4 @@ node labs/6.3-local-package/scripts/run-package-artifact-lab.mjs
 - 实验不读取现有认证文件，不调用 Model，不发布 Registry，不推送 Git，也不安装第三方 Package。
 - PASS 只证明本机 Pi/npm 当前版本与本次制品的受控链路，不重新证明阶段 4-5 全部行为、真实发布、其他环境或安全隔离。
 
-稳定原理和证据边界见 [Pi Packages](../../docs/learning/07-packages-models-providers/packages.md)。
+原理见[18 打包安装与资源管理](../../docs/tutorials/18-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。
