@@ -88,4 +88,4 @@ node --test labs/6.1-package-sources/test/npm-source.test.mjs
 
 本卡不覆盖本地 Source 的用户/项目 Settings、本地相对路径、Git Settings/Tag/外部认证、npm Tag/无版本 Source/项目 Settings/公共 Registry、同进程热重载和缓存清理；这些范围需要各自独立的合同与动态证据。
 
-原理见[18 打包安装与资源管理](../../docs/tutorials/18-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。
+原理见[19 打包安装与资源管理](../../docs/tutorials/19-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。

@@ -2,33 +2,33 @@
 
 `labs/` 保存学习 Pi 时使用的样本、验证脚本和小程序，不是 Pi 官方源码，也不是一套需要整体启动的业务系统。先在[中文教程](../docs/tutorials/README.md)理解概念，再按下面的对应关系选择实验。
 
-目录编号沿用原学习计划，不与新教程 `00-28` 一一对应。新教程的“小书架”示例与这里的历史实验也不是同一份代码；教程示例按 Pi `0.85.1` 编写，已有 Lab 保留各自版本，不直接复制 API 或升级锁文件。
+目录编号沿用原学习计划，不与新教程 `00-29` 一一对应。新教程的“小书架”示例与这里的历史实验也不是同一份代码；教程示例按 Pi `0.85.1` 编写，已有 Lab 保留各自版本，不直接复制 API 或升级锁文件。
 
 ## 按学习目的选择
 
 | 层次 | 实验入口 | 先读教程 | 要观察什么 |
 |---|---|---|---|
-| 样本练习 | [1.2 基础工具](1.2-tools/) | [03 工具与边界](../docs/tutorials/03-基础工具与操作边界.md) | 文件当前内容、修改差异与工具回执是否一致 |
-| 深入验证 | [2.4 请求超时](2.4-network/README.md) | [09 配置排查](../docs/tutorials/09-常用设置与配置排查.md) | 本机假服务不响应时，单次请求超时与整个 Run 时限的区别 |
-| 样本练习 | [4.4 Skill 触发](4.4-skill/) | [12 模板与技能](../docs/tutorials/12-提示词模板与技能.md) | Java 审查应触发 Skill，普通文本任务不应触发 |
-| 样本练习 | [4.5 Skill 安全](4.5-skill-security/) | [12 模板与技能](../docs/tutorials/12-提示词模板与技能.md) | 加入注入注释后，模型是否把待分析材料误当成授权 |
-| 深入验证 | [6.1 Package 来源](6.1-package-sources/README.md) | [18 打包与管理](../docs/tutorials/18-打包安装与资源管理.md) | 本地内容、Git 缓存与 npm 版本如何影响加载结果 |
-| 深入验证 | [6.2 Package 安全](6.2-package-security/README.md) | [18 打包与管理](../docs/tutorials/18-打包安装与资源管理.md) | 安装脚本与扩展加载是两次不同的执行机会 |
-| 深入验证 | [6.3 制品核对](6.3-local-package/README.md) | [18 打包与管理](../docs/tutorials/18-打包安装与资源管理.md) | 源码与打包解包后是否发现同一组资源 |
-| 深入验证 | [6.4 Package 管理](6.4-package-management/README.md) | [18 打包与管理](../docs/tutorials/18-打包安装与资源管理.md) | 安装、禁用、更新和移除各改变哪些状态 |
-| 深入验证 | [7.1 SDK 入门](7.1-sdk/README.md) | [22 SDK 任务](../docs/tutorials/22-使用SDK提交与控制任务.md) | 会话创建、工具往返与事件订阅如何连接 |
-| 深入验证 | [7.2 SDK 控制](7.2-sdk-controls/README.md) | [22 SDK 任务](../docs/tutorials/22-使用SDK提交与控制任务.md) | 工具限制、取消、重试、队列、凭据隔离和记录恢复 |
-| 深入验证 | [7.4 Java RPC](7.4-rpc-java/README.md) | [23 RPC 与 Java](../docs/tutorials/23-RPC协议与Java客户端.md) | 管道、JSONL 分帧、回执关联与终态合并 |
-| 综合案例 | [7.7 终端任务台](7.7-sdk-task-console/README.md) | [25 任务台与异常](../docs/tutorials/25-构建任务台与异常测试.md) | 单任务、路径限制、持久化、取消和关闭怎样配合 |
-| 综合项目 | [8.8 综合运行手册](8.8-capstone/README.md) | [25 任务台](../docs/tutorials/25-构建任务台与异常测试.md)、[28 故障定位](../docs/tutorials/28-定位故障与恢复验证.md) | 将已有成果放到统一检查与人工验收流程中 |
+| 样本练习 | [1.2 基础工具](1.2-tools/) | [04 工具与边界](../docs/tutorials/04-基础工具与操作边界.md) | 文件当前内容、修改差异与工具回执是否一致 |
+| 深入验证 | [2.4 请求超时](2.4-network/README.md) | [10 配置排查](../docs/tutorials/10-常用设置与配置排查.md) | 本机假服务不响应时，单次请求超时与整个 Run 时限的区别 |
+| 样本练习 | [4.4 Skill 触发](4.4-skill/) | [13 模板与技能](../docs/tutorials/13-提示词模板与技能.md) | Java 审查应触发 Skill，普通文本任务不应触发 |
+| 样本练习 | [4.5 Skill 安全](4.5-skill-security/) | [13 模板与技能](../docs/tutorials/13-提示词模板与技能.md) | 加入注入注释后，模型是否把待分析材料误当成授权 |
+| 深入验证 | [6.1 Package 来源](6.1-package-sources/README.md) | [19 打包与管理](../docs/tutorials/19-打包安装与资源管理.md) | 本地内容、Git 缓存与 npm 版本如何影响加载结果 |
+| 深入验证 | [6.2 Package 安全](6.2-package-security/README.md) | [19 打包与管理](../docs/tutorials/19-打包安装与资源管理.md) | 安装脚本与扩展加载是两次不同的执行机会 |
+| 深入验证 | [6.3 制品核对](6.3-local-package/README.md) | [19 打包与管理](../docs/tutorials/19-打包安装与资源管理.md) | 源码与打包解包后是否发现同一组资源 |
+| 深入验证 | [6.4 Package 管理](6.4-package-management/README.md) | [19 打包与管理](../docs/tutorials/19-打包安装与资源管理.md) | 安装、禁用、更新和移除各改变哪些状态 |
+| 深入验证 | [7.1 SDK 入门](7.1-sdk/README.md) | [23 SDK 任务](../docs/tutorials/23-使用SDK提交与控制任务.md) | 会话创建、工具往返与事件订阅如何连接 |
+| 深入验证 | [7.2 SDK 控制](7.2-sdk-controls/README.md) | [23 SDK 任务](../docs/tutorials/23-使用SDK提交与控制任务.md) | 工具限制、取消、重试、队列、凭据隔离和记录恢复 |
+| 深入验证 | [7.4 Java RPC](7.4-rpc-java/README.md) | [24 RPC 与 Java](../docs/tutorials/24-RPC协议与Java客户端.md) | 管道、JSONL 分帧、回执关联与终态合并 |
+| 综合案例 | [7.7 终端任务台](7.7-sdk-task-console/README.md) | [26 任务台与异常](../docs/tutorials/26-构建任务台与异常测试.md) | 单任务、路径限制、持久化、取消和关闭怎样配合 |
+| 综合项目 | [8.8 综合运行手册](8.8-capstone/README.md) | [26 任务台](../docs/tutorials/26-构建任务台与异常测试.md)、[29 故障定位](../docs/tutorials/29-定位故障与恢复验证.md) | 将已有成果放到统一检查与人工验收流程中 |
 
-8.8 是独立的综合验收范围，不是读完 00-28 后自动完成的一章。扩展、Skill、模板和主题的正式实现还分布在仓库的 `.pi/` 与 `.agents/`，不需要为了目录整齐搬到 `labs/`。
+8.8 是独立的综合验收范围，不是读完 00-29 后自动完成的一章。扩展、Skill、模板和主题的正式实现还分布在仓库的 `.pi/` 与 `.agents/`，不需要为了目录整齐搬到 `labs/`。
 
 ## 工具与 Skill 样本
 
 这三个小目录没有独立运行器，不需要对它们执行 `npm install`：
 
-- `1.2-tools/tool-lab.txt` 是保留的工具练习结果。先读取当前内容；重做修改练习时，将样本复制到独立临时目录，不直接覆盖仓库基线。Tool 参数以第 03 篇所用版本为准。
+- `1.2-tools/tool-lab.txt` 是保留的工具练习结果。先读取当前内容；重做修改练习时，将样本复制到独立临时目录，不直接覆盖仓库基线。Tool 参数以第 04 篇所用版本为准。
 - `4.4-skill/OrderService.java` 是故意保留缺陷的 Java 审查样本，不是订单业务系统。历史实验使用 Java 8 与 Pi `0.84.1`，用于对照 Skill 的触发与不触发。
 - `4.5-skill-security` 的 `case-b` 是正常对照，`case-c` 增加注入注释，`canary.txt` 只含无害标记。注释是实验数据，不是应执行的指令。历史行为证据限于 Pi `0.84.1` 的固定样例，不保证抵抗其他注入。
 
@@ -75,7 +75,7 @@ export PI_BIN="$PWD/labs/7.1-sdk/node_modules/@earendil-works/pi-coding-agent/di
 "$PI_BIN" --version
 ```
 
-预期版本为 `0.84.2`。依赖未准备或版本不符时先停止，按对应 README 单独确认安装；本入口不会自动下载或升级。Java 测试优先参考第 23 篇的 Maven `-o` 命令，缓存不全时离线失败是前置条件未满足，不是允许联网的信号。
+预期版本为 `0.84.2`。依赖未准备或版本不符时先停止，按对应 README 单独确认安装；本入口不会自动下载或升级。Java 测试优先参考第 24 篇的 Maven `-o` 命令，缓存不全时离线失败是前置条件未满足，不是允许联网的信号。
 
 ## 如何判断实验完成
 

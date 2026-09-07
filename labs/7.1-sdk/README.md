@@ -1,6 +1,6 @@
 # 7.1 SDK Agent Session 实验
 
-原理：[22 使用 SDK 提交与控制任务](../../docs/tutorials/22-使用SDK提交与控制任务.md)。返回[实验总入口](../README.md)。
+原理：[23 使用 SDK 提交与控制任务](../../docs/tutorials/23-使用SDK提交与控制任务.md)。返回[实验总入口](../README.md)。
 
 运行边界：`check` 不调用 Provider；`demo` 是使用现有认证的真实模型入口，可能产生费用，须单独确认。安装依赖与运行测试是两个动作，依赖已准备时直接运行 `check`。
 

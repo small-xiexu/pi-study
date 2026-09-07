@@ -50,4 +50,4 @@ node labs/6.3-local-package/scripts/run-package-artifact-lab.mjs
 - 实验不读取现有认证文件，不调用 Model，不发布 Registry，不推送 Git，也不安装第三方 Package。
 - PASS 只证明本机 Pi/npm 当前版本与本次制品的受控链路，不重新证明阶段 4-5 全部行为、真实发布、其他环境或安全隔离。
 
-原理见[18 打包安装与资源管理](../../docs/tutorials/18-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。
+原理见[19 打包安装与资源管理](../../docs/tutorials/19-打包安装与资源管理.md)；本页保留上述实验的具体条件和证据边界。

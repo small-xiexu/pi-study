@@ -1,6 +1,6 @@
 # 7.2 SDK 控制面实验
 
-原理：[22 使用 SDK 提交与控制任务](../../docs/tutorials/22-使用SDK提交与控制任务.md)。返回[实验总入口](../README.md)。
+原理：[23 使用 SDK 提交与控制任务](../../docs/tutorials/23-使用SDK提交与控制任务.md)。返回[实验总入口](../README.md)。
 
 运行边界：`check` 使用脚本 Provider 和 Fetch 替身，不调用真实 Provider；`real` 使用现有认证并调用真实模型，可能产生费用，须单独确认。依赖已按锁文件准备时直接运行 `check`，不要把安装和真实入口当作自动后续步骤。
 
