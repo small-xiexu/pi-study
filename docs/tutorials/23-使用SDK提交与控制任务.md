@@ -233,10 +233,6 @@ node sdk-demo.mjs
 
 `allowModelNetwork: false` 限制的是模型目录刷新，不是系统禁网。这个示例不联网的依据是实际选中的脚本没有网络 I/O；进程仍拥有当前用户的系统权限。
 
-## 7. 一分钟回忆
-
-> **SDK 让你的程序控制输入输出，AgentSession 协调任务；显式选择依赖、只认本轮结果、取消后等待、最后释放资源。**
-
 现有[7.1 SDK 入门](../../labs/7.1-sdk/README.md)和[7.2 控制面](../../labs/7.2-sdk-controls/README.md)锁定 SDK `0.84.2`，不直接替换本篇 `0.85.1` 示例。先按[实验总入口](../../labs/README.md)区分 `check` 与真实调用：7.1 的 `check` 只检查类型与事件投影，7.2 的 `check` 使用脚本和 Fetch 替身；`demo`、`real` 会使用现有认证并请求真实模型。
 
 上一篇：[自定义服务商扩展](22-自定义服务商扩展.md)。下一篇：[RPC协议与Java客户端](24-RPC协议与Java客户端.md)。
