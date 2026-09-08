@@ -1,4 +1,6 @@
-# 用 RPC 让 Java 程序控制 Pi
+# 24 RPC协议与Java客户端
+
+## 用 RPC 让 Java 程序控制 Pi
 
 你的应用不是 Node.js，仍想复用 Pi。可以让 Java 启动一个长期运行的 Pi 子进程：Java 写入 JSON 命令，Pi 返回 JSON 响应和事件。两边不共享对象，通过管道交换数据。
 
@@ -96,6 +98,21 @@ sequenceDiagram
 事件可能先于客户端处理回执到达，所以状态机要能先保存事件事实，再合并 accepted 状态。不要在看到 `agent_settled` 时丢弃还没读到的回执，也不要把 `agent_end` 当成完成。
 
 当前 JSON 事件不携带每次更新的累计消息快照。文字按 `contentIndex` 组装增量，最终以 `message_end.message` 为准；历史上读取 `assistantMessageEvent.partial` 的代码需要按实际版本核对。
+
+### 用一次回执交错检查客户端判断
+
+假设只有一个活动 Prompt `book-1`。下面是客户端需要能够处理的虚构记录处理顺序，不承诺真实运行总按此顺序到达：
+
+| 客户端刚处理的记录 | 此刻保存的事实 | 能否向调用者报告成功 |
+|---|---|---|
+| 本轮最终 `message_end`，文字为 BOOK_OK、stopReason 为 stop | 有候选最终回答 | 不能，回执和收尾尚未齐全 |
+| `agent_end` | 低层结束 | 不能，仍可能自动继续 |
+| `agent_settled` | 本轮已收尾 | 仍不能，对应接收回执尚未处理 |
+| `book-1` 的成功 Response | accepted 与本轮终态齐全 | 再核对工具和业务合同后才能成功 |
+
+若最后一行迟迟不来，走本地超时和取消/关闭流程；不能因为已有一段好看的答案就补造 accepted。反过来，先收到成功 Response、随后 Assistant 报错并 settled，应判为接收后失败。这里合并的是不同事实，不是等待“最后到达的某种记录”覆盖此前状态。
+
+普通状态查询可以与 Prompt 并存，其 Response 通过另一个 ID 找到对应 Future；Agent Event 仍由唯一活动 Prompt 接收。正因为事件通常不带请求 ID，本例拒绝第二个活动 Prompt，避免把 A 的回答算给 B。
 
 ## 5. 取消和退出分开做
 
