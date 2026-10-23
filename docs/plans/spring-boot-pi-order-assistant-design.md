@@ -1,9 +1,10 @@
 # Spring Boot + Pi 订单查询助手技术方案
 
-> 研究日期：2026-09-01
+> 研究日期：2026-10-22
 > 修订目标：实现一个有完整学习价值、但不按生产平台复杂度建设的 Spring Boot + Pi RPC Demo。
-> 当前状态：技术方案已按“教学型完整闭环”收敛；尚未编码、运行测试或调用真实 Provider。
-> 本次设计只依赖 Pi `0.84.4` 的固定 RPC 与 Extension 合同，不复用本仓库其他 Java 实现。
+> 当前状态：技术方案已按“教学型完整闭环”收敛，并已根据 Pi `1.4.0` 的官方 RPC/Extension 合同修订；尚未编码、运行测试或调用真实 Provider。
+> 本次设计只依赖 Pi `1.4.0` 的固定 RPC 与 Extension 合同，不复用本仓库其他 Java 实现。
+> 版本核验：Pi `1.4.0` 是当前本机安装且当前可核验官方资料中的稳定版本；实现必须继续使用精确版本和 lockfile，不使用浮动 `latest`。
 
 ## 1. 项目定位
 
@@ -13,7 +14,7 @@
 
 1. Java 使用 `ProcessBuilder` 启动和管理长驻 Pi 子进程。
 2. Java 通过 stdin/stdout 使用 Pi RPC 的 LF JSONL 协议。
-3. 区分 Command Response、流式 Event 和最终 `agent_settled`。
+3. 区分 Command Response、流式 Event 和最终 `agent_settled`，并理解 `prompt` Response 的 `disposition` 与 `agent_settled.aborted`。
 4. 使用 Pi Extension 注册三个自定义业务 Tool。
 5. Extension 通过 loopback HTTP 调用 Spring Boot 业务能力。
 6. Java 管理单活动 Agent 任务、状态查询、取消和超时。
@@ -51,7 +52,7 @@ flowchart LR
     orderSvc[OrderAssistantService]
     worker[单进程 PiWorker]
     rpc[PiRpcClient]
-    pi[Pi 0.84.4 RPC 子进程]
+    pi[Pi 1.4.0 RPC 子进程]
     model[Provider / Model]
     ext[订单 Tool Extension]
     bridge[Spring Boot 内部 Tool API]
@@ -100,20 +101,25 @@ Java 管理 Node SDK Worker 与 Java 管理 Pi RPC 都只需要一个 Node 子�
 | Maven | `3.9.16` | Maven Wrapper + distribution checksum |
 | Node.js | `24.20.0` | `.node-version`，启动和构建前校验绝对路径与版本 |
 | npm | `11.19.0` | 同一 Node Home 下的 npm CLI + `packageManager` |
-| Pi | `0.84.4` | `package.json` 与 lockfile 精确依赖 |
-| TypeScript | `5.9.3` | 精确 devDependency |
-| TypeBox | `1.3.7` | 精确 dependency |
-| undici | `8.9.0` | 精确 dependency |
+| Pi | `1.4.0` | `package.json` 与 lockfile 精确依赖 |
+| TypeScript（项目 Extension） | `5.9.3` | 精确 devDependency，不代表 Pi 内部构建编译器 |
+| TypeBox | `1.3.27` | 精确 dependency |
+| undici | `8.10.2` | 精确 dependency |
 | ArchUnit | `1.4.2` | test scope，只验证包依赖方向 |
 
-主要协议依据：
+Pi `1.4.0` 要求 Node.js `>=22.19.0`；本方案继续固定 Node.js `24.20.0`。所有 `@earendil-works/pi-*` 内部包必须统一为 `1.4.0`，由 `package-lock.json` 固定完整依赖树。
 
-- [Pi RPC 文档](/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/rpc.md)
-- [Pi Extension 文档](/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/extensions.md)
-- [Pi SDK 文档](/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/docs/sdk.md)
-- [RPC 类型](/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/dist/modes/rpc/rpc-types.d.ts)
-- [固定 RPC 源码](/Users/sxie/xbk/pi-source-v0.84.4/packages/coding-agent/src/modes/rpc/rpc-mode.ts)
-- [固定 AgentSession 源码](/Users/sxie/xbk/pi-source-v0.84.4/packages/coding-agent/src/core/agent-session.ts)
+主要协议依据（全部按 Pi `1.4.0` 固定发布包和 `v1.4.0` 源码核对）：
+
+- [Pi RPC 文档](https://pi.dev/docs/latest/rpc)
+- [Pi Extension 文档](https://pi.dev/docs/latest/extensions)
+- [Pi SDK 文档](https://pi.dev/docs/latest/sdk)
+- [RPC 命令参考](https://pi.dev/docs/latest/rpc-commands)
+- [JSON Event Stream](https://pi.dev/docs/latest/json)
+- [RPC 类型](https://github.com/earendil-works/pi/blob/v1.4.0/packages/coding-agent/src/modes/rpc/rpc-types.ts)
+- [Pi 1.4.0 Release](https://github.com/earendil-works/pi/releases/tag/v1.4.0)
+
+实现环境中的 `node_modules` 和 `dist` 路径只作为构建输入，不把个人机器的绝对路径写进项目合同。
 
 首次构建允许从官方源安装 Maven、Node 和项目依赖。依赖缓存完成后，默认自动测试不得调用真实 Provider。
 
@@ -319,7 +325,7 @@ Content-Type: application/json
 - `question` 长度 1..512，最终 RPC Prompt 不超过 4 KiB。
 - 客户端不能提交 tenant、角色或权限。
 
-`OrderAssistantService` 先生成 `taskId/runId`、创建 `OrderRunTracker` 和 `AgentRunRequest`，再提交给 `PiWorker`。只有收到 Pi 的 prompt `success=true` Response 后，Worker 才发布任务并返回 202：
+`OrderAssistantService` 先生成 `taskId/runId`、创建 `OrderRunTracker` 和 `AgentRunRequest`，再提交给 `PiWorker`。只有收到 Pi 的 prompt Response，且同时满足 `success=true`、`data.disposition="started"` 后，Worker 才发布任务并返回 202：
 
 ```json
 {
@@ -334,7 +340,7 @@ Content-Type: application/json
 }
 ```
 
-这样外部 API 不暴露 `AWAITING_RESPONSE`。Prompt 明确 rejected 时返回 `503 PROMPT_REJECTED`；2 秒内未 accepted/rejected 时关闭 Pi 并返回 `503 RPC_TIMEOUT`。两种情况都不返回可查询 taskId。submit 中的 `RUNNING` 是 accepted 时刻的快照，后续 status 响应才是任务权威状态。
+`disposition="queued"` 或 `disposition="handled"` 都不符合本项目单活动 Run 合同：前者表示 Prompt 被排队，后者可能表示 Extension 命令已消费 Prompt，二者都不得发布 taskId，应按协议错误处理。这样外部 API 不暴露 `AWAITING_RESPONSE`。Prompt 明确 rejected 时返回 `503 PROMPT_REJECTED`；2 秒内未收到 `success=true` 且 `disposition="started"` 的 Response 时关闭 Pi 并返回 `503 RPC_TIMEOUT`。两种情况都不返回可查询 taskId。submit 中的 `RUNNING` 是 accepted 时刻的快照，后续 status 响应才是任务权威状态。
 
 ### 7.5 查询任务
 
@@ -399,8 +405,8 @@ POST /api/v1/order-assistant/queries/cancel
 
 | 当前任务状态 | HTTP | code | 结果 |
 |---|---:|---|---|
-| `RUNNING` | 202 | `CANCEL_ACCEPTED` | 进入 `CANCELLING`，只发送一次 abort |
-| `CANCELLING` | 202 | `CANCEL_ACCEPTED` | 幂等返回，不重复 abort |
+| `RUNNING` | 202 | `CANCEL_ACCEPTED` | 进入 `CANCELLING`，只发送一次 clear_queue 和一次 abort |
+| `CANCELLING` | 202 | `CANCEL_ACCEPTED` | 幂等返回，不重复 clear_queue/abort |
 | `CANCELLED` | 200 | `OK` | 幂等返回终态 |
 | `COMPLETED/FAILED/PROCESS_EXITED` | 409 | `TASK_ALREADY_TERMINAL` | 不改写原终态 |
 | 未知或非所有者 | 404 | `TASK_NOT_FOUND` | 不泄漏任务存在性 |
@@ -456,6 +462,7 @@ POST /api/v1/order-assistant/queries/cancel
   --no-session
   --no-context-files
   --no-extensions
+  --no-mcp
   --extension <project>/pi-extension/src/index.ts
   --no-skills
   --no-prompt-templates
@@ -470,12 +477,33 @@ POST /api/v1/order-assistant/queries/cancel
 
 说明：
 
+- Pi 1.4.0 仍允许 `--no-extensions` 与显式 `--extension` 同时使用：前者关闭自动发现和内置 Extension，后者只加载 canonical 订单 Extension。
+- `--no-mcp` 显式关闭 MCP；`--tools` 使用三个固定名称的 allowlist，不依赖默认工具集合。
 - Node、Pi CLI、cwd 和 Extension 都使用 canonical 绝对路径。
 - `ProcessBuilder.directory()` 固定为项目根目录。
 - 子进程环境从空白白名单构建，只保留 `HOME`、`TMPDIR`、locale、`PI_CODING_AGENT_DIR`、Bridge 配置和明确需要的 Provider 变量。
 - 不继承代理、云凭据、`NODE_OPTIONS` 或任意未批准的 Key/Token。
 - `--offline` 只禁止启动期网络，不禁止后续 Provider 请求。
-- `.pi/settings.json` 只关闭 Agent Retry、Provider Retry、Compaction，设置 Provider timeout 和空 `defaultTools`。
+- `.pi/settings.json` 使用 Pi 1.4.0 的 settings schema，明确设置 `compaction.enabled=false`、`retry.enabled=false`、`retry.provider.maxRetries=0` 和空 `defaultTools`；`retry.provider.timeoutMs` 只作为 HTTP idle timeout，不替代 Java 业务 deadline。
+
+推荐的最小固定配置为：
+
+```json
+{
+  "$schema": "https://pi.dev/schemas/settings.schema.json",
+  "defaultTools": [],
+  "compaction": {
+    "enabled": false
+  },
+  "retry": {
+    "enabled": false,
+    "provider": {
+      "maxRetries": 0
+    }
+  }
+}
+```
+
 - AgentDefinition 中的固定 system prompt 要求选择最小必要 Tool，完整订单查询使用三个 Tool，并禁止猜测未查询的数据。
 
 ### 9.2 Extension readiness marker
@@ -490,9 +518,9 @@ Extension 工厂执行：
 
 Java 启动后顺序发送：
 
-1. `get_state`，检查 Provider、Model 与 AgentDefinition 一致，并检查 thinking 和 idle 状态。
-2. `get_available_models`，检查目标 Model 可用。
-3. `get_commands`，要求恰好一个名为 `order-assistant-ready` 的 Command 来自 canonical Extension 路径。
+1. `get_state`，要求 `data.model` 存在且其 provider/id 与 AgentDefinition 精确一致，`thinkingLevel="off"`、`isStreaming=false`、`isCompacting=false`、`autoCompactionEnabled=false`、`messageCount=0`、`pendingMessageCount=0`，并且 `sessionFile` 缺失或为空。
+2. `get_available_models`，按 provider/id 检查目标 Model 可用，不比较整个 Model JSON。
+3. `get_commands`，要求恰好一个名为 `order-assistant-ready` 的 Command，且 `source="extension"`；`sourceInfo.path` 经 realpath 后必须位于 canonical Extension 路径内。
 
 这个探测证明本地 RPC Runtime、目标 Model 配置和 Extension/Tool 激活状态可响应，不证明远端 Provider 网络可用。Health 为 UP 时仍报告 `providerConnectivity=UNVERIFIED`，直到任务实际成功。
 
@@ -511,7 +539,7 @@ Java 启动后顺序发送：
 | 业务 Prompt | 最大 4 KiB |
 | EOF 残片 | 判为 `UNTERMINATED_RECORD` |
 
-使用字节级 `LfJsonlDecoder` 和严格 `CharsetDecoder`，不使用会接受其他换行语义的通用 line reader。
+以上大小限制是本项目 Java 侧的安全上限，不宣称为 Pi 内部的原生限制。使用字节级 `LfJsonlDecoder` 和严格 `CharsetDecoder`，不使用会接受其他换行语义的通用 line reader。
 
 ### 10.2 Command 与 Response
 
@@ -524,10 +552,10 @@ Prompt：
 accepted：
 
 ```json
-{"id":"cmd-000001","type":"response","command":"prompt","success":true}
+{"id":"cmd-000001","type":"response","command":"prompt","success":true,"data":{"disposition":"started"}}
 ```
 
-`success=true` 只代表 prompt 已通过 preflight 并被接受。任务最终结果必须继续观察 Event。
+`success=true` 只代表 Prompt 被 Pi 接受、排队或被立即处理；本项目只有 `data.disposition="started"` 才表示创建了新的 Agent Run。`queued` 和 `handled` 都不是可发布任务的成功结果。Prompt Response 仍然不代表任务最终成功，必须继续观察 Event，直到 `agent_settled`。
 
 ### 10.3 Pending Command
 
@@ -540,6 +568,8 @@ accepted：
 - 可选 taskId
 
 所有 Pending Map 操作只在 PiWorker coordinator 线程执行：
+
+`clear_queue` 与 `abort` 都使用同一套 Pending Command、deadline 和 settle 规则，不为取消另建第二套异步协议。
 
 1. PiWorker 先登记 Pending，再把完整 JSONL byte array 提交给 Writer。
 2. Reader 把 Response Record 投递给 PiWorker。
@@ -564,7 +594,7 @@ Tracker 处理：
 
 `message_update` 只用于学习和可选调试计数，不作为最终回答。`message_end.message` 才是权威消息。
 
-合法但当前不关心的 Pi Event 只计数并忽略；malformed JSON、错误 Response、未知 Response id、超限 Record 和关键 Event 字段类型错误使 transport DOWN。
+`agent_end` 只表示一次低级 Agent Run 结束，不能作为 Session-level 最终完成信号；自动重试、Compaction、Overflow recovery 或队列处理仍可能继续。`agent_settled` 才是最终收敛信号，Pi `1.4.0` 的 `agent_settled.aborted` 必须纳入任务判定：正常完成要求 `false`，取消要求结合本地取消原因和 `true`。合法但当前不关心的 Pi Event 只计数并忽略；malformed JSON、错误 Response、未知 Response id、超限 Record 和关键 Event 字段类型错误使 transport DOWN。`extension_error` 按发生阶段分类：readiness 或 Bridge 安全边界中的 Extension 错误使当前 Run 失败，只有无法继续保证 RPC 合同或 Extension 生命周期的错误才使 transport DOWN。
 
 ## 11. PiWorker 状态机
 
@@ -576,12 +606,13 @@ stateDiagram-v2
     STARTING --> IDLE: readiness通过
     STARTING --> DOWN: 启动失败
     IDLE --> SUBMITTING: 收到submit
-    SUBMITTING --> RUNNING: prompt accepted
+    SUBMITTING --> RUNNING: prompt disposition=started
     SUBMITTING --> IDLE: prompt rejected
+    SUBMITTING --> DOWN: queued/handled 或协议失败
     SUBMITTING --> DOWN: RPC timeout/process failure
     RUNNING --> CANCELLING: 用户取消或业务超时
-    RUNNING --> RESETTING: 正常终态 + settled
-    CANCELLING --> RESETTING: abort Response + settled
+    RUNNING --> RESETTING: 正常终态 + settled(aborted=false)
+    CANCELLING --> RESETTING: clear_queue + abort Response + settled(aborted=true)
     CANCELLING --> DOWN: cancel deadline后终止进程
     RESETTING --> IDLE: new_session验证通过
     RESETTING --> DOWN: reset失败
@@ -614,15 +645,17 @@ ORDER_ASSISTANT_QUERY
 
 `OrderRunTracker` 实现通用 `AgentRunTracker`。PiWorker 把当前 Run 的相关 Event 按物理顺序交给它；一次任务判定为 `COMPLETED` 必须满足：
 
-1. Prompt accepted。
+1. Prompt Response 的 `success=true` 且 `data.disposition="started"`。
 2. 至少调用一个、最多调用三个订单 Tool。
 3. Tool 名只来自固定集合，每个 Tool 最多调用一次，toolCallId 非空且唯一。
 4. 每个 Tool Call 的 runId 和 orderId 匹配当前任务。
 5. 每个 Tool 都出现 `tool_execution_end(isError=false)` 和同 ID 的成功 ToolResult Message。
-6. 最终 Assistant Message 出现在全部 Tool Result 后，`stopReason=stop`，包含 1..8 KiB 文本且不再含 Tool Call。
-7. 最后出现 `agent_end(willRetry=false)` 和 `agent_settled`。
+6. 最终 Assistant Message 出现在全部 Tool Result 后，`stopReason=stop`，包含 1..8 KiB 文本且不再含 Tool Call；`message_end.message` 是权威消息，不能用 `message_update` 的增量文本替代。
+7. `agent_end` 可以出现一次或多次，只记录低级 Run；`willRetry=false` 不能替代最终 settle 判定。
+8. 在关闭自动 Retry、自动 Compaction，且本 Demo 不发送 steering/follow-up 的固定配置下，不得出现未预期的后续 Agent Run。
+9. 最后出现 `agent_settled` 且 `aborted=false`。
 
-任一 Tool 失败、重复调用、未知 Tool、零 Tool、最终 Message 不完整或进程错误都得到 `FAILED` 或 `PROCESS_EXITED`。
+任一 Tool 失败、重复调用、未知 Tool、零 Tool、最终 Message 不完整、`agent_settled.aborted=true`（且不是用户取消）或进程错误都得到 `FAILED` 或 `PROCESS_EXITED`。
 
 `COMPLETED` 只证明 Agent 执行链完整，不证明 Model 一定选择了语义上最合适的 Tool，也不证明自然语言总结绝对正确。status 响应返回 `usedTools`，让学习者观察 Model 的实际路由。
 
@@ -698,7 +731,7 @@ Content-Type: application/json
 | `query_payment` | `orderId/status/paidAt/channel/failureCode` |
 | `query_logistics` | `orderId/status/carrier/latestEvent/estimatedDeliveryAt` |
 
-每个内部响应继续使用统一 `ApiResponse<T>`。Extension 只把 `data` 中的业务白名单 JSON 作为 Tool Result，不把 requestId、HTTP code 或内部错误细节交给 Model。
+每个内部响应继续使用统一 `ApiResponse<T>`。三个 Tool 同时声明与业务白名单一致的 `outputSchema`，成功时返回匹配的 `structuredContent` 和面向 Model 的 `content`；Extension 只把 `data` 中的业务白名单 JSON 作为 Tool Result，不把 requestId、HTTP code 或内部错误细节交给 Model。
 
 ### 13.5 Node HTTP 合同
 
@@ -714,16 +747,18 @@ Content-Type: application/json
 
 ## 14. Session reset
 
-`--no-session` 只禁用磁盘 Session，当前 Pi 进程仍保留 `agent.state.messages`。因此每个健康终态后必须 reset：
+`--no-session` 使用内存 Session，不持久化磁盘文件；当前 Pi 进程和 Session 仍会保留对话消息。因此每个健康终态后必须 reset：
 
 1. 保存通用 `AgentRunResult` 和 `usedTools`，PiWorker 进入 `RESETTING`。
 2. 发送 `new_session`，要求 `success=true` 且 `data.cancelled=false`。
 3. 发送 `get_state`，要求：
    - 新 sessionId 与旧值不同。
+   - `sessionFile` 缺失或为空，证明 `--no-session` 未产生磁盘 Session。
    - `messageCount=0`。
    - `pendingMessageCount=0`。
    - `isStreaming=false`。
    - `isCompacting=false`。
+   - `autoCompactionEnabled=false`。
    - Provider、Model 和 thinking 仍匹配启动合同。
 4. 发送 `get_commands`，重新检查 readiness marker。
 5. 三个命令共享一个 6 秒绝对 deadline。
@@ -739,7 +774,7 @@ Reset 失败不改写已经保存的原任务结果，但会终止 Pi、Health=D
 
 | 操作 | 预算 |
 |---|---:|
-| 普通 RPC Command Response | 2 秒 |
+| 普通（不含 abort）RPC Command Response | 2 秒 |
 | Agent 业务任务 | 30 秒 |
 | Tool 总 deadline | 3 秒 |
 | Bridge run 授权等待 | 750ms |
@@ -752,15 +787,16 @@ Reset 失败不改写已经保存的原任务结果，但会终止 Pi、Health=D
 
 ### 15.2 取消
 
-用户只能取消已经 accepted 并返回 taskId 的任务：
+用户只能取消已经 accepted 且 `disposition="started"`、已经返回 taskId 的任务：
 
 1. PiWorker 把任务置为 `CANCELLING`，拒绝后续 Tool reservation。
-2. 只发送一次 Pi `abort` Command。
-3. 同时等待 `agent_settled` 和 abort Response。Pi `0.84.4` 的 abort 会等待 Session idle 后才响应。
-4. 用户取消双收敛后保存 `CANCELLED`；业务 deadline 双收敛后保存 `FAILED/TIMEOUT`。
-5. 5 秒内未双收敛则终止 Pi；`process.onExit()` 后保存 `PROCESS_EXITED` 并进入 DOWN。
+2. 先发送一次 `clear_queue`，要求 `success=true` 且 `data.steering=[]`、`data.followUp=[]`；队列未清空或 Response 失败都视为 RPC transport failure。
+3. 只发送一次 Pi `abort` Command。Pi `1.4.0` 的 abort 会等待 Session idle 后才响应。
+4. 同时等待 `agent_settled` 和 abort Response；用户取消要求 `agent_settled.aborted=true`，业务 deadline 也必须结合本地超时原因记录为 `FAILED/TIMEOUT`，不能把所有 aborted 都当作用户取消。
+5. 用户取消双收敛后保存 `CANCELLED`；业务 deadline 双收敛后保存 `FAILED/TIMEOUT`。
+6. 5 秒内未双收敛则终止 Pi；`process.onExit()` 后保存 `PROCESS_EXITED` 并进入 DOWN。
 
-PiWorker 队列决定 deadline 与迟到 Event 的顺序。处理 cancel deadline 时先检查两个收敛标志；若已满足则不杀进程，否则提交进程终止。之后的迟到 Event 只计数，不恢复任务状态。
+PiWorker 队列决定 clear_queue、abort、deadline 与迟到 Event 的顺序。处理 cancel deadline 时先检查两个收敛标志；若已满足则不杀进程，否则提交进程终止。之后的迟到 Event 只计数，不恢复任务状态。
 
 ### 15.3 Heartbeat
 
@@ -774,7 +810,7 @@ PiWorker 队列决定 deadline 与迟到 Event 的顺序。处理 cancel deadlin
 `PiApplicationLifecycle` 使用 `ApplicationReadyEvent` 启动 Pi，并实现 `SmartLifecycle`：
 
 1. 立即拒绝新的 submit/cancel，PiWorker 进入 `STOPPING`。
-2. 若有活动任务，发送一次 abort 并等待最多 3 秒。
+2. 若有活动任务，先发送一次 clear_queue，再发送一次 abort，并等待最多 3 秒。
 3. 关闭 Writer 接单，等待已提交写入结束。
 4. 关闭 Pi stdin，等待进程正常退出最多 2 秒。
 5. 仍未退出则 `destroy()`，再等待 2 秒。
@@ -817,8 +853,8 @@ PiWorker 队列决定 deadline 与迟到 Event 的顺序。处理 cancel deadlin
 |---|---|
 | `LfJsonlDecoderTest` | LF/CRLF、分块 UTF-8、U+2028、非法 UTF-8、超限和 EOF 残片 |
 | `PiRpcClientTest` | JSONL 序列化、writer/reader transport、EOF 和 I/O 失败 |
-| `PiWorkerTest` | Command ID/Response 关联、submit accepted/rejected、单活动 Run、取消、超时、reset、DOWN |
-| `OrderRunTrackerTest` | 1..3 Tool、重复/未知/失败 Tool、订单参数、final Assistant、settled |
+| `PiWorkerTest` | Command ID/Response 关联、`prompt.disposition`、单活动 Run、clear_queue/取消、超时、reset、DOWN 和 `agent_settled.aborted` |
+| `OrderRunTrackerTest` | 1..3 Tool、重复/未知/失败 Tool、订单参数、final Assistant、`agent_end` 非终态和 `settled.aborted` |
 | `OrderAccessServiceTest` | alice/bob tenant 隔离、不可枚举和白名单投影 |
 | `InternalBusinessToolIntegrationTest` | Token、runId/orderId、Tool 单次使用、统一包络、取消排序 |
 | `OrderAssistantApiIntegrationTest` | 三个 POST API、统一包络、校验、404/409/429/503 |
@@ -829,7 +865,7 @@ PiWorker 队列决定 deadline 与迟到 Event 的顺序。处理 cancel deadlin
 
 ### 17.2 Extension 测试
 
-- 三个 Tool Schema 和 `executionMode=sequential`。
+- 三个 Tool Schema、`outputSchema`/`structuredContent` 和 `executionMode=sequential`。
 - readiness marker 只在 Flag 和 active Tool 集合正确时出现。
 - direct Agent 不经过代理。
 - 3xx、timeout、AbortSignal、超限和错误包络处理。
@@ -840,15 +876,16 @@ PiWorker 队列决定 deadline 与迟到 Event 的顺序。处理 cancel deadlin
 
 使用 Java `FakePiRpcMain` 覆盖：
 
-- accepted、rejected、正常 Event 链。
+- accepted（`disposition=started`）、queued、handled、rejected 和正常 Event 链。
 - malformed/oversized stdout。
 - Command 不响应。
-- abort 正常收敛和卡住后进程终止。
+- clear_queue、abort 正常收敛和卡住后进程终止。
+- `agent_settled.aborted` 为 true/false 的取消与完成场景。
 - reset 成功和失败。
 
 ### 17.4 真实 Pi + Fake Provider E2E
 
-`offline-e2e` 使用真实 Pi `0.84.4`、真实 Extension 和只绑定随机 loopback 端口的 Fake OpenAI Chat Completions SSE Provider。
+`offline-e2e` 使用真实 Pi `1.4.0`、真实 Extension 和只绑定随机 loopback 端口的 Fake OpenAI Chat Completions SSE Provider。
 
 每次测试创建独立临时 `HOME`、`TMPDIR` 和 `PI_CODING_AGENT_DIR`，只写入空 `auth.json` 与包含单一 Fake Model/dummy key 的 `models.json`；启动 Pi 前清除真实 Key、Token、代理、云身份和 `NODE_OPTIONS`。该隔离防止测试误用日常配置，但不是操作系统网络沙箱。
 
@@ -860,8 +897,10 @@ PiWorker 队列决定 deadline 与迟到 Event 的顺序。处理 cancel deadlin
 
 每个任务后验证：
 
+- Prompt Response 的 `disposition=started`。
 - Tool Call/Result ID、runId、orderId 和结果 Schema。
-- 最终 Assistant、`agent_end(willRetry=false)`、`agent_settled`。
+- 最终 Assistant、`agent_settled(aborted=false)`；`agent_end` 只作为低级 Run 记录。
+- `get_state` 显示 `messageCount=0`、`pendingMessageCount=0` 且无 `sessionFile`。
 - reset 后 Provider 请求中不存在前一任务 question、Tool Call、Tool Result 或 canary。
 - 测试结束无 Pi/Fake Provider 残留进程。
 
@@ -876,7 +915,10 @@ Fake Provider 的 Tool 选择是脚本化测试数据，只证明链路和 Route
 ```bash
 "$DEMO_NODE_BIN" "$DEMO_NPM_CLI" --prefix pi-extension ci --ignore-scripts
 ./mvnw -version
+"$DEMO_NODE_BIN" -p "require('./pi-extension/node_modules/@earendil-works/pi-coding-agent/package.json').version"
 ```
+
+上述版本检查必须输出 `1.4.0`；同时由 `.node-version` 和启动前检查保证 Node.js 满足 `>=22.19.0`。
 
 日常验证：
 
@@ -989,11 +1031,11 @@ spring-pi-order-assistant/
 |---|---|---|
 | 0 | Maven/Node/Pi 版本、项目骨架、包依赖规则和统一包络 | Wrapper、ArchitectureRules、MockMvc 包络测试 |
 | 1 | 订单聚合、Demo identity、权限和三个投影 | `OrderAccessServiceTest` |
-| 2 | `pi.runtime`、Fake Pi、AgentDefinition 和单进程 PiWorker | `LfJsonlDecoderTest`、`PiRpcClientTest`、`PiWorkerTest` |
-| 3 | `OrderRunTracker`、`query_order` Extension 和首个真实 Pi 垂直链路 | Node Tool Test + `RealPiFakeProviderIT` 第一场景 |
+| 2 | Pi `1.4.0` `pi.runtime`、Fake Pi、AgentDefinition 和单进程 PiWorker | `LfJsonlDecoderTest`、`PiRpcClientTest`、`PiWorkerTest` |
+| 3 | `OrderRunTracker`、`query_order` Extension、当前 RPC disposition/settled 合同和首个真实 Pi 垂直链路 | Node Tool Test + `RealPiFakeProviderIT` 第一场景 |
 | 4 | 扩展三个 Tool、run/resource/order绑定和 Tracker | Extension/OrderRunTracker/Bridge 测试 |
 | 5 | submit/status 两个 POST API、单活动任务和任务存储 | `OrderAssistantApiIntegrationTest` |
-| 6 | cancel、业务 timeout、heartbeat 和基础 shutdown | PiWorker/Lifecycle/Fake Pi 测试 |
+| 6 | cancel（clear_queue + abort）、业务 timeout、heartbeat 和基础 shutdown | PiWorker/Lifecycle/Fake Pi 测试 |
 | 7 | `new_session` reset 与跨任务隔离 | reset 测试 |
 | 8 | 将 `RealPiFakeProviderIT` 扩展为同一 PID 三任务 E2E | `offline-e2e clean verify` |
 | 9 | README、架构图和教学笔记 | 手工验收清单 |
@@ -1006,12 +1048,12 @@ spring-pi-order-assistant/
 ### 21.1 功能验收
 
 - Spring Boot 启动后 Pi Health 从 STARTING 变为 UP。
-- PiWorker 启动时绑定唯一 `order-assistant` AgentDefinition，Provider/Model/Tool 与 readiness 一致。
+- PiWorker 启动时绑定唯一 `order-assistant` AgentDefinition，Pi 版本为 `1.4.0`，Provider/Model/Tool 与 readiness 一致，并显式关闭 MCP。
 - submit/status/cancel 和三个内部 Tool 接口全部使用 POST。
 - 所有订单助手和内部 Tool 业务接口使用统一 `ApiRequest<T>` 和 `ApiResponse<T>`。
-- submit 只有在 prompt accepted 后返回 202 和 taskId。
+- submit 只有在 prompt `success=true` 且 `disposition="started"` 后返回 202 和 taskId。
 - status 能返回运行态、终态、usedTools 和成功 answer。
-- cancel 重复调用幂等，只发送一次 abort。
+- cancel 重复调用幂等，只发送一次 clear_queue 和一次 abort；用户取消最终具有 `agent_settled.aborted=true`。
 - 第二个并发 submit 返回 429。
 - 三个 Tool 各自返回固定白名单字段。
 - alice 和 bob 不能跨租户访问订单。
@@ -1026,8 +1068,8 @@ spring-pi-order-assistant/
 - `ArchitectureRulesTest` 证明 `web -> order.application -> agent -> pi.runtime` 没有反向依赖。
 - `PiRpcClientTest` 和 `PiWorkerTest` 不依赖订单夹具即可运行。
 - Extension typecheck 和测试通过。
-- Fake Pi 覆盖拒绝、超时、取消、malformed 和 reset 失败。
-- 真实 Pi + Fake Provider 在同一 PID 顺序完成三个任务。
+- Fake Pi 覆盖 disposition 拒绝、超时、clear_queue/取消、malformed 和 reset 失败。
+- 真实 Pi `1.4.0` + Fake Provider 在同一 PID 顺序完成三个任务。
 - 每次 reset 后 Fake Provider 看不到前一任务上下文。
 - 默认测试不读取真实凭据、不访问非 loopback Provider、不产生费用。
 
@@ -1045,15 +1087,15 @@ spring-pi-order-assistant/
 2. 所有订单助手和内部 Tool 业务接口统一使用 POST。
 3. 公共和内部接口统一使用 request/response 包络。
 4. `requestId` 表示一次 HTTP 调用，`taskId` 表示一次 Agent 任务，两者不复用。
-5. submit 等待 prompt accepted 后返回，因此不暴露 `AWAITING_RESPONSE`。
-6. 保留 submit/status/cancel 异步任务体验和 Pi abort 学习内容。
+5. submit 只有在 prompt `disposition="started"` 后返回，因此不暴露 `AWAITING_RESPONSE`。
+6. 保留 submit/status/cancel 异步任务体验，并使用 clear_queue + Pi abort 学习取消收敛。
 7. 保留三个只读 Tool，由 Model 在合成数据范围内选择。
 8. 一个 `PiWorker` 对应一个 Pi 进程，并由单线程 coordinator 代替跨组件 CAS 状态协议。
 9. 首版只有一个固定 `AgentDefinition`，不实现动态 Agent Registry。
 10. `AgentRunTracker` 是唯一 Agent 类型扩展点，首版实现为 `OrderRunTracker`。
 11. 保持单 Maven Module，通过包边界和 ArchUnit 隔离 runtime/agent/order/web。
-12. 保留 Session reset、heartbeat、基础 shutdown 和真实 Pi Fake Provider E2E。
-13. 删除 Tool capability secret、复杂 reset settlement、32 个竞态用例和对抗式 Maven 门禁。
+12. 固定 Pi `1.4.0`，保留 Session reset、heartbeat、基础 shutdown 和真实 Pi Fake Provider E2E。
+13. 任务最终完成以 `agent_settled` 为准，使用 `agent_settled.aborted` 区分取消与正常结束；删除 Tool capability secret、复杂 reset settlement、32 个竞态用例和对抗式 Maven 门禁。
 14. Actuator Health 保留默认 GET；“业务接口全部 POST”不改变框架运维接口。
 15. 真实 Provider 每次单独授权，方案文档不构成调用和费用授权。
 
