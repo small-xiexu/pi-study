@@ -8,6 +8,8 @@
 
 **Tech Stack:** JDK 21, Spring Boot `4.1.1`, Maven `3.9.16` via Maven Wrapper, Node.js `24.20.0`, npm `11.19.0`, Pi `1.4.0`, TypeScript `5.9.3`, TypeBox `1.3.27`, undici `8.10.2`, ArchUnit `1.4.2`, JUnit 5, Spring MVC Test, and a loopback-only Fake OpenAI-compatible SSE Provider.
 
+**Source design:** [Spring Boot + Pi 订单查询助手技术方案](../../plans/spring-boot-pi-order-assistant-design.md) defines the stable architecture and evidence contracts; this file expands them into executable tasks and commands.
+
 ---
 
 ## Working rules and fixed paths

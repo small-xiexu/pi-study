@@ -1,10 +1,10 @@
-# Spring Boot + Pi 订单查询助手技术方案（实施基线）
+# Spring Boot + Pi 订单查询助手技术方案（设计基线）
 
 > 研究日期：2026-10-22
 > 修订目标：实现一个有完整学习价值、但不按生产平台复杂度建设的 Spring Boot + Pi RPC Demo。
-> 当前状态：技术方案已完成结构化修订并经学习者确认，实施计划已写入 `docs/superpowers/plans/2026-10-24-spring-boot-pi-order-assistant.md`；尚未编码、运行测试或调用真实 Provider。
+> 当前状态：技术方案已完成结构化修订并经学习者确认；详细执行步骤见 [Spring Boot + Pi 订单助手实施计划](../superpowers/plans/2026-10-24-spring-boot-pi-order-assistant.md)。尚未编码、运行测试或调用真实 Provider。
 > 适用版本：Pi `1.4.0`。实现必须继续使用精确版本和 lockfile，不使用浮动 `latest`。
-> 本文是实施依据，不代表代码、测试、真实 Provider 或运行结果已经完成。
+> 本文定义稳定的设计合同，不记录逐任务执行状态；它不代表代码、测试、真实 Provider 或运行结果已经完成。
 
 ## 0. 文档状态与证据边界
 
@@ -12,19 +12,9 @@
 
 - **Pi 合同事实**：由本机 Pi `1.4.0` 的固定发布包、官方文档或 `v1.4.0` 源码核对。实现仍需用启动探针和测试确认当前依赖树没有改变行为。
 - **项目设计决定**：为了教学 Demo 明确选择的行为，例如只允许一个活动任务、失败任务使用 `FAILED + errorCode`、取消使用 `clear_queue + abort`。
-- **实现前验证项**：当前没有运行证据，必须在对应阶段通过单元测试、集成测试或真实 Pi + Fake Provider E2E 取得直接证据。
+- **实现前验证项**：当前没有运行证据，必须在实施计划对应阶段通过单元测试、集成测试或真实 Pi + Fake Provider E2E 取得直接证据。
 
-本文已经完成设计修订，但以下事实仍未发生：
-
-- 没有创建 Spring Boot 项目代码；
-- 没有创建 Pi Extension；
-- 没有安装或验证本项目自己的 Maven/npm lockfile；
-- 没有启动本项目的真实 Pi 垂直链路；
-- 没有运行 Java、Extension 或 E2E 测试；
-- 没有调用真实 Provider；
-- 没有把本方案标记为学习计划中的完成项。
-
-文档中“必须验证”不能被“设计中已经写明”替代。唯一进度台账仍是 `docs/plans/pi-complete-learning-plan.md`，本次文档修订不改变其完成状态。
+设计文档负责回答“做什么、为什么这样设计以及完成时必须证明什么”。具体任务、文件清单、测试命令、环境脚本和执行记录统一放在 [实施计划](../superpowers/plans/2026-10-24-spring-boot-pi-order-assistant.md) 中。两份文档都不能把设计描述当成已经取得的运行证据。
 
 ## 1. 项目定位、目标与范围
 
@@ -1286,19 +1276,19 @@ Health 至少返回：
 
 ### 13.1 Java 测试
 
-| 测试 | 必须证明 |
+| 证据类别 | 必须证明 |
 |---|---|
-| `LfJsonlDecoderTest` | LF/CRLF、分块 UTF-8、U+2028/U+2029、非法 UTF-8、超限和 EOF 残片 |
-| `PiRpcClientTest` | JSONL 序列化、writer/reader transport、EOF 和 I/O 失败 |
-| `PiWorkerTest` | Command 关联、generation、disposition、单活动 Run、取消、timeout、reset、DOWN 和 settled.aborted |
-| `OrderRunTrackerTest` | 1..3 Tool、重复/未知/失败 Tool、参数匹配、最终 Assistant、agent_end 非终态和 settled.aborted |
-| `OrderAccessServiceTest` | alice/bob tenant 隔离、不可枚举和白名单投影 |
-| `InternalBusinessToolIntegrationTest` | Token、loopback、runId/orderId、Tool 单次使用、统一包络、取消排序和 body limit |
-| `OrderAssistantApiIntegrationTest` | 三个 POST API、统一包络、校验、404/409/429/503 和 TTL |
-| `PiApplicationLifecycleTest` | 启动、heartbeat failure、关闭预算、SmartLifecycle callback 和线程清理 |
-| `ArchitectureRulesTest` | `pi.runtime` 不依赖 agent/order/web/security，agent 不依赖 order/web |
+| JSONL 解码 | LF/CRLF、分块 UTF-8、U+2028/U+2029、非法 UTF-8、超限和 EOF 残片 |
+| RPC Client | JSONL 序列化、writer/reader transport、EOF 和 I/O 失败 |
+| Worker 状态机 | Command 关联、generation、disposition、单活动 Run、取消、timeout、reset、DOWN 和 settled.aborted |
+| Tracker 结果判定 | 1..3 Tool、重复/未知/失败 Tool、参数匹配、最终 Assistant、agent_end 非终态和 settled.aborted |
+| 订单访问 | alice/bob tenant 隔离、不可枚举和白名单投影 |
+| 内部 Tool Bridge | Token、loopback、runId/orderId、Tool 单次使用、统一包络、取消排序和 body limit |
+| 公共 API | 三个 POST API、统一包络、校验、404/409/429/503 和 TTL |
+| 应用生命周期 | 启动、heartbeat failure、关闭预算、SmartLifecycle callback 和线程清理 |
+| 架构边界 | `pi.runtime` 不依赖 agent/order/web/security，agent 不依赖 order/web |
 
-允许参数化测试表达协议边界。不维护方法级 manifest。`pi.runtime` 与 `PiWorkerTest` 不使用订单夹具。
+允许参数化测试表达协议边界，不维护方法级测试清单。runtime 和 Worker 的证据必须可以在不加载订单夹具的情况下取得。
 
 ### 13.2 Extension 测试
 
@@ -1310,7 +1300,7 @@ Health 至少返回：
 - 3xx、timeout、AbortSignal、超限和错误包络；
 - 三个 Tool 只访问各自固定 path；
 - Tool Result 只返回业务 `data`；
-- `npm run check` 固定执行 typecheck 和测试。
+- Extension typecheck 和测试由实施计划中的固定命令执行；
 
 Extension 测试必须结合固定 Pi `1.4.0` 的分层 Contract Probe 和真实 Pi E2E 验证；二者不能互相替代。证据分为两个阶段：
 
@@ -1330,7 +1320,7 @@ Extension 测试还必须验证：
 
 ### 13.3 Fake Pi 进程测试
 
-`FakePiRpcMain` 覆盖：
+Fake Pi 进程覆盖：
 
 - accepted `started`、`queued`、`handled`、rejected；
 - 正常 Event 链；
@@ -1345,9 +1335,9 @@ Extension 测试还必须验证：
 
 ### 13.4 真实 Pi + Fake Provider E2E
 
-`offline-e2e` 使用真实 Pi `1.4.0`、真实 Extension 和只绑定随机 loopback 端口的 Fake OpenAI-compatible Chat Completions SSE Provider。
+真实 Pi `1.4.0`、真实 Extension 和只绑定随机 loopback 端口的 Fake OpenAI-compatible Chat Completions SSE Provider 共同组成离线 E2E。
 
-Fake Provider 的 `models.json`、Model id、`api` 类型、baseUrl、SSE 事件顺序和 Tool Call fixture 必须固定在测试资源中。测试不能依赖个人 AgentDir 或真实模型目录。`--offline` 只禁止启动期自动网络活动，不得被解释为禁止 loopback Provider 请求；E2E 必须断言 Fake Provider 收到至少一个真实 Model 请求。
+Fake Provider 的模型配置、Model id、`api` 类型、baseUrl、SSE 事件顺序和 Tool Call fixture 必须固定在测试资源中。测试不能依赖个人 AgentDir 或真实模型目录。`--offline` 只禁止启动期自动网络活动，不得被解释为禁止 loopback Provider 请求；E2E 必须断言 Fake Provider 收到至少一个真实 Model 请求。
 
 推荐的模型配置形状为：
 
@@ -1395,46 +1385,34 @@ Fake Provider 的 `models.json`、Model id、`api` 类型、baseUrl、SSE 事件
 
 Fake Provider 的 Tool 选择是脚本化测试数据，只证明链路和 Router 能执行对应选择，不证明真实 Model 的自然语言路由能力。
 
-除三个成功任务外，`offline-e2e` 还必须有独立的真实 Pi `1.4.0` 取消/超时场景：Fake Provider 在 Tool 或 Provider 流阶段按 fixture 延迟或保持连接，测试验证 `clear_queue`、`abort`、`agent_settled.aborted`、超时分类、进程终止和后续 Worker 状态。该场景可以使用新的 Pi PID，但不能用 Fake Pi 替代真实 Pi 合同证据。
+除三个成功任务外，真实 Pi E2E 还必须有独立的 Pi `1.4.0` 取消/超时场景：Fake Provider 在 Tool 或 Provider 流阶段按 fixture 延迟或保持连接，测试验证 `clear_queue`、`abort`、`agent_settled.aborted`、超时分类、进程终止和后续 Worker 状态。该场景可以使用新的 Pi PID，但不能用 Fake Pi 替代真实 Pi 合同证据。
 
-### 13.5 默认验证命令
+### 13.5 验证入口与职责边界
 
-首次 bootstrap：
+本节只规定验证类别和证据边界，不复制实施计划中的具体命令、测试类名或脚本路径。
 
-```bash
-"$DEMO_NODE_BIN" --version
-"$DEMO_NODE_BIN" "$DEMO_NPM_CLI" --version
-"$DEMO_NODE_BIN" "$DEMO_NPM_CLI" --prefix pi-extension ci --ignore-scripts
-./mvnw -version
-"$DEMO_NODE_BIN" -p "require('./pi-extension/node_modules/@earendil-works/pi-coding-agent/package.json').version"
-```
-
-上述版本检查必须输出 Node `v24.20.0`、npm `11.19.0` 和 Pi `1.4.0`；同时由 `.node-version` 和启动前检查保证 Node.js 满足 Pi `>=22.19.0` 的最低要求。
-
-日常验证：
-
-```bash
-"$DEMO_NODE_BIN" "$DEMO_NPM_CLI" --prefix pi-extension run check
-./mvnw test
-./mvnw -Poffline-e2e -DskipITs=false -DfailIfNoTests=true clean verify
-```
-
-Maven Failsafe 的 `offline-e2e` profile 包含 `PiV140BaseContractProbeIT`、`PiV140ToolContractProbeIT`、`RealPiFakeProviderIT` 和 `RealPiCancelTimeoutIT` 四类 Real Pi `1.4.0` 集成测试，显式设置 `failIfNoTests=true`。使用 `-Dit.test=<ClassName>` 运行单个 focused IT；不设置该过滤时，`clean verify` 运行 profile 中全部四类 IT。默认测试不得调用真实 Provider。
+- Bootstrap 必须检查 JDK、Maven Wrapper、Node.js `24.20.0`、npm `11.19.0`、Pi `1.4.0` 和两套 lockfile；具体环境变量和命令以实施计划为准。
+- 默认离线门禁必须覆盖 Java 单元/集成测试、架构规则、Extension 检查、Fake Pi、固定 Pi `1.4.0` 基础/Tool 合同探针，以及 Real Pi + Fake Provider 场景。
+- 默认门禁只允许 loopback Fake Provider，不调用真实 Provider，不读取真实凭据。
+- 真实 Provider Smoke 是独立的人工授权动作，不属于默认构建门禁。
+- 实施阶段的文件创建顺序、Failsafe profile、focused IT 选择、环境清理和验收命令统一维护在 [实施计划](../superpowers/plans/2026-10-24-spring-boot-pi-order-assistant.md) 中；若执行命令发生变化，只更新实施计划，不在本设计文档复制一份命令表。
 
 ## 14. 分阶段实施门禁
 
-| 阶段 | 实现内容 | 直接验证 | 进入下一阶段的条件 |
+本表是稳定的高层验收合同。每阶段的具体任务、文件、测试类、命令和直接证据记录在[实施计划](../superpowers/plans/2026-10-24-spring-boot-pi-order-assistant.md)中。
+
+| 阶段 | 实现范围 | 必须取得的证据 | 进入下一阶段的条件 |
 |---|---|---|---|
-| 0 | 版本、Wrapper、项目骨架、包依赖和统一包络 | Wrapper、版本检查、ArchitectureRules、MockMvc | 版本和基础构建可重复 |
-| 1 | 订单聚合、Demo identity、权限和三个投影 | `OrderAccessServiceTest` | tenant/owner/白名单证据通过 |
-| 2 | `pi.runtime`、真实 Pi 启动探针、Fake Pi、AgentDefinition | decoder/client、Fake Pi transport tests、`PiV140BaseContractProbeIT` 和 readiness 测试 | 真实 Pi `1.4.0` 能启动、响应、完成基础 RPC 合同探针、覆盖取消或超时、关闭，并取得固定基础合同证据 |
-| 3 | `query_order` Extension 和最小真实 Pi 垂直链路 | Node Tool Test、`PiV140ToolContractProbeIT` + 单场景 RealPiFakeProviderIT | Java → Pi → Extension → Bridge → Tool Result → settled 完整，且固定 Tool 合同已实测 |
-| 4 | 三个 Tool、reservation、Tracker 和业务结果判定 | Extension/Tracker/Bridge 测试 | Tool、参数和终态矩阵证据通过 |
-| 5 | submit/status、单活动任务和 TaskStore | API integration tests | 202/429/404/运行态/终态行为固定 |
-| 6 | cancel、timeout、heartbeat 和 shutdown | Worker/Lifecycle/Fake Pi 测试 + 真实 Pi 取消/超时 E2E | 取消双收敛、超时分类、关闭预算和真实 Pi abort 合同通过 |
-| 7 | `new_session` reset 与跨任务隔离 | reset tests + 两任务 E2E | 旧上下文不能进入下一任务 |
-| 8 | 同一 PID 顺序三任务 E2E、README 和教学笔记 | `offline-e2e clean verify` 和手工验收 | 默认门禁全部通过 |
-| 9 | 可选真实 Provider Smoke | 每次单独授权后人工执行 | 不作为默认构建门禁 |
+| 0 | 版本、Wrapper、项目骨架、包依赖和统一包络 | 固定版本、基础启动、架构边界和 HTTP 包络可重复验证 | 基础构建可重复 |
+| 1 | 订单聚合、Demo identity、权限、三个投影和请求边界 | tenant/owner 隔离、白名单投影、请求包络和大小限制 | 订单与请求边界证据通过 |
+| 2 | `pi.runtime`、Fake Pi、AgentDefinition 和真实 Pi 基础合同 | LF JSONL、Command/Event、readiness、取消/超时和关闭的固定 Pi 证据 | 基础 runtime 合同通过 |
+| 3 | `query_order` Extension 和最小真实 Pi 垂直链路 | Java → Pi → Extension → Bridge → Tool Result → settled，以及 Tool 合同证据 | 第一条真实 Tool 链路完整 |
+| 4 | 三个 Tool、reservation、Tracker 和业务结果判定 | Tool、参数、权限、顺序和终态矩阵 | 业务 Tool 合同通过 |
+| 5 | submit/status、单活动任务和 TaskStore | 202/429/404/503、运行态、终态和 TTL 行为 | 公共 API 合同固定 |
+| 6 | cancel、timeout、heartbeat 和 shutdown | 取消双收敛、超时分类、关闭预算和进程清理 | 生命周期证据通过 |
+| 7 | `new_session` reset 与跨任务隔离 | reset 后旧上下文不能进入新任务 | Session 隔离证据通过 |
+| 8 | 同一 PID 顺序三任务 E2E、README 和教学笔记 | 默认离线门禁和手工验收全部通过 | 默认验收完成 |
+| 9 | 可选真实 Provider Smoke | 每次单独授权后的有界人工证据 | 不作为默认构建门禁 |
 
 阶段 2 必须先证明 runtime/Worker 不依赖订单夹具。阶段 3 随即建立真实 Pi 垂直链路，不能等所有加固代码完成后才首次集成。阶段 6 和 7 在基本业务闭环 Green 后再增加生命周期复杂度。
 
