@@ -1,0 +1,5 @@
+# Local IDE metadata
+.idea/
+
+# Installed dependencies
+node_modules/
