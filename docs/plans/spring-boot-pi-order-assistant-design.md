@@ -2,7 +2,7 @@
 
 > 研究日期：2026-10-22
 > 修订目标：实现一个有完整学习价值、但不按生产平台复杂度建设的 Spring Boot + Pi RPC Demo。
-> 当前状态：技术方案已完成结构化修订；尚未编码、运行测试或调用真实 Provider。
+> 当前状态：技术方案已完成结构化修订并经学习者确认，实施计划已写入 `docs/superpowers/plans/2026-10-24-spring-boot-pi-order-assistant.md`；尚未编码、运行测试或调用真实 Provider。
 > 适用版本：Pi `1.4.0`。实现必须继续使用精确版本和 lockfile，不使用浮动 `latest`。
 > 本文是实施依据，不代表代码、测试、真实 Provider 或运行结果已经完成。
 
@@ -133,22 +133,88 @@ Provider 会看到用户问题、订单号、`runId`、三个 Tool Schema 和被
 保持单 Maven Module，通过包和 ArchUnit 约束边界：
 
 ```text
-web
-  -> order.application
-      -> agent
-          -> pi.runtime
-      -> order.domain
-      -> order.security
+web -> order.application
+order.application -> order.domain + agent.application + security
+agent.application -> agent.model + agent.port
+infrastructure.order -> order.domain.port
+infrastructure.pi -> agent.port + pi.runtime
+pi.runtime -> Node/Pi RPC 合同
 ```
 
 具体要求：
 
 - `pi.runtime` 只处理 Pi 协议和进程，不依赖 agent/order/web/security。
-- `agent` 组合 runtime 并定义 Worker/Run 合同，不依赖 order/web。
-- `order.application` 创建 `OrderRunTracker`、调用 PiWorker，并连接订单领域与统一 API。
+- `agent.application` 只组合 Agent Run、Tracker 和 `PiWorker` Port，不依赖 order/web。
+- `order.application` 创建 `OrderRunTracker`、调用 `AgentRunCoordinator`，并连接订单领域与统一 API。
+- `infrastructure.pi` 提供 `PiWorker` 的实现，使用 `pi.runtime` 完成进程和 RPC 操作。
 - `web` 不直接调用 `PiRpcClient` 或 `PiProcessManager`。
-- 首版不实现动态 Agent Registry、插件加载、反射或 ServiceLoader。
-- 出现第二种 Agent 后再评估是否提取独立 runtime Module。
+### 2.4 学习型代码骨架：模块化单体 + 轻量 DDD
+
+本项目采用一个 Spring Boot Maven Module，通过包边界和 ArchUnit 约束模块依赖；不拆分微服务，也不提前引入数据库、消息队列或领域事件基础设施。DDD 在这里用于分离订单业务规则、Agent 任务编排和 Pi 技术运行时，让每一步都能单独学习和验证。
+
+逻辑边界分为三个部分：
+
+- `order` 是订单业务边界，负责 `Order` 聚合、标识值对象、租户/owner 权限和三个白名单投影。
+- `security` 是独立的跨领域边界，负责 `DemoIdentityService` 和 canonical principal；`order.application` 可以使用它，`order.domain` 不直接依赖安全实现。
+- `agent` 是任务编排边界，负责一次 Agent Run 的生命周期、活动任务限制、取消、超时、reset 和最终结果合同。
+- `pi.runtime` 是技术运行时边界，负责 Pi 子进程、stdin/stdout、严格 LF JSONL、Command Response 和 Pi Event；它不依赖订单、Web 或安全包。
+
+建议的 Java 包骨架为：
+
+```text
+src/main/java/com/xiexu/pistudy/
+├── web/
+│   └── OrderAssistantController
+├── order/
+│   ├── domain/
+│   │   ├── model/       # Order、OrderId、TenantId、OrderStatus
+│   │   ├── service/     # OrderAccessService
+│   │   └── port/        # OrderRepository
+│   └── application/     # OrderAssistantService、OrderRunTracker、DTO
+├── agent/
+│   ├── application/     # AgentRunCoordinator
+│   ├── model/           # AgentRun、AgentRunStatus、AgentRunResult
+│   └── port/            # PiWorker、AgentRunTracker
+├── pi/runtime/          # PiProcessManager、PiRpcClient、LfJsonlDecoder、RpcRecord
+├── security/            # DemoIdentityService
+└── infrastructure/
+    ├── order/            # InMemoryOrderRepository，实现 order.domain.port.OrderRepository
+    └── pi/               # ProcessPiWorker，实现 agent.port.PiWorker
+```
+
+依赖方向固定为：
+
+```text
+web -> order.application
+order.application -> order.domain + agent.application + security
+agent.application -> agent.model + agent.port
+infrastructure.order -> order.domain.port
+infrastructure.pi -> agent.port + pi.runtime
+pi.runtime -> Node/Pi RPC 合同
+```
+
+`Order` 可以作为教学用的只读聚合根，`OrderId`、`TenantId` 和 `RunId` 使用值对象表达边界；`OrderAccessService` 集中执行 tenant、owner 和白名单字段规则。`OrderAssistantService` 是应用服务，负责创建 `taskId`、`runId`、可信资源绑定和一次用例编排。
+
+`AgentRun` 是任务执行模型，不属于 `Order` 聚合。通用 `AgentRunTracker` 放在 `agent` 边界，订单专用的 `OrderRunTracker` 放在 `order.application`，这样通用 Pi Worker 不需要 import `Order`、Controller、Demo principal 或订单错误码。`PiWorker` 只接受领域无关的 `AgentRunRequest`，返回领域无关的 `AgentRunResult`。
+
+首版明确不引入通用 Repository、领域事件总线、CQRS、Event Sourcing、动态 Agent Registry、反射调用和微服务拆分。等出现第二种 Agent 或第二个 Worker，再评估是否提取对应管理层。
+
+### 2.5 垂直切片学习顺序
+
+实施按能运行、能测试、能解释的垂直切片推进，不先搭完整空架子：
+
+| 切片 | 主要内容 | 学习与验证重点 |
+|---|---|---|
+| 0 | `Order`、值对象、内存仓库和访问规则 | DDD 基础、租户隔离、白名单投影 |
+| 1 | `LfJsonlDecoder`、`PiRpcClient` 和 Fake RPC Server | ProcessBuilder、严格 JSONL、Response/Event 分离 |
+| 2 | `AgentRun`、`PiWorker`、`OrderRunTracker` | 单活动任务、状态机、取消、超时和 settled |
+| 3 | 一个 `query_order` Tool 的真实 Pi 链路 | Java → Pi → Extension → Bridge → Tool Result |
+| 4 | 三个订单 Tool、reservation 和权限 Bridge | Tool 合同、进程 Token、订单授权和失败矩阵 |
+| 5 | submit/status/cancel API 与 shutdown/reset | Spring MVC、任务快照、生命周期和资源清理 |
+| 6 | Fake Provider E2E、同一 PID 顺序多任务和文档 | 确定性端到端证据、跨任务上下文隔离和教学收口 |
+
+每个切片完成后先取得对应测试证据，再进入下一切片；真实 Provider Smoke 继续保留在全部离线门禁通过之后，并且单独取得授权。上述学习顺序与第 14 节的实施门禁对应，但它把每个大阶段进一步拆成了可以独立理解的最小闭环。
+
 
 ## 3. 固定版本与启动环境
 
@@ -353,7 +419,7 @@ Java 类型为 `ApiRequest<T>`。
 - question 中的控制字符按 JSON 输入校验规则处理；不得把用户文字未经 JSON 编码直接拼入 Prompt。
 - 客户端不能提交 tenant、角色、principal、Tool allowlist 或 capability secret。
 
-`OrderAssistantService` 先创建 `taskId`、`runId`、`OrderRunTracker` 和 `AgentRunRequest`，再提交给 `PiWorker`。只有同时收到：
+`OrderAssistantService` 先创建 `taskId`、`runId`、`OrderRunTracker` 和 `AgentRunRequest`，再交给 `AgentRunCoordinator`；Coordinator 通过 `PiWorker` Port 提交给当前 Worker。只有同时收到：
 
 ```json
 {
@@ -545,7 +611,7 @@ AgentRunRequest
   actorId       // 当前为 Demo userId
   resourceId    // 当前为 orderId
   prompt
-  tracker       // 当前为 OrderRunTracker
+  tracker       // 静态类型为 AgentRunTracker；当前注入 OrderRunTracker
 ```
 
 AgentRunResult 是领域无关结果：
@@ -557,7 +623,7 @@ usedTools   // 固定 Tool 名，最多三个
 errorCode    // 终态失败时的固定机器码
 ```
 
-`PiWorker` 不 import `Order`、`DemoPrincipal`、Controller 或订单错误码。订单规则由 `OrderRunTracker` 和 `OrderAssistantService` 组合完成。
+`PiWorker` 不 import `Order`、`DemoPrincipal`、Controller 或订单错误码。订单规则由 `OrderRunTracker` 和 `OrderAssistantService` 组合完成。`AgentRunTracker` 是 `agent.port` 中的接口；`OrderRunTracker` 位于 `order.application` 并实现该接口。`OrderAssistantService` 创建具体 Tracker，把它作为 `AgentRunRequest.tracker` 传给 `AgentRunCoordinator`；后者只按 `AgentRunTracker` 接口把 Request 交给 `PiWorker`，因此 `agent.application` 和 `PiWorker` 都不依赖订单具体类型。
 
 ### 6.3 AgentRunTracker
 
@@ -1246,18 +1312,12 @@ Health 至少返回：
 - Tool Result 只返回业务 `data`；
 - `npm run check` 固定执行 typecheck 和测试。
 
-Extension 测试必须结合一个固定 Pi `1.4.0` Contract Probe 和真实 Pi E2E 验证；二者不能互相替代。Contract Probe 是阶段 2 的硬门禁，必须使用固定版本发布包记录以下实际合同：
+Extension 测试必须结合固定 Pi `1.4.0` 的分层 Contract Probe 和真实 Pi E2E 验证；二者不能互相替代。证据分为两个阶段：
 
-- `prompt` 的 `started/queued/handled/rejected` Response；
-- `clear_queue` 的成功、失败和非空队列 Response；
-- `abort` 的成功、失败和等待 Session idle 的行为；
-- `new_session`、`get_state` 和 `get_commands` 的字段形状；
-- `agent_start`、`agent_end`、`agent_settled` 的事件形状和顺序；
-- `tool_execution_start/end`、Assistant ToolCall 和 `toolResult` Message 的字段关联；
-- `outputSchema`、`structuredContent`、`details` 和 `isError` 在 Extension API 与 RPC Event 中的实际表示；
-- `--no-extensions` 与显式 `--extension`、自定义 Flag、`executionMode="sequential"` 和 `--offline` 的实际行为。
+1. **Stage 2 Base Contract Probe**：使用完整的固定订单 Extension 和 exact Tool set，但只验证 Pi 进程启动、readiness、Command Response、基础 Agent/Event/settled 字段、取消或超时收敛和关闭；Probe 不发送会触发订单 Tool 的 Prompt，因此不宣称已经验证 Tool execution。Base Probe 记录 `prompt` 的 `started/queued/handled/rejected` Response、`clear_queue`、`abort`、`new_session`、`get_state`、`get_commands`、`get_available_models`、`agent_start`、`agent_end` 和 `agent_settled` 的字段形状与顺序。Base Probe 的 readiness 可以把三个 active Tool 名称作为 Extension 加载前提，但不验证 Tool Schema、Tool Result 或 `executionMode`。
+2. **Stage 3 Tool Contract Probe**：在 `query_order` 最小真实链路完成后，验证显式 Extension 加载、三个 active Tool、Tool execution、Assistant ToolCall、Tool Result、`outputSchema`、`structuredContent`、`details`、`isError` 和 `executionMode="sequential"` 的固定 Pi `1.4.0` 表示；Probe 使用同一 Assistant Message 中的至少两个不同 Tool Call，断言第二个 Tool 的 start 发生在第一个 Tool 的 end/result 之后。placeholder Tool 的固定错误可以作为顺序探针结果，但不能被当成业务成功。
 
-Contract Probe 必须至少包含一次取消或超时场景，记录 `clear_queue`、`abort`、`agent_settled` 和进程状态的实际先后顺序。Probe 的 fixture 和报告绑定 Pi `1.4.0`，不能只链接 `/latest` 文档或依赖普通成功 E2E。
+两层 Probe 都必须使用固定版本发布包、受控临时 AgentDir 和 loopback Fake Provider；Base Probe 必须至少包含一次取消或超时场景并记录 `clear_queue`、`abort`、`agent_settled` 和进程状态的实际先后顺序。Probe 的 fixture 和报告绑定 Pi `1.4.0`，不能只链接 `/latest` 文档或依赖普通成功 E2E。
 
 Extension 测试还必须验证：
 
@@ -1342,12 +1402,14 @@ Fake Provider 的 Tool 选择是脚本化测试数据，只证明链路和 Route
 首次 bootstrap：
 
 ```bash
+"$DEMO_NODE_BIN" --version
+"$DEMO_NODE_BIN" "$DEMO_NPM_CLI" --version
 "$DEMO_NODE_BIN" "$DEMO_NPM_CLI" --prefix pi-extension ci --ignore-scripts
 ./mvnw -version
 "$DEMO_NODE_BIN" -p "require('./pi-extension/node_modules/@earendil-works/pi-coding-agent/package.json').version"
 ```
 
-上述版本检查必须输出 `1.4.0`；同时由 `.node-version` 和启动前检查保证 Node.js 满足 `>=22.19.0`。
+上述版本检查必须输出 Node `v24.20.0`、npm `11.19.0` 和 Pi `1.4.0`；同时由 `.node-version` 和启动前检查保证 Node.js 满足 Pi `>=22.19.0` 的最低要求。
 
 日常验证：
 
@@ -1357,7 +1419,7 @@ Fake Provider 的 Tool 选择是脚本化测试数据，只证明链路和 Route
 ./mvnw -Poffline-e2e -DskipITs=false -DfailIfNoTests=true clean verify
 ```
 
-Maven Failsafe 的 `offline-e2e` profile 只包含 `RealPiFakeProviderIT`，显式设置 `failIfNoTests=true`。默认测试不得调用真实 Provider。
+Maven Failsafe 的 `offline-e2e` profile 包含 `PiV140BaseContractProbeIT`、`PiV140ToolContractProbeIT`、`RealPiFakeProviderIT` 和 `RealPiCancelTimeoutIT` 四类 Real Pi `1.4.0` 集成测试，显式设置 `failIfNoTests=true`。使用 `-Dit.test=<ClassName>` 运行单个 focused IT；不设置该过滤时，`clean verify` 运行 profile 中全部四类 IT。默认测试不得调用真实 Provider。
 
 ## 14. 分阶段实施门禁
 
@@ -1365,8 +1427,8 @@ Maven Failsafe 的 `offline-e2e` profile 只包含 `RealPiFakeProviderIT`，显�
 |---|---|---|---|
 | 0 | 版本、Wrapper、项目骨架、包依赖和统一包络 | Wrapper、版本检查、ArchitectureRules、MockMvc | 版本和基础构建可重复 |
 | 1 | 订单聚合、Demo identity、权限和三个投影 | `OrderAccessServiceTest` | tenant/owner/白名单证据通过 |
-| 2 | `pi.runtime`、真实 Pi 启动探针、Fake Pi、AgentDefinition | decoder/client/`PiRpcContractProbe`/启动 readiness 测试 | 真实 Pi `1.4.0` 能启动、响应、关闭，并取得固定 RPC 合同证据 |
-| 3 | `query_order` Extension 和最小真实 Pi 垂直链路 | Node Tool Test + 单场景 RealPiFakeProviderIT | Java → Pi → Extension → Bridge → Tool Result → settled 完整 |
+| 2 | `pi.runtime`、真实 Pi 启动探针、Fake Pi、AgentDefinition | decoder/client、Fake Pi transport tests、`PiV140BaseContractProbeIT` 和 readiness 测试 | 真实 Pi `1.4.0` 能启动、响应、完成基础 RPC 合同探针、覆盖取消或超时、关闭，并取得固定基础合同证据 |
+| 3 | `query_order` Extension 和最小真实 Pi 垂直链路 | Node Tool Test、`PiV140ToolContractProbeIT` + 单场景 RealPiFakeProviderIT | Java → Pi → Extension → Bridge → Tool Result → settled 完整，且固定 Tool 合同已实测 |
 | 4 | 三个 Tool、reservation、Tracker 和业务结果判定 | Extension/Tracker/Bridge 测试 | Tool、参数和终态矩阵证据通过 |
 | 5 | submit/status、单活动任务和 TaskStore | API integration tests | 202/429/404/运行态/终态行为固定 |
 | 6 | cancel、timeout、heartbeat 和 shutdown | Worker/Lifecycle/Fake Pi 测试 + 真实 Pi 取消/超时 E2E | 取消双收敛、超时分类、关闭预算和真实 Pi abort 合同通过 |
