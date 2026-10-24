@@ -1,3 +1,6 @@
 {
-  "defaultThinkingLevel": "xhigh"
+  "defaultThinkingLevel": "xhigh",
+  "extensions": [
+    "-extensions/pi-study-guard/index.ts"
+  ]
 }
