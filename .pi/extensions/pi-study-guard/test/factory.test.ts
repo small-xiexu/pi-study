@@ -301,7 +301,7 @@ test("the main factory wires both shell gate adapters with real rejection behavi
   }
 });
 
-test("the main factory renders the Widget after restore and after a committed decision", async () => {
+test("the main factory keeps the Widget hidden after restore, decisions, and shutdown", async () => {
   const previousTrace = process.env[LIFECYCLE_TRACE_ENV];
   delete process.env[LIFECYCLE_TRACE_ENV];
   const handlers = new Map<string, EventHandler[]>();
@@ -349,8 +349,7 @@ test("the main factory renders the Widget after restore and after a committed de
   try {
     registerPiStudyGuard(fakeApi);
     await dispatch("session_start", { type: "session_start", reason: "startup" });
-    assert.equal(widgetCalls.length, 1);
-    assert.equal(widgetCalls[0]!.key, "pi-study-guard.shell-state");
+    assert.equal(widgetCalls.length, 0);
 
     await dispatch("user_bash", {
       type: "user_bash",
@@ -358,12 +357,10 @@ test("the main factory renders the Widget after restore and after a committed de
       cwd: "/redacted/course-root",
       excludeFromContext: false,
     });
-    assert.equal(widgetCalls.length, 2);
-    assert.equal(widgetCalls[1]!.key, widgetCalls[0]!.key);
+    assert.equal(widgetCalls.length, 0);
 
     await dispatch("session_shutdown", { type: "session_shutdown", reason: "quit" });
-    assert.equal(widgetCalls.length, 3);
-    assert.equal(widgetCalls[2]!.content, undefined);
+    assert.equal(widgetCalls.length, 0);
   } finally {
     restoreEnvironment(previousTrace);
   }

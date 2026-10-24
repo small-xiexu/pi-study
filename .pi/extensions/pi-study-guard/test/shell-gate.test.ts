@@ -533,7 +533,7 @@ function createRunner(handlers: Map<string, EventHandler[]>) {
   );
 }
 
-test("a raw user_bash handler failure is fail-open at the Pi runner boundary", async () => {
+test("a raw user_bash handler failure is fail-closed at the Pi 1.4.0 runner boundary", async () => {
   let afterFailureCount = 0;
   const runner = createRunner(new Map([
     [
@@ -551,13 +551,12 @@ test("a raw user_bash handler failure is fail-open at the Pi runner boundary", a
   const runnerErrors: string[] = [];
   runner.onError(({ error }) => runnerErrors.push(error));
 
-  let defaultExecutorCount = 0;
-  const result = await runner.emitUserBash(userEvent(MARKER_COMMAND));
-  if (result?.result === undefined && result?.operations === undefined) defaultExecutorCount += 1;
+  await assert.rejects(
+    runner.emitUserBash(userEvent(MARKER_COMMAND)),
+    /SECRET_RAW_HANDLER_FAILURE/,
+  );
 
-  assert.equal(result, undefined);
-  assert.equal(defaultExecutorCount, 1);
-  assert.equal(afterFailureCount, 1);
+  assert.equal(afterFailureCount, 0);
   assert.deepEqual(runnerErrors, ["SECRET_RAW_HANDLER_FAILURE"]);
 });
 

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { validateToolArguments } from "../node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/utils/validation.js";
+import { validateToolArguments } from "../node_modules/@earendil-works/pi-ai/dist/utils/validation.js";
 
 import {
   createPiStudyInspectTool,
@@ -62,7 +62,7 @@ test("the inspect Tool registers one strict and discoverable contract", () => {
           type: "toolCall",
           id: "call-invalid",
           name: INSPECT_TOOL_NAME,
-          arguments: args,
+          arguments: args as any,
         }),
       /Validation failed/,
     );

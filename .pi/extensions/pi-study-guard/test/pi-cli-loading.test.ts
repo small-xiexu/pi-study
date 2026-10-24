@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { GUARD_FLAG } from "../index.ts";
 
 const PI_CLI_PATH = fileURLToPath(
-  new URL("../node_modules/@earendil-works/pi-coding-agent/dist/cli.js", import.meta.url),
+  new URL("../node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js", import.meta.url),
 );
 const EXTENSION_PATH = fileURLToPath(new URL("../index.ts", import.meta.url));
 
