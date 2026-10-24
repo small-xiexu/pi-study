@@ -1,4 +1,3 @@
-import { Text } from "@earendil-works/pi-tui";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 import type {
@@ -18,64 +17,23 @@ export interface ShellWidgetController {
   clear(): void;
 }
 
-function decisionText(snapshot: ShellStateSnapshot): string {
-  const decision = snapshot.lastDecision;
-  if (!decision) return "none";
-  return `${decision.entry}/${decision.rule}/${decision.decision}/${decision.reason}`;
-}
-
-function statusColor(
-  snapshot: ShellStateSnapshot,
-  status: ShellStateStatus,
-): "success" | "error" | "warning" | "muted" {
-  if (status !== "ready") return "warning";
-  if (!snapshot.lastDecision) return "muted";
-  return snapshot.lastDecision.decision === "allow" ? "success" : "error";
-}
-
+/**
+ * The shell gate remains enforced by shell-gate.ts. This controller intentionally
+ * keeps its status widget hidden to avoid adding a persistent banner above the
+ * editor.
+ */
 export function createShellWidgetController(): ShellWidgetController {
-  let context: WidgetContext | undefined;
-  let mounted = false;
-
   return {
-    bind(ctx) {
-      context = ctx;
+    bind(_ctx) {
+      // The gate state is still restored and published; only its visual widget is hidden.
     },
 
-    render(snapshot, status) {
-      if (!context || context.mode !== "tui" || !context.hasUI) return;
-
-      try {
-        mounted = true;
-        const color = statusColor(snapshot, status);
-        const title = status === "ready" ? "Shell Gate | enforce" : "Shell Gate | unavailable";
-        const detail =
-          status === "ready"
-            ? `blocked=${snapshot.blockedCount} | last=${decisionText(snapshot)}`
-            : `status=${status}`;
-        context.ui.setWidget(
-          SHELL_WIDGET_KEY,
-          (_tui, theme) =>
-            new Text(
-              `${theme.fg("accent", title)}\n${theme.fg(color, detail)}`,
-              0,
-              0,
-            ),
-          { placement: "aboveEditor" },
-        );
-      } catch {
-        // Widget rendering is presentation-only and cannot affect the gate.
-      }
+    render(_snapshot, _status) {
+      // Intentionally do not call setWidget(). Enforcement is presentation-independent.
     },
 
     clear() {
-      if (!context || !mounted) return;
-      try {
-        context.ui.setWidget(SHELL_WIDGET_KEY, undefined);
-      } catch {
-        // Cleanup remains best effort; the owning runtime is already ending.
-      }
-      mounted = false;
+      // No widget is mounted, so there is nothing to clean up.
     },
   };
 }
